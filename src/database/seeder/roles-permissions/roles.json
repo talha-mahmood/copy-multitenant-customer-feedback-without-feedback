@@ -1,18 +1,14 @@
 [
   {
-    "name": "super-admin",
-    "display_name": "Super Admin"
-  },
-  {
     "name": "admin",
     "display_name": "Administrator"
   },
   {
-    "name": "employee",
-    "display_name": "Employee"
+    "name": "merchant",
+    "display_name": "Merchant"
   },
   {
-    "name": "resident",
-    "display_name": "Resident"
+    "name": "customer",
+    "display_name": "Customer"
   }
 ]

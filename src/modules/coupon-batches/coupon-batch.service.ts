@@ -61,18 +61,18 @@ export class CouponBatchService {
    * Validate batch type based on merchant type
    */
   private async validateBatchType(merchant: Merchant, batchType: string): Promise<void> {
-    if (merchant.merchantType === 'temporary' && batchType === 'annual') {
+    if (merchant.merchant_type === 'temporary' && batchType === 'annual') {
       throw new BadRequestException(
         'Temporary merchants can only create temporary batches',
       );
     }
 
-    if (merchant.merchantType === 'permanent' && batchType === 'temporary') {
+    if (merchant.merchant_type === 'permanent' && batchType === 'temporary') {
       // Permanent merchants can create both types - no error
       return;
     }
 
-    if (merchant.merchantType === 'permanent' && batchType === 'annual') {
+    if (merchant.merchant_type === 'permanent' && batchType === 'annual') {
       // Permanent merchants can create annual batches - no error
       return;
     }

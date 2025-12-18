@@ -1,40 +1,46 @@
 import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class CreateMerchantDto {
-  @IsNotEmpty()
-  @IsString()
-  name: string;
-
+  // User fields
   @IsNotEmpty()
   @IsEmail()
   email: string;
 
   @IsNotEmpty()
   @IsString()
-  phone: string;
+  @MinLength(6)
+  password: string;
 
+  @IsNotEmpty()
+  @IsString()
+  firstName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  lastName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  role: string; // 'merchant'
+
+  // Merchant fields
   @IsOptional()
   @IsString()
   address?: string;
 
   @IsNotEmpty()
   @IsString()
-  businessName: string;
+  business_name: string;
 
   @IsNotEmpty()
   @IsString()
-  businessType: string;
+  business_type: string;
 
   @IsNotEmpty()
   @IsString()
-  merchantType: string; // 'temporary' or 'permanent'
+  merchant_type: string; // 'temporary' or 'permanent'
 
   @IsOptional()
   @IsString()
-  taxId?: string;
-
-  @IsNotEmpty()
-  @IsString()
-  @MinLength(6)
-  password: string;
+  tax_id?: string;
 }
