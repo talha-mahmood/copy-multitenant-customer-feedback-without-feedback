@@ -1,0 +1,18 @@
+[
+  {
+    "name": "super-admin",
+    "display_name": "Super Admin"
+  },
+  {
+    "name": "admin",
+    "display_name": "Administrator"
+  },
+  {
+    "name": "employee",
+    "display_name": "Employee"
+  },
+  {
+    "name": "resident",
+    "display_name": "Resident"
+  }
+]
