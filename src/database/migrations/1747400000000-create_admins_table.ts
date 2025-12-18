@@ -38,14 +38,9 @@ export class CreateAdminsTable1747400000000 implements MigrationInterface {
             type: 'varchar',
           },
           {
-            name: 'isActive',
+            name: 'is_active',
             type: 'boolean',
             default: true,
-          },
-          {
-            name: 'isSuperAdmin',
-            type: 'boolean',
-            default: false,
           },
           {
             name: 'created_at',
