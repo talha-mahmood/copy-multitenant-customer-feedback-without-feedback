@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table } from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm';
 
 export class CreateMerchantsTable1747400000001 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -14,19 +14,9 @@ export class CreateMerchantsTable1747400000001 implements MigrationInterface {
             generationStrategy: 'increment',
           },
           {
-            name: 'name',
-            type: 'varchar',
-            length: '100',
-          },
-          {
-            name: 'email',
-            type: 'varchar',
-            isUnique: true,
-          },
-          {
-            name: 'phone',
-            type: 'varchar',
-            isUnique: true,
+            name: 'user_id',
+            type: 'int',
+            isNullable: false,
           },
           {
             name: 'address',
@@ -34,34 +24,25 @@ export class CreateMerchantsTable1747400000001 implements MigrationInterface {
             isNullable: true,
           },
           {
-            name: 'businessName',
+            name: 'business_name',
             type: 'varchar',
             length: '255',
           },
           {
-            name: 'businessType',
+            name: 'business_type',
             type: 'varchar',
             length: '100',
           },
           {
-            name: 'merchantType',
+            name: 'merchant_type',
             type: 'varchar',
             length: '50',
           },
           {
-            name: 'taxId',
+            name: 'tax_id',
             type: 'varchar',
             length: '100',
             isNullable: true,
-          },
-          {
-            name: 'password',
-            type: 'varchar',
-          },
-          {
-            name: 'isActive',
-            type: 'boolean',
-            default: true,
           },
           {
             name: 'created_at',
@@ -82,9 +63,28 @@ export class CreateMerchantsTable1747400000001 implements MigrationInterface {
       }),
       true,
     );
+
+    await queryRunner.createForeignKey(
+      'merchants',
+      new TableForeignKey({
+        columnNames: ['user_id'],
+        referencedColumnNames: ['id'],
+        referencedTableName: 'users',
+        onDelete: 'CASCADE',
+      }),
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    const table = await queryRunner.getTable('merchants');
+    if (table) {
+      const foreignKey = table.foreignKeys.find(
+        (fk) => fk.columnNames.indexOf('user_id') !== -1,
+      );
+      if (foreignKey) {
+        await queryRunner.dropForeignKey('merchants', foreignKey);
+      }
+    }
     await queryRunner.dropTable('merchants');
   }
 }

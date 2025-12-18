@@ -1,17 +1,34 @@
-import { Column, Entity, OneToMany } from 'typeorm';
-import { Exclude } from 'class-transformer';
+import { Column, Entity, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from 'src/common/entities/base.entity';
+import { User } from 'src/modules/users/entities/user.entity';
 
 @Entity('merchants')
 export class Merchant extends BaseEntity {
-  @Column({ length: 100 }) name: string;
-  @Column({ unique: true }) email: string;
-  @Column({ unique: true }) phone: string;
-  @Column({ type: 'text', nullable: true }) address: string;
-  @Column({ length: 255 }) businessName: string;
-  @Column({ length: 100 }) businessType: string;
-  @Column({ length: 50 }) merchantType: string; // 'temporary' or 'permanent'
-  @Column({ length: 100, nullable: true }) taxId: string;
-  @Exclude() @Column() password: string;
-  @Column({ default: true }) isActive: boolean;
+  @Column({ name: 'user_id' })
+  user_id: number;
+
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @Column({ type: 'text', nullable: true })
+  address: string;
+
+  @Column({ name: 'business_name', length: 255 })
+  business_name: string;
+
+  @Column({ name: 'business_type', length: 100 })
+  business_type: string;
+
+  @Column({ name: 'merchant_type', length: 50 })
+  merchant_type: string; // 'temporary' or 'permanent'
+
+  @Column({ name: 'tax_id', length: 100, nullable: true })
+  tax_id: string;
+
+  @Column({ name: 'qr_code_url', type: 'text', nullable: true })
+  qr_code_url: string;
+
+  @Column({ name: 'qr_code_hash', length: 255, nullable: true })
+  qr_code_hash: string;
 }

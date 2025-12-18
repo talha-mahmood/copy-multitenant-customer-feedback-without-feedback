@@ -9,6 +9,5 @@ export class Admin extends BaseEntity {
   @Column({ unique: true }) phone: string;
   @Column({ nullable: true }) avatar: string;
   @Exclude() @Column() password: string;
-  @Column({ default: true }) isActive: boolean;
-  @Column({ default: false }) isSuperAdmin: boolean;
+  @Column({ name: 'is_active', default: true }) isActive: boolean;
 }

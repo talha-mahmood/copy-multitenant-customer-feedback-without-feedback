@@ -50,4 +50,14 @@ export class MerchantController {
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.merchantService.remove(id);
   }
+
+  @Get(':id/qr-code')
+  getQRCode(@Param('id', ParseIntPipe) id: number) {
+    return this.merchantService.getQRCode(id);
+  }
+
+  @Post(':id/generate-qr-code')
+  generateQRCode(@Param('id', ParseIntPipe) id: number) {
+    return this.merchantService.generateQRCode(id);
+  }
 }
