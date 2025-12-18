@@ -17,6 +17,12 @@ export { CustomerModule } from './customers/customer.module';
 // Feedback management
 export { FeedbackModule } from './feedbacks/feedback.module';
 
+// Coupon Batch management
+export { CouponBatchModule } from './coupon-batches/coupon-batch.module';
+
+// Coupon management
+export { CouponModule } from './coupons/coupon.module';
+
 //Enum
 export { EnumsModule } from './enums/enums.module';
 
