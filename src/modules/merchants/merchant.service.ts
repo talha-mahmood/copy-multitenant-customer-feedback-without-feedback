@@ -174,4 +174,69 @@ export class MerchantService {
       message: 'Merchant deleted successfully',
     };
   }
+
+  async getQRCode(id: number) {
+    const merchant = await this.merchantRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
+    
+    if (!merchant) {
+      throw new HttpException('Merchant not found', 404);
+    }
+
+    // If QR code not generated yet, generate it
+    if (!merchant.qr_code_url || !merchant.qr_code_hash) {
+      return this.generateQRCode(id);
+    }
+
+    return {
+      message: 'Success fetching QR code',
+      data: {
+        merchantId: merchant.id,
+        businessName: merchant.business_name,
+        qrCodeUrl: merchant.qr_code_url,
+        qrCodeHash: merchant.qr_code_hash,
+      },
+    };
+  }
+
+  async generateQRCode(id: number) {
+    const merchant = await this.merchantRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
+    
+    if (!merchant) {
+      throw new HttpException('Merchant not found', 404);
+    }
+
+    const baseUrl = process.env.APP_FRONTEND_URL || 'http://localhost:3000';
+    const secret = process.env.APP_KEY || 'default-secret';
+    
+    // Generate hash using merchant ID only
+    const hash = require('crypto')
+      .createHmac('sha256', secret)
+      .update(`merchant:${id}`)
+      .digest('hex')
+      .substring(0, 16);
+    
+    const qrCodeUrl = `${baseUrl}/feedback?mid=${id}&hash=${hash}`;
+    
+    // Update merchant with QR code info
+    await this.merchantRepository.update(id, {
+      qr_code_url: qrCodeUrl,
+      qr_code_hash: hash,
+    });
+
+    return {
+      message: 'QR code generated successfully',
+      data: {
+        merchantId: id,
+        businessName: merchant.business_name,
+        qrCodeUrl: qrCodeUrl,
+        qrCodeHash: hash,
+      },
+    };
+  }
 }

@@ -25,4 +25,10 @@ export class Merchant extends BaseEntity {
 
   @Column({ name: 'tax_id', length: 100, nullable: true })
   tax_id: string;
+
+  @Column({ name: 'qr_code_url', type: 'text', nullable: true })
+  qr_code_url: string;
+
+  @Column({ name: 'qr_code_hash', length: 255, nullable: true })
+  qr_code_hash: string;
 }

@@ -1,11 +1,13 @@
 import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { CouponBatch } from './entities/coupon-batch.entity';
+import { Coupon } from '../coupons/entities/coupon.entity';
 import { CreateCouponBatchDto } from './dto/create-coupon-batch.dto';
 import { UpdateCouponBatchDto } from './dto/update-coupon-batch.dto';
 import { instanceToPlain } from 'class-transformer';
 import { ConfigService } from '@nestjs/config';
 import { QRCodeHelper } from 'src/common/helpers/qrcode.helper';
+import { CouponCodeGenerator } from 'src/common/helpers/coupon-code-generator.helper';
 import { Merchant } from '../merchants/entities/merchant.entity';
 
 @Injectable()
@@ -15,46 +17,80 @@ export class CouponBatchService {
     private couponBatchRepository: Repository<CouponBatch>,
     @Inject('MERCHANT_REPOSITORY')
     private merchantRepository: Repository<Merchant>,
+    @Inject('COUPON_REPOSITORY')
+    private couponRepository: Repository<Coupon>,
+    @Inject('DATA_SOURCE')
+    private dataSource: DataSource,
     private configService: ConfigService,
   ) {}
 
   async create(createCouponBatchDto: CreateCouponBatchDto) {
-    // Validate merchant exists and check merchant type
-    const merchant = await this.merchantRepository.findOne({
-      where: { id: createCouponBatchDto.merchantId },
-    });
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (!merchant) {
-      throw new NotFoundException(`Merchant with ID ${createCouponBatchDto.merchantId} not found`);
+    try {
+      // Validate merchant exists and check merchant type
+      const merchant = await this.merchantRepository.findOne({
+        where: { id: createCouponBatchDto.merchantId },
+      });
+
+      if (!merchant) {
+        throw new NotFoundException(`Merchant with ID ${createCouponBatchDto.merchantId} not found`);
+      }
+
+      // Validate batch type based on merchant type
+      await this.validateBatchType(merchant, createCouponBatchDto.batchType);
+
+      // Validate dates
+      if (new Date(createCouponBatchDto.startDate) >= new Date(createCouponBatchDto.endDate)) {
+        throw new BadRequestException('Start date must be before end date');
+      }
+
+      // For temporary batches, validate quantity
+      if (createCouponBatchDto.batchType === 'temporary' && createCouponBatchDto.totalQuantity > 1000) {
+        throw new BadRequestException('Temporary batch cannot exceed 1000 coupons');
+      }
+
+      // Create batch
+      const couponBatch = queryRunner.manager.create(CouponBatch, createCouponBatchDto);
+      const savedBatch = await queryRunner.manager.save(couponBatch);
+
+      // Auto-generate coupons for the batch
+      const coupons: Coupon[] = [];
+      const secret = this.configService.get<string>('APP_KEY') || 'default-secret';
+      
+      for (let i = 0; i < createCouponBatchDto.totalQuantity; i++) {
+        const couponCode = CouponCodeGenerator.generate('CPN');
+        const qrHash = QRCodeHelper.generateHash(savedBatch.merchantId, savedBatch.id, secret);
+        
+        const coupon = queryRunner.manager.create(Coupon, {
+          batchId: savedBatch.id,
+          merchantId: savedBatch.merchantId,
+          couponCode: couponCode,
+          qrHash: qrHash,
+          status: 'issued',
+          issuedAt: new Date(),
+        });
+        coupons.push(coupon);
+      }
+
+      await queryRunner.manager.save(Coupon, coupons);
+      await queryRunner.commitTransaction();
+      
+      return {
+        message: `Coupon batch created successfully with ${coupons.length} coupons`,
+        data: {
+          ...instanceToPlain(savedBatch),
+          couponsGenerated: coupons.length,
+        },
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    // Validate batch type based on merchant type
-    await this.validateBatchType(merchant, createCouponBatchDto.batchType);
-
-    // Validate dates
-    if (new Date(createCouponBatchDto.startDate) >= new Date(createCouponBatchDto.endDate)) {
-      throw new BadRequestException('Start date must be before end date');
-    }
-
-    // For temporary batches, validate quantity
-    if (createCouponBatchDto.batchType === 'temporary' && createCouponBatchDto.totalQuantity > 1000) {
-      throw new BadRequestException('Temporary batch cannot exceed 1000 coupons');
-    }
-
-    const couponBatch = this.couponBatchRepository.create(createCouponBatchDto);
-    const savedBatch = await this.couponBatchRepository.save(couponBatch);
-
-    // Generate QR code URL and hash
-    const qrData = this.generateBatchQRData(savedBatch.merchantId, savedBatch.id);
-    
-    return {
-      message: 'Coupon batch created successfully',
-      data: {
-        ...instanceToPlain(savedBatch),
-        qrCodeUrl: qrData.url,
-        qrCodeImage: qrData.image,
-      },
-    };
   }
 
   /**
