@@ -35,21 +35,15 @@ export class UserService {
   }
 
   async findAll(page: number = 1, pageSize: number = 20, team: string = '', search = '') {
-    // Build the query with team filtering
+    // Build the query
     const queryBuilder = this.userRepository
-      .createQueryBuilder('user')
-      .leftJoinAndSelect('user.employee', 'employee')
-      .leftJoinAndSelect('employee.currentTeam', 'team');
+      .createQueryBuilder('user');
 
     if (search) {
       queryBuilder.andWhere(
         '(user.name ILIKE :search OR user.email ILIKE :search OR user.phone ILIKE :search)',
         { search: `%${search}%` },
       );
-    }
-
-    if (team && team.trim() !== '') {
-      queryBuilder.andWhere('team.name ILIKE :teamName', { teamName: `%${team}%` });
     }
 
     // Add pagination and ordering

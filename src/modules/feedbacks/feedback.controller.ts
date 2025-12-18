@@ -1,0 +1,54 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
+} from '@nestjs/common';
+import { FeedbackService } from './feedback.service';
+import { CreateFeedbackDto } from './dto/create-feedback.dto';
+import { UpdateFeedbackDto } from './dto/update-feedback.dto';
+import { ShowFeedbackDto } from './dto/show-feedback.dto';
+
+@Controller('feedbacks')
+export class FeedbackController {
+  constructor(private readonly feedbackService: FeedbackService) {}
+
+  @Post()
+  create(@Body() createFeedbackDto: CreateFeedbackDto) {
+    return this.feedbackService.create(createFeedbackDto);
+  }
+
+  @Get()
+  findAll(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
+    @Query('merchantId') merchantId?: number,
+    @Query('customerId') customerId?: number,
+  ) {
+    if (pageSize > 500) {
+      throw new Error('Page size cannot be greater than 500');
+    }
+    return this.feedbackService.findAll(page, pageSize, merchantId, customerId);
+  }
+
+  @Get(':id')
+  findOne(@Param() showFeedbackDto: ShowFeedbackDto) {
+    return this.feedbackService.findOne(showFeedbackDto.id);
+  }
+
+  @Patch(':id')
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateFeedbackDto: UpdateFeedbackDto) {
+    return this.feedbackService.update(id, updateFeedbackDto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.feedbackService.remove(id);
+  }
+}
