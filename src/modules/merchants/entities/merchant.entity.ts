@@ -31,4 +31,7 @@ export class Merchant extends BaseEntity {
 
   @Column({ name: 'qr_code_hash', length: 255, nullable: true })
   qr_code_hash: string;
+
+  @Column({ name: 'qr_code_image', type: 'text', nullable: true })
+  qr_code_image: string;
 }
