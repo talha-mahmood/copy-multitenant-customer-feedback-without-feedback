@@ -43,6 +43,17 @@ export class CreateCustomersTable1747400000002 implements MigrationInterface {
             default: true,
           },
           {
+            name: 'date_of_birth',
+            type: 'date',
+            isNullable: true,
+          },
+          {
+            name: 'gender',
+            type: 'varchar',
+            length: '20',
+            isNullable: true,
+          },
+          {
             name: 'created_at',
             type: 'timestamp',
             default: 'CURRENT_TIMESTAMP',

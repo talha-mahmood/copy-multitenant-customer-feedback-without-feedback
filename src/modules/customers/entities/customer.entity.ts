@@ -17,4 +17,10 @@ export class Customer extends BaseEntity {
   @Column({ unique: true }) phone: string;
   @Exclude() @Column() password: string;
   @Column({ default: true }) isActive: boolean;
+
+  @Column({ name: 'date_of_birth', type: 'date', nullable: true })
+  date_of_birth: Date;
+
+  @Column({ length: 20, nullable: true })
+  gender: string;
 }
