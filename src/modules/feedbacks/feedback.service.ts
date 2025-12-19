@@ -2,6 +2,8 @@ import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { Repository, DataSource } from 'typeorm';
 import { Feedback } from './entities/feedback.entity';
 import { Customer } from '../customers/entities/customer.entity';
+import { User } from '../users/entities/user.entity';
+import { Role } from '../roles-permission-management/roles/entities/role.entity';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { UpdateFeedbackDto } from './dto/update-feedback.dto';
 import * as bcrypt from 'bcrypt';
@@ -13,6 +15,10 @@ export class FeedbackService {
     private feedbackRepository: Repository<Feedback>,
     @Inject('CUSTOMER_REPOSITORY')
     private customerRepository: Repository<Customer>,
+    @Inject('USER_REPOSITORY')
+    private userRepository: Repository<User>,
+    @Inject('ROLE_REPOSITORY')
+    private roleRepository: Repository<Role>,
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
   ) {}
@@ -23,48 +29,61 @@ export class FeedbackService {
     await queryRunner.startTransaction();
 
     try {
-      let customerId = createFeedbackDto.customerId;
+      // Check if user already exists
+      const existingUser = await this.userRepository.findOne({
+        where: { email: createFeedbackDto.email },
+      });
 
-      // If no customerId provided, create a new customer
-      if (!customerId && (createFeedbackDto.customerEmail || createFeedbackDto.customerPhone)) {
-        // Check if customer exists by email or phone
-        let existingCustomer: Customer | null = null;
-        
-        if (createFeedbackDto.customerEmail) {
-          existingCustomer = await this.customerRepository.findOne({
-            where: { email: createFeedbackDto.customerEmail },
-          });
-        }
-        
-        if (!existingCustomer && createFeedbackDto.customerPhone) {
-          existingCustomer = await this.customerRepository.findOne({
-            where: { phone: createFeedbackDto.customerPhone },
-          });
-        }
-
-        if (existingCustomer) {
-          customerId = existingCustomer.id;
-        } else {
-          // Create new customer
-          const randomPassword = Math.random().toString(36).slice(-8);
-          const hashedPassword = await bcrypt.hash(randomPassword, 10);
-          
-          const customer = queryRunner.manager.create(Customer, {
-            name: createFeedbackDto.customerName || 'Anonymous Customer',
-            email: createFeedbackDto.customerEmail || `customer${Date.now()}@temp.local`,
-            phone: createFeedbackDto.customerPhone || `+${Date.now()}`,
-            password: hashedPassword,
-            isActive: true,
-          });
-          const savedCustomer = await queryRunner.manager.save(customer);
-          customerId = savedCustomer.id;
-        }
+      if (existingUser) {
+        throw new HttpException('User with this email already exists', 400);
       }
 
-      // Create feedback
+      // 1. Create User
+      const hashedPassword = await bcrypt.hash(createFeedbackDto.password, 10);
+      const user = queryRunner.manager.create(User, {
+        name: `${createFeedbackDto.firstName} ${createFeedbackDto.lastName}`,
+        email: createFeedbackDto.email,
+        phone: createFeedbackDto.phoneNumber,
+        password: hashedPassword,
+        isActive: true,
+      });
+      const savedUser = await queryRunner.manager.save(user);
+
+      // 2. Find customer role
+      const customerRole = await this.roleRepository.findOne({
+        where: { name: 'customer' },
+      });
+
+      if (!customerRole) {
+        throw new HttpException('Customer role not found', 404);
+      }
+
+      // 3. Assign customer role to user
+      await queryRunner.manager.query(
+        'INSERT INTO user_has_role (user_id, role_id) VALUES ($1, $2)',
+        [savedUser.id, customerRole.id],
+      );
+
+      // 4. Create Customer
+      const customerData: any = {
+        user_id: savedUser.id,
+        address: createFeedbackDto.address,
+        gender: createFeedbackDto.gender,
+      };
+      
+      if (createFeedbackDto.date_of_birth) {
+        // Parse DD-MM-YYYY format to YYYY-MM-DD
+        const [day, month, year] = createFeedbackDto.date_of_birth.split('-');
+        customerData.date_of_birth = `${year}-${month}-${day}`;
+      }
+      
+      const customer = queryRunner.manager.create(Customer, customerData);
+      const savedCustomer = await queryRunner.manager.save(customer);
+
+      // 5. Create Feedback
       const feedback = queryRunner.manager.create(Feedback, {
-        merchantId: createFeedbackDto.merchantId,
-        customerId: customerId,
+        merchant_id: createFeedbackDto.merchantId,
+        customerId: savedCustomer.id,
         rating: createFeedbackDto.rating,
         comment: createFeedbackDto.comment,
       });
@@ -79,7 +98,7 @@ export class FeedbackService {
       });
 
       return {
-        message: 'Feedback created successfully',
+        message: 'Feedback created successfully. User and customer account have been created.',
         data: feedbackWithRelations,
       };
     } catch (error) {
@@ -97,7 +116,7 @@ export class FeedbackService {
       .leftJoinAndSelect('feedback.customer', 'customer');
 
     if (merchantId) {
-      queryBuilder.andWhere('feedback.merchantId = :merchantId', { merchantId });
+      queryBuilder.andWhere('feedback.merchant_id = :merchantId', { merchantId });
     }
 
     if (customerId) {
