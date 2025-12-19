@@ -100,12 +100,21 @@ export class MerchantService {
         qr_code_hash: hash,
         qr_code_image: qrCodeImage,
       });
-// Create merchant wallet
-      await this.walletService.createMerchantWallet(
-        savedMerchant.id,
-        createMerchantDto.merchant_type || 'temporary',
-      );
 
+      // Create merchant wallet within the transaction
+      const merchantWallet = queryRunner.manager.create('MerchantWallet', {
+        merchant_id: savedMerchant.id,
+        message_credits: 0,
+        marketing_credits: 0,
+        utility_credits: 0,
+        total_credits_purchased: 0,
+        total_credits_used: 0,
+        subscription_type: createMerchantDto.merchant_type || 'temporary',
+        annual_fee_paid: (createMerchantDto.merchant_type || 'temporary') === 'annual',
+        currency: 'USD',
+        is_active: true,
+      });
+      await queryRunner.manager.save(merchantWallet);
       
       await queryRunner.commitTransaction();
 
