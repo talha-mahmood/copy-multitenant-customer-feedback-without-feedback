@@ -10,6 +10,8 @@ import { UpdateMerchantDto } from './dto/update-merchant.dto';
 import * as bcrypt from 'bcrypt';
 import { QRCodeHelper } from 'src/common/helpers/qrcode.helper';
 import { WalletService } from '../wallets/wallet.service';
+import { AdminWallet } from '../wallets/entities/admin-wallet.entity';
+import { WalletTransaction } from '../wallets/entities/wallet-transaction.entity';
 
 @Injectable()
 export class MerchantService {
@@ -102,6 +104,14 @@ export class MerchantService {
       });
 
       // Create merchant wallet within the transaction
+      const merchantType = createMerchantDto.merchant_type || 'temporary';
+      const isAnnual = merchantType === 'annual';
+      
+      const expiresAt = isAnnual ? new Date() : null;
+      if (expiresAt) {
+        expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+      }
+
       const merchantWallet = queryRunner.manager.create('MerchantWallet', {
         merchant_id: savedMerchant.id,
         message_credits: 0,
@@ -109,12 +119,42 @@ export class MerchantService {
         utility_credits: 0,
         total_credits_purchased: 0,
         total_credits_used: 0,
-        subscription_type: createMerchantDto.merchant_type || 'temporary',
-        annual_fee_paid: (createMerchantDto.merchant_type || 'temporary') === 'annual',
+        subscription_type: merchantType,
+        annual_fee_paid: isAnnual,
+        subscription_expires_at: expiresAt,
         currency: 'USD',
         is_active: true,
       });
       await queryRunner.manager.save(merchantWallet);
+
+      // If annual merchant, credit admin wallet with commission
+      if (isAnnual && createMerchantDto.admin_id) {
+        const ANNUAL_FEE = 1199.00;
+        const COMMISSION_RATE = 0.75;
+        const commission = ANNUAL_FEE * COMMISSION_RATE;
+
+        const adminWallet = await queryRunner.manager.findOne(AdminWallet, {
+          where: { admin_id: createMerchantDto.admin_id },
+        });
+
+        if (adminWallet) {
+          await queryRunner.manager.update(AdminWallet, adminWallet.id, {
+            balance: parseFloat(adminWallet.balance.toString()) + commission,
+            total_earnings: parseFloat(adminWallet.total_earnings.toString()) + commission,
+          });
+
+          // Create admin transaction
+          await queryRunner.manager.save(WalletTransaction, {
+            admin_wallet_id: adminWallet.id,
+            type: 'commission',
+            amount: commission,
+            status: 'completed',
+            description: `Annual subscription commission from new merchant #${savedMerchant.id}`,
+            metadata: JSON.stringify({ merchant_id: savedMerchant.id, total_amount: ANNUAL_FEE }),
+            completed_at: new Date(),
+          });
+        }
+      }
       
       await queryRunner.commitTransaction();
 

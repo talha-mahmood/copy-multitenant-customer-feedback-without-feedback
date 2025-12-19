@@ -39,4 +39,7 @@ export class CreateMerchantDto {
   @IsOptional()
   @IsString()
   tax_id?: string;
+
+  @IsOptional()
+  admin_id?: number; // Required for annual merchants to credit commission
 }

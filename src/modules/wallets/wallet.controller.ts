@@ -81,7 +81,6 @@ export class WalletController {
   ) {
     const result = await this.walletService.upgradeToAnnual(
       merchantId,
-      upgradeDto.amount,
       upgradeDto.admin_id,
     );
 

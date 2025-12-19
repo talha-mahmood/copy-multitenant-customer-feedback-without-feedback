@@ -277,8 +277,8 @@ export class WalletService {
 
       // Calculate commission based on merchant type
       // Temporary merchants: 20% commission
-      // Annual merchants: 10% commission
-      const commissionRate = merchant.merchant_type === 'temporary' ? 0.20 : 0.10;
+      // Annual merchants: 2% commission
+      const commissionRate = merchant.merchant_type === 'temporary' ? 0.20 : 0.02;
       const adminCommission = amount * commissionRate;
       const platformAmount = amount - adminCommission;
 
@@ -506,7 +506,10 @@ export class WalletService {
   /**
    * Upgrade merchant to annual subscription
    */
-  async upgradeToAnnual(merchantId: number, amount: number, adminId: number) {
+  async upgradeToAnnual(merchantId: number, adminId: number) {
+    const ANNUAL_FEE = 1199.00; // Predefined annual subscription fee
+    const COMMISSION_RATE = 0.75; // 75% commission to admin
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -541,7 +544,7 @@ export class WalletService {
       });
 
       if (adminWallet) {
-        const commission = amount * 0.75; // Agent gets 75% (RM900 of RM1199)
+        const commission = ANNUAL_FEE * COMMISSION_RATE; // Agent gets 75% (RM900 of RM1199)
         await queryRunner.manager.update(AdminWallet, adminWallet.id, {
           balance: parseFloat(adminWallet.balance.toString()) + commission,
           total_earnings: parseFloat(adminWallet.total_earnings.toString()) + commission,
@@ -554,14 +557,14 @@ export class WalletService {
           amount: commission,
           status: 'completed',
           description: `Annual subscription commission from merchant #${merchantId}`,
-          metadata: JSON.stringify({ merchant_id: merchantId, total_amount: amount }),
+          metadata: JSON.stringify({ merchant_id: merchantId, total_amount: ANNUAL_FEE }),
           completed_at: new Date(),
         });
       }
 
       await queryRunner.commitTransaction();
 
-      return { success: true, expires_at: expiresAt };
+      return { success: true, expires_at: expiresAt, annual_fee: ANNUAL_FEE, commission: ANNUAL_FEE * COMMISSION_RATE };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
