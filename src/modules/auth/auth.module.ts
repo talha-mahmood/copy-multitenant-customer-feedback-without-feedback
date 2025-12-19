@@ -11,6 +11,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserHasRoleModule } from '../roles-permission-management/user-has-role/user-has-role.module';
 import { EncryptionHelper } from '../../common/helpers/encryption-helper';  
 import { UserModule } from '../users/user.module';
+import { adminProviders } from '../admins/admin.provider';
+import { merchantProviders } from '../merchants/merchant.provider';
+import { customerProviders } from '../customers/customer.provider';
 
 @Module({
   imports: [
@@ -28,7 +31,16 @@ import { UserModule } from '../users/user.module';
     UserModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, ...userProvider, IsUniqueConstraint, EncryptionHelper],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    ...userProvider,
+    ...adminProviders,
+    ...merchantProviders,
+    ...customerProviders,
+    IsUniqueConstraint,
+    EncryptionHelper,
+  ],
   exports: [AuthService, JwtModule, IsUniqueConstraint, EncryptionHelper],
 })
 export class AuthModule {}
