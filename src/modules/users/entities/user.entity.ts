@@ -10,5 +10,5 @@ export class User extends BaseEntity {
   @Column({ unique: true }) phone: string;
   @Column() avatar: string;
   @Exclude() @Column() password: string;
-  @Column({ default: true }) isActive: boolean;
+  @Column({ name: 'is_active', default: true }) is_active: boolean;
 }

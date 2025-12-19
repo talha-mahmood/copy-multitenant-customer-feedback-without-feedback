@@ -45,7 +45,7 @@ export class FeedbackService {
         email: createFeedbackDto.email,
         phone: createFeedbackDto.phoneNumber,
         password: hashedPassword,
-        isActive: true,
+        is_active: true,
       });
       const savedUser = await queryRunner.manager.save(user);
 
@@ -83,7 +83,7 @@ export class FeedbackService {
       // 5. Create Feedback
       const feedback = queryRunner.manager.create(Feedback, {
         merchant_id: createFeedbackDto.merchantId,
-        customerId: savedCustomer.id,
+        customer_id: savedCustomer.id,
         rating: createFeedbackDto.rating,
         comment: createFeedbackDto.comment,
       });
@@ -120,7 +120,7 @@ export class FeedbackService {
     }
 
     if (customerId) {
-      queryBuilder.andWhere('feedback.customerId = :customerId', { customerId });
+      queryBuilder.andWhere('feedback.customer_id = :customerId', { customerId });
     }
 
     queryBuilder

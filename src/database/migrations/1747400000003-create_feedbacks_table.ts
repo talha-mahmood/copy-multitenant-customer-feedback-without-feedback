@@ -18,7 +18,7 @@ export class CreateFeedbacksTable1747400000003 implements MigrationInterface {
             type: 'int',
           },
           {
-            name: 'customerId',
+            name: 'customer_id',
             type: 'int',
           },
           {
@@ -61,11 +61,11 @@ export class CreateFeedbacksTable1747400000003 implements MigrationInterface {
       }),
     );
 
-    // Add foreign key for customerId
+    // Add foreign key for customer_id
     await queryRunner.createForeignKey(
       'feedbacks',
       new TableForeignKey({
-        columnNames: ['customerId'],
+        columnNames: ['customer_id'],
         referencedColumnNames: ['id'],
         referencedTableName: 'customers',
         onDelete: 'CASCADE',
@@ -81,7 +81,7 @@ export class CreateFeedbacksTable1747400000003 implements MigrationInterface {
         (fk) => fk.columnNames.indexOf('merchant_id') !== -1,
       );
       const foreignKeyCustomer = table.foreignKeys.find(
-        (fk) => fk.columnNames.indexOf('customerId') !== -1,
+        (fk) => fk.columnNames.indexOf('customer_id') !== -1,
       );
 
       if (foreignKeyMerchant) {
