@@ -21,7 +21,7 @@ export class CreditPackage extends BaseEntity {
   @Column({ name: 'price_per_credit', type: 'decimal', precision: 10, scale: 4 })
   price_per_credit: number;
 
-  @Column({ type: 'varchar', length: 10, default: 'MYR' })
+  @Column({ type: 'varchar', length: 10, default: 'USD' })
   currency: string;
 
   @Column({ name: 'merchant_type', type: 'varchar', length: 20, nullable: true })
