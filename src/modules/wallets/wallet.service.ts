@@ -247,9 +247,10 @@ export class WalletService {
     credits: number,
     creditType: 'marketing' | 'utility' | 'general',
     amount: number,
+    adminId: number,
     description: string,
     metadata?: any,
-  ): Promise<WalletTransaction> {
+  ): Promise<{ merchantTransaction: WalletTransaction; adminTransaction: WalletTransaction; commission: number }> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -257,13 +258,30 @@ export class WalletService {
     try {
       const wallet = await queryRunner.manager.findOne(MerchantWallet, {
         where: { merchant_id: merchantId },
+        relations: ['merchant'],
       });
 
       if (!wallet) {
         throw new NotFoundException('Merchant wallet not found');
       }
 
-      // Update appropriate credit balance
+      // Get merchant to determine commission rate
+      const merchant = await queryRunner.manager.findOne('Merchant', {
+        where: { id: merchantId },
+      });
+
+      if (!merchant) {
+        throw new NotFoundException('Merchant not found');
+      }
+
+      // Calculate commission based on merchant type
+      // Temporary merchants: 20% commission
+      // Annual merchants: 10% commission
+      const commissionRate = merchant.merchant_type === 'temporary' ? 0.20 : 0.10;
+      const adminCommission = amount * commissionRate;
+      const platformAmount = amount - adminCommission;
+
+      // Update merchant credit balance
       const updates: any = {
         message_credits: wallet.message_credits + credits,
         total_credits_purchased: wallet.total_credits_purchased + credits,
@@ -277,8 +295,8 @@ export class WalletService {
 
       await queryRunner.manager.update(MerchantWallet, wallet.id, updates);
 
-      // Create transaction
-      const transaction = queryRunner.manager.create(WalletTransaction, {
+      // Create merchant transaction
+      const merchantTransaction = queryRunner.manager.create(WalletTransaction, {
         merchant_wallet_id: wallet.id,
         type: 'purchase',
         credits,
@@ -286,15 +304,57 @@ export class WalletService {
         amount,
         status: 'completed',
         description,
-        metadata: metadata ? JSON.stringify(metadata) : undefined,
+        metadata: metadata ? JSON.stringify({ ...metadata, commission_rate: commissionRate, platform_amount: platformAmount }) : JSON.stringify({ commission_rate: commissionRate, platform_amount: platformAmount }),
         completed_at: new Date(),
       });
 
-      const savedTransaction = await queryRunner.manager.save(transaction);
+      const savedMerchantTransaction = await queryRunner.manager.save(merchantTransaction);
+
+      // Credit admin wallet with commission
+      const adminWallet = await queryRunner.manager.findOne(AdminWallet, {
+        where: { admin_id: adminId },
+      });
+
+      if (!adminWallet) {
+        throw new NotFoundException('Admin wallet not found');
+      }
+
+      const adminBalanceBefore = parseFloat(adminWallet.balance.toString());
+      const newAdminBalance = adminBalanceBefore + adminCommission;
+
+      await queryRunner.manager.update(AdminWallet, adminWallet.id, {
+        balance: newAdminBalance,
+        total_earnings: parseFloat(adminWallet.total_earnings.toString()) + adminCommission,
+      });
+
+      // Create admin transaction
+      const adminTransaction = queryRunner.manager.create(WalletTransaction, {
+        admin_wallet_id: adminWallet.id,
+        type: 'commission',
+        amount: adminCommission,
+        status: 'completed',
+        description: `Commission from merchant credit purchase (${commissionRate * 100}%)`,
+        metadata: JSON.stringify({
+          merchant_id: merchantId,
+          purchase_amount: amount,
+          commission_rate: commissionRate,
+          credits,
+          credit_type: creditType,
+        }),
+        balance_before: adminBalanceBefore,
+        balance_after: newAdminBalance,
+        completed_at: new Date(),
+      });
+
+      const savedAdminTransaction = await queryRunner.manager.save(adminTransaction);
 
       await queryRunner.commitTransaction();
 
-      return savedTransaction;
+      return {
+        merchantTransaction: savedMerchantTransaction,
+        adminTransaction: savedAdminTransaction,
+        commission: adminCommission,
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

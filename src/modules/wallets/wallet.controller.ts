@@ -58,18 +58,19 @@ export class WalletController {
     @Param('merchantId') merchantId: number,
     @Body() addCreditsDto: AddCreditsDto,
   ) {
-    const transaction = await this.walletService.addMerchantCredits(
+    const result = await this.walletService.addMerchantCredits(
       merchantId,
       addCreditsDto.credits,
       addCreditsDto.credit_type,
       addCreditsDto.amount,
+      addCreditsDto.admin_id,
       addCreditsDto.description || 'Credits purchase',
       addCreditsDto.metadata,
     );
 
     return {
       message: 'Credits added successfully',
-      data: transaction,
+      data: result,
     };
   }
 

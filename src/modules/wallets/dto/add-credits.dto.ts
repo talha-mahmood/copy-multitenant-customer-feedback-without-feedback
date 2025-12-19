@@ -13,6 +13,9 @@ export class AddCreditsDto {
   @Min(0)
   amount: number;
 
+  @IsNumber()
+  admin_id: number;
+
   @IsString()
   @IsOptional()
   description?: string;
