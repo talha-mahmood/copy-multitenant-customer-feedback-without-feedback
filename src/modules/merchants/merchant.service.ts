@@ -8,6 +8,7 @@ import { instanceToPlain } from 'class-transformer';
 import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { UpdateMerchantDto } from './dto/update-merchant.dto';
 import * as bcrypt from 'bcrypt';
+import { QRCodeHelper } from 'src/common/helpers/qrcode.helper';
 
 @Injectable()
 export class MerchantService {
@@ -77,6 +78,26 @@ export class MerchantService {
         tax_id: createMerchantDto.tax_id,
       });
       const savedMerchant = await queryRunner.manager.save(merchant);
+
+      // Generate QR code automatically
+      const baseUrl = process.env.APP_FRONTEND_URL || 'http://localhost:3000';
+      const secret = process.env.APP_KEY || 'default-secret';
+      
+      const hash = require('crypto')
+        .createHmac('sha256', secret)
+        .update(`merchant:${savedMerchant.id}`)
+        .digest('hex')
+        .substring(0, 16);
+      
+      const qrCodeUrl = `${baseUrl}/feedback?mid=${savedMerchant.id}&hash=${hash}`;
+      const qrCodeImage = await QRCodeHelper.generateQRCodeImage(qrCodeUrl);
+      
+      // Update merchant with QR code info
+      await queryRunner.manager.update(Merchant, savedMerchant.id, {
+        qr_code_url: qrCodeUrl,
+        qr_code_hash: hash,
+        qr_code_image: qrCodeImage,
+      });
 
       await queryRunner.commitTransaction();
 
@@ -186,7 +207,7 @@ export class MerchantService {
     }
 
     // If QR code not generated yet, generate it
-    if (!merchant.qr_code_url || !merchant.qr_code_hash) {
+    if (!merchant.qr_code_url || !merchant.qr_code_hash || !merchant.qr_code_image) {
       return this.generateQRCode(id);
     }
 
@@ -197,6 +218,7 @@ export class MerchantService {
         businessName: merchant.business_name,
         qrCodeUrl: merchant.qr_code_url,
         qrCodeHash: merchant.qr_code_hash,
+        qrCodeImage: merchant.qr_code_image,
       },
     };
   }
@@ -223,10 +245,14 @@ export class MerchantService {
     
     const qrCodeUrl = `${baseUrl}/feedback?mid=${id}&hash=${hash}`;
     
+    // Generate base64 QR code image
+    const qrCodeImage = await QRCodeHelper.generateQRCodeImage(qrCodeUrl);
+    
     // Update merchant with QR code info
     await this.merchantRepository.update(id, {
       qr_code_url: qrCodeUrl,
       qr_code_hash: hash,
+      qr_code_image: qrCodeImage,
     });
 
     return {
@@ -236,6 +262,7 @@ export class MerchantService {
         businessName: merchant.business_name,
         qrCodeUrl: qrCodeUrl,
         qrCodeHash: hash,
+        qrCodeImage: qrCodeImage,
       },
     };
   }
