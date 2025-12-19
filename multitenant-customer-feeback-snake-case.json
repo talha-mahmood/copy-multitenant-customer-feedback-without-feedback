@@ -1,0 +1,742 @@
+{
+  "info": {
+    "name": "Multitenant Customer Feedback and Coupon System",
+    "description": "Complete API collection for the Customer Feedback System with updated snake_case field names",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "feedback-system-api-v1",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.access_token) {",
+                  "        pm.collectionVariables.set('access_token', jsonData.data.access_token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login with email and password. Returns access token."
+          },
+          "response": []
+        },
+        {
+          "name": "Register",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"Password@123\",\n  \"confirmPassword\": \"Password@123\",\n  \"role\": \"customer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new user"
+          },
+          "response": []
+        },
+        {
+          "name": "Request Reset Password",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/request-reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "request-reset-password"]
+            },
+            "description": "Request password reset email"
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password with Token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_password\": \"NewPassword@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/reset-password?token=your-reset-token",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "reset-password"],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "your-reset-token"
+                }
+              ]
+            },
+            "description": "Reset password using token from email"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Merchants",
+      "item": [
+        {
+          "name": "Create Merchant",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"merchant@example.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Merchant\",\n  \"role\": \"merchant\",\n  \"address\": \"123 Business St, City\",\n  \"business_name\": \"John's Coffee Shop\",\n  \"business_type\": \"Food & Beverage\",\n  \"merchant_type\": \"permanent\",\n  \"tax_id\": \"TAX123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchants",
+              "host": ["{{base_url}}"],
+              "path": ["merchants"]
+            },
+            "description": "Create a new merchant account with snake_case fields: business_name, business_type, merchant_type, tax_id"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Merchants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/merchants?page=1&pageSize=20&search=",
+              "host": ["{{base_url}}"],
+              "path": ["merchants"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get paginated list of merchants"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Merchant by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/merchants/1",
+              "host": ["{{base_url}}"],
+              "path": ["merchants", "1"]
+            },
+            "description": "Get single merchant details"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Merchant",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"business_name\": \"Updated Coffee Shop\",\n  \"business_type\": \"Cafe\",\n  \"address\": \"456 New Address St\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchants/1",
+              "host": ["{{base_url}}"],
+              "path": ["merchants", "1"]
+            },
+            "description": "Update merchant details"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Merchant",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/merchants/1",
+              "host": ["{{base_url}}"],
+              "path": ["merchants", "1"]
+            },
+            "description": "Soft delete merchant"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "Create Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 1,\n  \"address\": \"123 Customer St, City\",\n  \"date_of_birth\": \"1990-05-15\",\n  \"gender\": \"male\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/customers",
+              "host": ["{{base_url}}"],
+              "path": ["customers"]
+            },
+            "description": "Create customer profile with snake_case fields: user_id, date_of_birth"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Customers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customers?page=1&pageSize=20&search=",
+              "host": ["{{base_url}}"],
+              "path": ["customers"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get paginated list of customers"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customers/1",
+              "host": ["{{base_url}}"],
+              "path": ["customers", "1"]
+            },
+            "description": "Get single customer details"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Customer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": \"456 Updated Address\",\n  \"date_of_birth\": \"1990-05-15\",\n  \"gender\": \"female\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/customers/1",
+              "host": ["{{base_url}}"],
+              "path": ["customers", "1"]
+            },
+            "description": "Update customer details"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Customer",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customers/1",
+              "host": ["{{base_url}}"],
+              "path": ["customers", "1"]
+            },
+            "description": "Soft delete customer"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Feedbacks",
+      "item": [
+        {
+          "name": "Submit Feedback",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchantId\": 1,\n  \"email\": \"customer@example.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Customer\",\n  \"phoneNumber\": \"+1234567890\",\n  \"address\": \"789 Customer Ave\",\n  \"date_of_birth\": \"15-08-1995\",\n  \"gender\": \"female\",\n  \"rating\": 5,\n  \"comment\": \"Excellent service!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/feedbacks",
+              "host": ["{{base_url}}"],
+              "path": ["feedbacks"]
+            },
+            "description": "Submit feedback (creates user + customer + feedback in one transaction). Date format: DD-MM-YYYY. Note: merchantId uses camelCase in DTO, but stored as merchant_id in database."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Feedbacks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/feedbacks?page=1&pageSize=20&merchantId=&customerId=",
+              "host": ["{{base_url}}"],
+              "path": ["feedbacks"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "merchantId",
+                  "value": "",
+                  "description": "Filter by merchant"
+                },
+                {
+                  "key": "customerId",
+                  "value": "",
+                  "description": "Filter by customer"
+                }
+              ]
+            },
+            "description": "Get paginated feedbacks with optional filters"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Feedback by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/feedbacks/1",
+              "host": ["{{base_url}}"],
+              "path": ["feedbacks", "1"]
+            },
+            "description": "Get single feedback details"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Feedback",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"comment\": \"Updated feedback comment\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/feedbacks/1",
+              "host": ["{{base_url}}"],
+              "path": ["feedbacks", "1"]
+            },
+            "description": "Update feedback details"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Feedback",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/feedbacks/1",
+              "host": ["{{base_url}}"],
+              "path": ["feedbacks", "1"]
+            },
+            "description": "Soft delete feedback"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Coupon Batches",
+      "item": [
+        {
+          "name": "Create Coupon Batch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": 1,\n  \"batch_name\": \"Summer Sale 2025\",\n  \"batch_type\": \"temporary\",\n  \"total_quantity\": 100,\n  \"start_date\": \"2025-06-01T00:00:00Z\",\n  \"end_date\": \"2025-08-31T23:59:59Z\",\n  \"is_active\": true,\n  \"coupon_template_id\": 1,\n  \"whatsapp_enabled\": true,\n  \"lucky_draw_enabled\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/coupon-batches",
+              "host": ["{{base_url}}"],
+              "path": ["coupon-batches"]
+            },
+            "description": "Create coupon batch with snake_case fields: merchant_id, batch_name, batch_type, total_quantity, start_date, end_date, is_active, coupon_template_id, whatsapp_enabled, lucky_draw_enabled. Auto-generates coupons."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Coupon Batches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupon-batches?page=1&pageSize=20&merchantId=",
+              "host": ["{{base_url}}"],
+              "path": ["coupon-batches"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "merchantId",
+                  "value": "",
+                  "description": "Filter by merchant"
+                }
+              ]
+            },
+            "description": "Get paginated coupon batches"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Coupon Batch by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupon-batches/1",
+              "host": ["{{base_url}}"],
+              "path": ["coupon-batches", "1"]
+            },
+            "description": "Get single batch details"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Coupon Batch",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batch_name\": \"Updated Summer Sale\",\n  \"is_active\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/coupon-batches/1",
+              "host": ["{{base_url}}"],
+              "path": ["coupon-batches", "1"]
+            },
+            "description": "Update batch details"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Coupon Batch",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupon-batches/1",
+              "host": ["{{base_url}}"],
+              "path": ["coupon-batches", "1"]
+            },
+            "description": "Soft delete batch"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Coupons",
+      "item": [
+        {
+          "name": "Create Coupon",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": 1,\n  \"merchantId\": 1,\n  \"customerId\": 1,\n  \"couponCode\": \"SUMMER2025-001\",\n  \"qrHash\": \"abc123xyz\",\n  \"status\": \"issued\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/coupons",
+              "host": ["{{base_url}}"],
+              "path": ["coupons"]
+            },
+            "description": "Create individual coupon. Note: DTOs use camelCase (batchId, merchantId, customerId, couponCode, qrHash), but stored as snake_case in database (batch_id, merchant_id, customer_id, coupon_code, qr_hash)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Coupons",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupons?page=1&pageSize=20&merchantId=&customerId=&batchId=&status=",
+              "host": ["{{base_url}}"],
+              "path": ["coupons"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "merchantId",
+                  "value": "",
+                  "description": "Filter by merchant"
+                },
+                {
+                  "key": "customerId",
+                  "value": "",
+                  "description": "Filter by customer"
+                },
+                {
+                  "key": "batchId",
+                  "value": "",
+                  "description": "Filter by batch"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by status (issued/redeemed)"
+                }
+              ]
+            },
+            "description": "Get paginated coupons with filters"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Coupon by Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupons/by-code/SUMMER2025-001",
+              "host": ["{{base_url}}"],
+              "path": ["coupons", "by-code", "SUMMER2025-001"]
+            },
+            "description": "Get coupon by code"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Coupon by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupons/1",
+              "host": ["{{base_url}}"],
+              "path": ["coupons", "1"]
+            },
+            "description": "Get single coupon details"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Coupon",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"redeemed\",\n  \"customerId\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/coupons/1",
+              "host": ["{{base_url}}"],
+              "path": ["coupons", "1"]
+            },
+            "description": "Update coupon (e.g., mark as redeemed)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Coupon",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupons/1",
+              "host": ["{{base_url}}"],
+              "path": ["coupons", "1"]
+            },
+            "description": "Soft delete coupon"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

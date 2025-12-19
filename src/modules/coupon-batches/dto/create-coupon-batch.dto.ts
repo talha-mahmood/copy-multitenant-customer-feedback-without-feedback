@@ -3,40 +3,40 @@ import { Type } from 'class-transformer';
 
 export class CreateCouponBatchDto {
   @IsInt()
-  merchantId: number;
+  merchant_id: number;
 
   @IsString()
-  batchName: string;
+  batch_name: string;
 
   @IsString()
   @IsIn(['annual', 'temporary'])
-  batchType: string;
+  batch_type: string;
 
   @IsInt()
   @Min(1)
-  totalQuantity: number;
+  total_quantity: number;
 
   @Type(() => Date)
   @IsDate()
-  startDate: Date;
+  start_date: Date;
 
   @Type(() => Date)
   @IsDate()
-  endDate: Date;
+  end_date: Date;
 
   @IsBoolean()
   @IsOptional()
-  isActive?: boolean;
+  is_active?: boolean;
 
   @IsInt()
   @IsOptional()
-  couponTemplateId?: number;
+  coupon_template_id?: number;
 
   @IsBoolean()
   @IsOptional()
-  whatsappEnabled?: boolean;
+  whatsapp_enabled?: boolean;
 
   @IsBoolean()
   @IsOptional()
-  luckyDrawEnabled?: boolean;
+  lucky_draw_enabled?: boolean;
 }

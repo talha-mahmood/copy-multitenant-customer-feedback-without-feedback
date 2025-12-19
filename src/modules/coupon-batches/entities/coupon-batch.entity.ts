@@ -5,39 +5,39 @@ import { Merchant } from 'src/modules/merchants/entities/merchant.entity';
 @Entity('coupon_batches')
 export class CouponBatch extends BaseEntity {
   @Column({ name: 'merchant_id' })
-  merchantId: number;
+  merchant_id: number;
 
   @ManyToOne(() => Merchant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'merchant_id' })
   merchant: Merchant;
 
-  @Column({ length: 255 })
-  batchName: string;
+  @Column({ name: 'batch_name', length: 255 })
+  batch_name: string;
 
-  @Column({ length: 50 }) // 'annual' or 'temporary'
-  batchType: string;
+  @Column({ name: 'batch_type', length: 50 }) // 'annual' or 'temporary'
+  batch_type: string;
 
-  @Column({ type: 'int' })
-  totalQuantity: number;
+  @Column({ name: 'total_quantity', type: 'int' })
+  total_quantity: number;
 
-  @Column({ type: 'int', default: 0 })
-  issuedQuantity: number;
+  @Column({ name: 'issued_quantity', type: 'int', default: 0 })
+  issued_quantity: number;
 
-  @Column({ type: 'date' })
-  startDate: Date;
+  @Column({ name: 'start_date', type: 'date' })
+  start_date: Date;
 
-  @Column({ type: 'date' })
-  endDate: Date;
+  @Column({ name: 'end_date', type: 'date' })
+  end_date: Date;
 
-  @Column({ default: true })
-  isActive: boolean;
+  @Column({ name: 'is_active', default: true })
+  is_active: boolean;
 
-  @Column({ type: 'int', nullable: true })
-  couponTemplateId: number;
+  @Column({ name: 'coupon_template_id', type: 'int', nullable: true })
+  coupon_template_id: number;
 
-  @Column({ default: false })
-  whatsappEnabled: boolean;
+  @Column({ name: 'whatsapp_enabled', default: false })
+  whatsapp_enabled: boolean;
 
-  @Column({ default: false })
-  luckyDrawEnabled: boolean;
+  @Column({ name: 'lucky_draw_enabled', default: false })
+  lucky_draw_enabled: boolean;
 }

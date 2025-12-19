@@ -7,41 +7,41 @@ import { Customer } from 'src/modules/customers/entities/customer.entity';
 @Entity('coupons')
 export class Coupon extends BaseEntity {
   @Column({ name: 'batch_id' })
-  batchId: number;
+  batch_id: number;
 
   @ManyToOne(() => CouponBatch, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'batch_id' })
   batch: CouponBatch;
 
   @Column({ name: 'merchant_id' })
-  merchantId: number;
+  merchant_id: number;
 
   @ManyToOne(() => Merchant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'merchant_id' })
   merchant: Merchant;
 
   @Column({ name: 'customer_id', nullable: true })
-  customerId: number;
+  customer_id: number;
 
   @ManyToOne(() => Customer, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'customer_id' })
   customer: Customer;
 
-  @Column({ length: 50, unique: true })
-  couponCode: string;
+  @Column({ name: 'coupon_code', length: 50, unique: true })
+  coupon_code: string;
 
-  @Column({ length: 255, nullable: true })
-  qrHash: string;
+  @Column({ name: 'qr_hash', length: 255, nullable: true })
+  qr_hash: string;
 
   @Column({ length: 50, default: 'issued' }) // 'issued', 'redeemed', 'expired'
   status: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  issuedAt: Date;
+  @Column({ name: 'issued_at', type: 'timestamp', nullable: true })
+  issued_at: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
-  redeemedAt: Date;
+  @Column({ name: 'redeemed_at', type: 'timestamp', nullable: true })
+  redeemed_at: Date;
 
-  @Column({ type: 'text', nullable: true })
-  pdfUrl: string;
+  @Column({ name: 'pdf_url', type: 'text', nullable: true })
+  pdf_url: string;
 }

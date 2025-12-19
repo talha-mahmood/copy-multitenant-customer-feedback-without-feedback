@@ -8,7 +8,8 @@ export class Feedback extends BaseEntity {
   @Column({ name: 'merchant_id' })
   merchant_id: number;
 
-  @Column() customerId: number;
+  @Column({ name: 'customer_id' })
+  customer_id: number;
 
   @Column({ type: 'int' }) rating: number; // 1-5
 
@@ -19,6 +20,6 @@ export class Feedback extends BaseEntity {
   merchant: Merchant;
 
   @ManyToOne(() => Customer, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'customerId' })
+  @JoinColumn({ name: 'customer_id' })
   customer: Customer;
 }

@@ -32,23 +32,23 @@ export class CouponBatchService {
     try {
       // Validate merchant exists and check merchant type
       const merchant = await this.merchantRepository.findOne({
-        where: { id: createCouponBatchDto.merchantId },
+        where: { id: createCouponBatchDto.merchant_id },
       });
 
       if (!merchant) {
-        throw new NotFoundException(`Merchant with ID ${createCouponBatchDto.merchantId} not found`);
+        throw new NotFoundException(`Merchant with ID ${createCouponBatchDto.merchant_id} not found`);
       }
 
       // Validate batch type based on merchant type
-      await this.validateBatchType(merchant, createCouponBatchDto.batchType);
+      await this.validateBatchType(merchant, createCouponBatchDto.batch_type);
 
       // Validate dates
-      if (new Date(createCouponBatchDto.startDate) >= new Date(createCouponBatchDto.endDate)) {
+      if (new Date(createCouponBatchDto.start_date) >= new Date(createCouponBatchDto.end_date)) {
         throw new BadRequestException('Start date must be before end date');
       }
 
       // For temporary batches, validate quantity
-      if (createCouponBatchDto.batchType === 'temporary' && createCouponBatchDto.totalQuantity > 1000) {
+      if (createCouponBatchDto.batch_type === 'temporary' && createCouponBatchDto.total_quantity > 1000) {
         throw new BadRequestException('Temporary batch cannot exceed 1000 coupons');
       }
 
@@ -60,17 +60,17 @@ export class CouponBatchService {
       const coupons: Coupon[] = [];
       const secret = this.configService.get<string>('APP_KEY') || 'default-secret';
       
-      for (let i = 0; i < createCouponBatchDto.totalQuantity; i++) {
+      for (let i = 0; i < createCouponBatchDto.total_quantity; i++) {
         const couponCode = CouponCodeGenerator.generate('CPN');
-        const qrHash = QRCodeHelper.generateHash(savedBatch.merchantId, savedBatch.id, secret);
+        const qrHash = QRCodeHelper.generateHash(savedBatch.merchant_id, savedBatch.id, secret);
         
         const coupon = queryRunner.manager.create(Coupon, {
-          batchId: savedBatch.id,
-          merchantId: savedBatch.merchantId,
-          couponCode: couponCode,
-          qrHash: qrHash,
+          batch_id: savedBatch.id,
+          merchant_id: savedBatch.merchant_id,
+          coupon_code: couponCode,
+          qr_hash: qrHash,
           status: 'issued',
-          issuedAt: new Date(),
+          issued_at: new Date(),
         });
         coupons.push(coupon);
       }

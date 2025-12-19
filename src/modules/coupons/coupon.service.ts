@@ -15,7 +15,7 @@ export class CouponService {
   async create(createCouponDto: CreateCouponDto) {
     const coupon = this.couponRepository.create({
       ...createCouponDto,
-      issuedAt: new Date(),
+      issued_at: new Date(),
     });
     const savedCoupon = await this.couponRepository.save(coupon);
     
@@ -42,15 +42,15 @@ export class CouponService {
       .leftJoinAndSelect('coupon.batch', 'batch');
 
     if (filters?.merchantId) {
-      queryBuilder.andWhere('coupon.merchantId = :merchantId', { merchantId: filters.merchantId });
+      queryBuilder.andWhere('coupon.merchant_id = :merchantId', { merchantId: filters.merchantId });
     }
 
     if (filters?.customerId) {
-      queryBuilder.andWhere('coupon.customerId = :customerId', { customerId: filters.customerId });
+      queryBuilder.andWhere('coupon.customer_id = :customerId', { customerId: filters.customerId });
     }
 
     if (filters?.batchId) {
-      queryBuilder.andWhere('coupon.batchId = :batchId', { batchId: filters.batchId });
+      queryBuilder.andWhere('coupon.batch_id = :batchId', { batchId: filters.batchId });
     }
 
     if (filters?.status) {
@@ -92,7 +92,7 @@ export class CouponService {
 
   async findByCode(couponCode: string) {
     const coupon = await this.couponRepository.findOne({
-      where: { couponCode },
+      where: { coupon_code: couponCode },
       relations: ['merchant', 'customer', 'batch'],
     });
 

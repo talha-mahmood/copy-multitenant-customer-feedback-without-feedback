@@ -56,7 +56,7 @@ export class MerchantService {
         password: hashedPassword,
         phone: '', // Optional, can be added to DTO if needed
         avatar: '',
-        isActive: true,
+        is_active: true,
       });
       const savedUser = await queryRunner.manager.save(user);
 

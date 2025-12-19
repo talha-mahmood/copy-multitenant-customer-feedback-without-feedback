@@ -29,14 +29,14 @@ export class CreateCouponsTable1747500000001 implements MigrationInterface {
             isNullable: true,
           },
           {
-            name: 'couponCode',
+            name: 'coupon_code',
             type: 'varchar',
             length: '50',
             isUnique: true,
             isNullable: false,
           },
           {
-            name: 'qrHash',
+            name: 'qr_hash',
             type: 'varchar',
             length: '255',
             isNullable: true,
@@ -50,17 +50,17 @@ export class CreateCouponsTable1747500000001 implements MigrationInterface {
             comment: 'issued, redeemed, expired',
           },
           {
-            name: 'issuedAt',
+            name: 'issued_at',
             type: 'timestamp',
             isNullable: true,
           },
           {
-            name: 'redeemedAt',
+            name: 'redeemed_at',
             type: 'timestamp',
             isNullable: true,
           },
           {
-            name: 'pdfUrl',
+            name: 'pdf_url',
             type: 'text',
             isNullable: true,
           },
