@@ -5,23 +5,41 @@ export class CreateFeedbackDto {
   @IsNumber()
   merchantId: number;
 
-  // Customer fields - will create customer if not exists
-  @IsOptional()
-  @IsNumber()
-  customerId?: number;
-
-  @IsOptional()
-  @IsString()
-  customerName?: string;
-
-  @IsOptional()
+  // User fields for customer creation
+  @IsNotEmpty()
   @IsEmail()
-  customerEmail?: string;
+  email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  password: string;
+
+  @IsNotEmpty()
+  @IsString()
+  firstName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  lastName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  phoneNumber: string;
+
+  // Customer-specific fields
+  @IsOptional()
+  @IsString()
+  address?: string;
 
   @IsOptional()
   @IsString()
-  customerPhone?: string;
+  date_of_birth?: string;
 
+  @IsOptional()
+  @IsString()
+  gender?: string;
+
+  // Feedback fields
   @IsNotEmpty()
   @IsNumber()
   @Min(1)

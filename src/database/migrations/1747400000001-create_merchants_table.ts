@@ -45,6 +45,17 @@ export class CreateMerchantsTable1747400000001 implements MigrationInterface {
             isNullable: true,
           },
           {
+            name: 'qr_code_url',
+            type: 'text',
+            isNullable: true,
+          },
+          {
+            name: 'qr_code_hash',
+            type: 'varchar',
+            length: '255',
+            isNullable: true,
+          },
+          {
             name: 'created_at',
             type: 'timestamp',
             default: 'CURRENT_TIMESTAMP',

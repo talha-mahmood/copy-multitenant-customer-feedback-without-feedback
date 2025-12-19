@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table } from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm';
 
 export class CreateCustomersTable1747400000002 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -14,28 +14,25 @@ export class CreateCustomersTable1747400000002 implements MigrationInterface {
             generationStrategy: 'increment',
           },
           {
-            name: 'name',
-            type: 'varchar',
-            length: '100',
+            name: 'user_id',
+            type: 'int',
+            isNullable: true,
           },
           {
-            name: 'email',
-            type: 'varchar',
-            isUnique: true,
+            name: 'address',
+            type: 'text',
+            isNullable: true,
           },
           {
-            name: 'phone',
-            type: 'varchar',
-            isUnique: true,
+            name: 'date_of_birth',
+            type: 'date',
+            isNullable: true,
           },
           {
-            name: 'password',
+            name: 'gender',
             type: 'varchar',
-          },
-          {
-            name: 'isActive',
-            type: 'boolean',
-            default: true,
+            length: '20',
+            isNullable: true,
           },
           {
             name: 'created_at',
@@ -56,9 +53,28 @@ export class CreateCustomersTable1747400000002 implements MigrationInterface {
       }),
       true,
     );
+
+    await queryRunner.createForeignKey(
+      'customers',
+      new TableForeignKey({
+        columnNames: ['user_id'],
+        referencedColumnNames: ['id'],
+        referencedTableName: 'users',
+        onDelete: 'CASCADE',
+      }),
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    const table = await queryRunner.getTable('customers');
+    if (table) {
+      const foreignKey = table.foreignKeys.find(
+        (fk) => fk.columnNames.indexOf('user_id') !== -1,
+      );
+      if (foreignKey) {
+        await queryRunner.dropForeignKey('customers', foreignKey);
+      }
+    }
     await queryRunner.dropTable('customers');
   }
 }

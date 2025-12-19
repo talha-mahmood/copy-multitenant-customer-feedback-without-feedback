@@ -14,11 +14,7 @@ export class CustomerService {
   ) {}
 
   async create(createCustomerDto: CreateCustomerDto) {
-    const hashedPassword = await bcrypt.hash(createCustomerDto.password, 10);
-    const customer = this.customerRepository.create({
-      ...createCustomerDto,
-      password: hashedPassword,
-    });
+    const customer = this.customerRepository.create(createCustomerDto);
     const savedCustomer = await this.customerRepository.save(customer);
     return {
       message: 'Customer created successfully',
@@ -70,10 +66,6 @@ export class CustomerService {
     const customer = await this.customerRepository.findOne({ where: { id } });
     if (!customer) {
       throw new HttpException('Customer not found', 404);
-    }
-
-    if (updateCustomerDto.password) {
-      updateCustomerDto.password = await bcrypt.hash(updateCustomerDto.password, 10);
     }
 
     await this.customerRepository.update(id, updateCustomerDto);

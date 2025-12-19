@@ -5,7 +5,8 @@ import { Customer } from 'src/modules/customers/entities/customer.entity';
 
 @Entity('feedbacks')
 export class Feedback extends BaseEntity {
-  @Column() merchantId: number;
+  @Column({ name: 'merchant_id' })
+  merchant_id: number;
 
   @Column() customerId: number;
 
@@ -14,7 +15,7 @@ export class Feedback extends BaseEntity {
   @Column({ type: 'text', nullable: true }) comment: string;
 
   @ManyToOne(() => Merchant, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'merchantId' })
+  @JoinColumn({ name: 'merchant_id' })
   merchant: Merchant;
 
   @ManyToOne(() => Customer, { onDelete: 'CASCADE' })
