@@ -15,6 +15,7 @@ import { AdminWallet } from './entities/admin-wallet.entity';
 import { MerchantWallet } from './entities/merchant-wallet.entity';
 import { WalletTransaction } from './entities/wallet-transaction.entity';
 import { CreditPackage } from './entities/credit-package.entity';
+import { Merchant } from '../merchants/entities/merchant.entity';
 
 @Injectable()
 export class WalletService {
@@ -266,7 +267,7 @@ export class WalletService {
       }
 
       // Get merchant to determine commission rate
-      const merchant = await queryRunner.manager.findOne('Merchant', {
+      const merchant = await queryRunner.manager.findOne(Merchant, {
         where: { id: merchantId },
       });
 
