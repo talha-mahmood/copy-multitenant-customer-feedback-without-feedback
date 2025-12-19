@@ -520,6 +520,11 @@ export class WalletService {
         throw new NotFoundException('Merchant wallet not found');
       }
 
+      // Check if already annual
+      if (wallet.subscription_type === 'annual') {
+        throw new BadRequestException('Merchant is already on annual subscription');
+      }
+
       // Update to annual
       const expiresAt = new Date();
       expiresAt.setFullYear(expiresAt.getFullYear() + 1);
