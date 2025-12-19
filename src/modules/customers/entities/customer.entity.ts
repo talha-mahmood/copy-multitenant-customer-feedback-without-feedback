@@ -12,12 +12,6 @@ export class Customer extends BaseEntity {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ length: 100 }) name: string;
-  @Column({ unique: true }) email: string;
-  @Column({ unique: true }) phone: string;
-  @Exclude() @Column() password: string;
-  @Column({ default: true }) isActive: boolean;
-
   @Column({ name: 'date_of_birth', type: 'date', nullable: true })
   date_of_birth: Date;
 

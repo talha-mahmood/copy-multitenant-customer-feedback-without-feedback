@@ -19,30 +19,6 @@ export class CreateCustomersTable1747400000002 implements MigrationInterface {
             isNullable: true,
           },
           {
-            name: 'name',
-            type: 'varchar',
-            length: '100',
-          },
-          {
-            name: 'email',
-            type: 'varchar',
-            isUnique: true,
-          },
-          {
-            name: 'phone',
-            type: 'varchar',
-            isUnique: true,
-          },
-          {
-            name: 'password',
-            type: 'varchar',
-          },
-          {
-            name: 'isActive',
-            type: 'boolean',
-            default: true,
-          },
-          {
             name: 'date_of_birth',
             type: 'date',
             isNullable: true,
