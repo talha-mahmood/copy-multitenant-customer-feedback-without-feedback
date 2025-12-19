@@ -2,21 +2,21 @@ import { IsString, IsInt, IsOptional } from 'class-validator';
 
 export class CreateCouponDto {
   @IsInt()
-  batchId: number;
+  batch_id: number;
 
   @IsInt()
-  merchantId: number;
+  merchant_id: number;
 
   @IsInt()
   @IsOptional()
-  customerId?: number;
+  customer_id?: number;
 
   @IsString()
-  couponCode: string;
+  coupon_code: string;
 
   @IsString()
   @IsOptional()
-  qrHash?: string;
+  qr_hash?: string;
 
   @IsString()
   @IsOptional()
