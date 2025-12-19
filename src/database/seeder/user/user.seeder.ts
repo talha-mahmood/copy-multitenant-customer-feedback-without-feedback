@@ -3,6 +3,8 @@ import { User } from '../../../modules/users/entities/user.entity';
 import { Admin } from '../../../modules/admins/entities/admin.entity';
 import { Merchant } from '../../../modules/merchants/entities/merchant.entity';
 import { Customer } from '../../../modules/customers/entities/customer.entity';
+import { AdminWallet } from '../../../modules/wallets/entities/admin-wallet.entity';
+import { MerchantWallet } from '../../../modules/wallets/entities/merchant-wallet.entity';
 import * as bcrypt from 'bcrypt';
 import { faker } from '@faker-js/faker';
 import { UserHasRole } from '../../../modules/roles-permission-management/user-has-role/entities/user-has-role.entity';
@@ -60,13 +62,25 @@ export async function seedUser(dataSource: DataSource) {
 
       // Create admin record
       const adminRepo = dataSource.getRepository(Admin);
-      await adminRepo.insert({
+      const savedAdmin = await adminRepo.save({
         user_id: admin.id,
         name: admin.name,
         email: admin.email,
         phone: admin.phone,
         password: admin.password,
         isActive: true,
+      });
+
+      // Create admin wallet
+      const adminWalletRepo = dataSource.getRepository(AdminWallet);
+      await adminWalletRepo.insert({
+        admin_id: savedAdmin.id,
+        balance: 0,
+        total_earnings: 0,
+        total_spent: 0,
+        pending_amount: 0,
+        currency: 'USD',
+        is_active: true,
       });
     }
 
@@ -82,13 +96,28 @@ export async function seedUser(dataSource: DataSource) {
 
       // Create merchant record
       const merchantRepo = dataSource.getRepository(Merchant);
-      await merchantRepo.insert({
+      const savedMerchant = await merchantRepo.save({
         user_id: merchant.id,
         business_name: 'Demo Business',
         business_type: 'Retail',
-        merchant_type: 'permanent',
+        merchant_type: 'annual',
         address: '123 Business St',
         tax_id: 'TAX123456',
+      });
+
+      // Create merchant wallet
+      const merchantWalletRepo = dataSource.getRepository(MerchantWallet);
+      await merchantWalletRepo.insert({
+        merchant_id: savedMerchant.id,
+        message_credits: 0,
+        marketing_credits: 0,
+        utility_credits: 0,
+        total_credits_purchased: 0,
+        total_credits_used: 0,
+        subscription_type: 'annual',
+        annual_fee_paid: false,
+        currency: 'USD',
+        is_active: true,
       });
     }
 

@@ -103,13 +103,8 @@ export class CouponBatchService {
       );
     }
 
-    if (merchant.merchant_type === 'permanent' && batchType === 'temporary') {
-      // Permanent merchants can create both types - no error
-      return;
-    }
-
-    if (merchant.merchant_type === 'permanent' && batchType === 'annual') {
-      // Permanent merchants can create annual batches - no error
+    if (merchant.merchant_type === 'annual') {
+      // Annual merchants can create both temporary and annual batches
       return;
     }
   }

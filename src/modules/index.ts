@@ -32,4 +32,7 @@ export { EmailModule } from './email/email.module';
 // Roles
 export { RoleModule } from './roles-permission-management/roles/role.module';
 
+// Wallets
+export { WalletModule } from './wallets/wallet.module';
+
 

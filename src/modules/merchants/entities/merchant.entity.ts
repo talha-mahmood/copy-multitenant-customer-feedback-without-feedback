@@ -21,7 +21,7 @@ export class Merchant extends BaseEntity {
   business_type: string;
 
   @Column({ name: 'merchant_type', length: 50 })
-  merchant_type: string; // 'temporary' or 'permanent'
+  merchant_type: string; // 'temporary' or 'annual'
 
   @Column({ name: 'tax_id', length: 100, nullable: true })
   tax_id: string;

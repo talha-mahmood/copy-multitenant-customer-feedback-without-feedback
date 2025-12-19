@@ -3,9 +3,10 @@ import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
 import { DatabaseModule } from 'src/database/database.module';
 import { adminProviders } from './admin.provider';
+import { WalletModule } from '../wallets/wallet.module';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, WalletModule],
   controllers: [AdminController],
   providers: [AdminService, ...adminProviders],
   exports: [AdminService],

@@ -13,11 +13,7 @@ export class CreateMerchantDto {
 
   @IsNotEmpty()
   @IsString()
-  firstName: string;
-
-  @IsNotEmpty()
-  @IsString()
-  lastName: string;
+  name: string;
 
   @IsNotEmpty()
   @IsString()
@@ -38,7 +34,7 @@ export class CreateMerchantDto {
 
   @IsNotEmpty()
   @IsString()
-  merchant_type: string; // 'temporary' or 'permanent'
+  merchant_type: string; // 'temporary' or 'annual'
 
   @IsOptional()
   @IsString()

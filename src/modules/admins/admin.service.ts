@@ -5,12 +5,14 @@ import { instanceToPlain } from 'class-transformer';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import * as bcrypt from 'bcrypt';
+import { WalletService } from '../wallets/wallet.service';
 
 @Injectable()
 export class AdminService {
   constructor(
     @Inject('ADMIN_REPOSITORY')
     private adminRepository: Repository<Admin>,
+    private walletService: WalletService,
   ) {}
 
   async create(createAdminDto: CreateAdminDto) {
@@ -20,6 +22,9 @@ export class AdminService {
       password: hashedPassword,
     });
     const savedAdmin = await this.adminRepository.save(admin);
+
+    // Create admin wallet
+    await this.walletService.createAdminWallet(savedAdmin.id);
     return {
       message: 'Admin created successfully',
       data: instanceToPlain(savedAdmin),

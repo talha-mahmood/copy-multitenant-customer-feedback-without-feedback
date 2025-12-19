@@ -1,0 +1,643 @@
+{
+  "info": {
+    "name": "QR Review & Coupon SaaS API - With Wallets",
+    "description": "Complete API collection including wallet system for admins and merchants",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('jwt_token', jsonData.access_token);",
+                  "    console.log('JWT Token saved:', jsonData.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admins",
+      "item": [
+        {
+          "name": "Create Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('admin_id', jsonData.data.id);",
+                  "    console.log('Admin ID saved:', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Agent\",\n  \"email\": \"agent1@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456789\",\n  \"address\": \"123 Agent Street, KL\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admins",
+              "host": ["{{base_url}}"],
+              "path": ["admins"]
+            }
+          }
+        },
+        {
+          "name": "Get All Admins",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admins?page=1&pageSize=20",
+              "host": ["{{base_url}}"],
+              "path": ["admins"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Admin by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admins/{{admin_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admins", "{{admin_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Merchants",
+      "item": [
+        {
+          "name": "Create Merchant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('merchant_id', jsonData.data.id);",
+                  "    console.log('Merchant ID saved:', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Merchant\",\n  \"email\": \"merchant1@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"merchant\",\n  \"address\": \"456 Business St, KL\",\n  \"business_name\": \"John's Coffee Shop\",\n  \"business_type\": \"F&B\",\n  \"merchant_type\": \"annual\",\n  \"tax_id\": \"TX123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchants",
+              "host": ["{{base_url}}"],
+              "path": ["merchants"]
+            }
+          }
+        },
+        {
+          "name": "Get All Merchants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/merchants?page=1&pageSize=20",
+              "host": ["{{base_url}}"],
+              "path": ["merchants"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Merchant by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/merchants/{{merchant_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["merchants", "{{merchant_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Merchant QR Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/merchants/{{merchant_id}}/qr-code",
+              "host": ["{{base_url}}"],
+              "path": ["merchants", "{{merchant_id}}", "qr-code"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallets",
+      "item": [
+        {
+          "name": "Admin Wallet",
+          "item": [
+            {
+              "name": "Get Admin Wallet",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/wallets/admin/{{admin_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["wallets", "admin", "{{admin_id}}"]
+                },
+                "description": "Get admin wallet details including balance, total earnings, and total spent"
+              }
+            },
+            {
+              "name": "Get Admin Transactions",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/wallets/admin/{{admin_id}}/transactions?page=1&limit=20",
+                  "host": ["{{base_url}}"],
+                  "path": ["wallets", "admin", "{{admin_id}}", "transactions"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Get paginated list of admin wallet transactions"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Merchant Wallet",
+          "item": [
+            {
+              "name": "Get Merchant Wallet",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/wallets/merchant/{{merchant_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["wallets", "merchant", "{{merchant_id}}"]
+                },
+                "description": "Get merchant wallet details including credits, subscription type, and expiry"
+              }
+            },
+            {
+              "name": "Get Merchant Transactions",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/wallets/merchant/{{merchant_id}}/transactions?page=1&limit=20",
+                  "host": ["{{base_url}}"],
+                  "path": ["wallets", "merchant", "{{merchant_id}}", "transactions"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Get paginated list of merchant wallet transactions"
+              }
+            },
+            {
+              "name": "Add Credits to Merchant",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"credits\": 1000,\n  \"credit_type\": \"marketing\",\n  \"amount\": 400.00,\n  \"admin_id\": {{admin_id}},\n  \"description\": \"Professional Package purchase\",\n  \"metadata\": {\n    \"package_id\": 3,\n    \"package_name\": \"Professional Package\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/wallets/merchant/{{merchant_id}}/add-credits",
+                  "host": ["{{base_url}}"],
+                  "path": ["wallets", "merchant", "{{merchant_id}}", "add-credits"]
+                },
+                "description": "Add credits to merchant wallet. Automatically credits admin with commission (20% for temporary, 10% for annual). credit_type: 'marketing' | 'utility' | 'general'"
+              }
+            },
+            {
+              "name": "Upgrade to Annual Subscription",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 1199.00,\n  \"admin_id\": {{admin_id}}\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/wallets/merchant/{{merchant_id}}/upgrade-to-annual",
+                  "host": ["{{base_url}}"],
+                  "path": ["wallets", "merchant", "{{merchant_id}}", "upgrade-to-annual"]
+                },
+                "description": "Upgrade merchant from temporary to annual subscription. Credits admin wallet with 75% commission (RM900)"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Credit Packages",
+          "item": [
+            {
+              "name": "Get All Credit Packages",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/wallets/credit-packages",
+                  "host": ["{{base_url}}"],
+                  "path": ["wallets", "credit-packages"]
+                },
+                "description": "Get all available credit packages"
+              }
+            },
+            {
+              "name": "Get Annual Packages",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/wallets/credit-packages?merchant_type=annual",
+                  "host": ["{{base_url}}"],
+                  "path": ["wallets", "credit-packages"],
+                  "query": [
+                    {
+                      "key": "merchant_type",
+                      "value": "annual"
+                    }
+                  ]
+                },
+                "description": "Get credit packages for annual merchants only"
+              }
+            },
+            {
+              "name": "Get Temporary Packages",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/wallets/credit-packages?merchant_type=temporary",
+                  "host": ["{{base_url}}"],
+                  "path": ["wallets", "credit-packages"],
+                  "query": [
+                    {
+                      "key": "merchant_type",
+                      "value": "temporary"
+                    }
+                  ]
+                },
+                "description": "Get credit packages for temporary merchants only"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "Create Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('customer_id', jsonData.data.id);",
+                  "    console.log('Customer ID saved:', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Customer\",\n  \"email\": \"customer1@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"customer\",\n  \"phone\": \"+60123456789\",\n  \"birthday\": \"1990-05-15\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/customers",
+              "host": ["{{base_url}}"],
+              "path": ["customers"]
+            }
+          }
+        },
+        {
+          "name": "Get All Customers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customers?page=1&pageSize=20",
+              "host": ["{{base_url}}"],
+              "path": ["customers"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Coupon Batches",
+      "item": [
+        {
+          "name": "Create Coupon Batch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('batch_id', jsonData.data.id);",
+                  "    console.log('Batch ID saved:', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"batch_name\": \"Summer Sale 2025\",\n  \"batch_type\": \"percentage\",\n  \"total_quantity\": 1000,\n  \"start_date\": \"2025-06-01T00:00:00Z\",\n  \"end_date\": \"2025-08-31T23:59:59Z\",\n  \"is_active\": true,\n  \"whatsapp_enabled\": true,\n  \"lucky_draw_enabled\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/coupon-batches",
+              "host": ["{{base_url}}"],
+              "path": ["coupon-batches"]
+            }
+          }
+        },
+        {
+          "name": "Get All Coupon Batches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupon-batches?page=1&pageSize=20",
+              "host": ["{{base_url}}"],
+              "path": ["coupon-batches"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Coupons",
+      "item": [
+        {
+          "name": "Create Coupon",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batch_id\": {{batch_id}},\n  \"merchant_id\": {{merchant_id}},\n  \"customer_id\": {{customer_id}},\n  \"coupon_code\": \"SUMMER2025-001\",\n  \"qr_hash\": \"abc123def456\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/coupons",
+              "host": ["{{base_url}}"],
+              "path": ["coupons"]
+            }
+          }
+        },
+        {
+          "name": "Get All Coupons",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupons?page=1&pageSize=20",
+              "host": ["{{base_url}}"],
+              "path": ["coupons"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Feedbacks",
+      "item": [
+        {
+          "name": "Create Feedback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"customer_id\": {{customer_id}},\n  \"rating\": 5,\n  \"comment\": \"Excellent service and great food!\",\n  \"sentiment\": \"positive\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/feedbacks",
+              "host": ["{{base_url}}"],
+              "path": ["feedbacks"]
+            }
+          }
+        },
+        {
+          "name": "Get All Feedbacks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/feedbacks?page=1&pageSize=20",
+              "host": ["{{base_url}}"],
+              "path": ["feedbacks"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

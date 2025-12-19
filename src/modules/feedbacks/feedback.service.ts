@@ -41,7 +41,7 @@ export class FeedbackService {
       // 1. Create User
       const hashedPassword = await bcrypt.hash(createFeedbackDto.password, 10);
       const user = queryRunner.manager.create(User, {
-        name: `${createFeedbackDto.firstName} ${createFeedbackDto.lastName}`,
+        name: createFeedbackDto.name,
         email: createFeedbackDto.email,
         phone: createFeedbackDto.phoneNumber,
         password: hashedPassword,
