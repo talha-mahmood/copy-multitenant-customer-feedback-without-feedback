@@ -54,7 +54,7 @@ export class MerchantService {
 
       // Create user
       const user = queryRunner.manager.create(User, {
-        name: `${createMerchantDto.firstName} ${createMerchantDto.lastName}`,
+        name: createMerchantDto.name,
         email: createMerchantDto.email,
         password: hashedPassword,
         phone: '', // Optional, can be added to DTO if needed

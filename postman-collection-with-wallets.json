@@ -173,7 +173,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Merchant\",\n  \"email\": \"merchant1@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"merchant\",\n  \"address\": \"456 Business St, KL\",\n  \"business_name\": \"John's Coffee Shop\",\n  \"business_type\": \"F&B\",\n  \"merchant_type\": \"annual\",\n  \"tax_id\": \"TX123456\"\n}"
+              "raw": "{\n  \"name\": \"John Merchant\",\n  \"email\": \"merchant1@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"merchant\",\n  \"address\": \"456 Business St, KL\",\n  \"business_name\": \"John's Coffee Shop\",\n  \"business_type\": \"F&B\",\n  \"merchant_type\": \"annual\",\n  \"tax_id\": \"TX123456\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/merchants",
@@ -325,14 +325,14 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"credits\": 1000,\n  \"credit_type\": \"marketing\",\n  \"amount\": 400.00,\n  \"description\": \"Professional Package purchase\",\n  \"metadata\": {\n    \"package_id\": 3,\n    \"package_name\": \"Professional Package\"\n  }\n}"
+                  "raw": "{\n  \"credits\": 1000,\n  \"credit_type\": \"marketing\",\n  \"amount\": 400.00,\n  \"admin_id\": {{admin_id}},\n  \"description\": \"Professional Package purchase\",\n  \"metadata\": {\n    \"package_id\": 3,\n    \"package_name\": \"Professional Package\"\n  }\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/wallets/merchant/{{merchant_id}}/add-credits",
                   "host": ["{{base_url}}"],
                   "path": ["wallets", "merchant", "{{merchant_id}}", "add-credits"]
                 },
-                "description": "Add credits to merchant wallet. credit_type: 'marketing' | 'utility' | 'general'"
+                "description": "Add credits to merchant wallet. Automatically credits admin with commission (20% for temporary, 10% for annual). credit_type: 'marketing' | 'utility' | 'general'"
               }
             },
             {

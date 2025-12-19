@@ -16,11 +16,7 @@ export class CreateFeedbackDto {
 
   @IsNotEmpty()
   @IsString()
-  firstName: string;
-
-  @IsNotEmpty()
-  @IsString()
-  lastName: string;
+  name: string;
 
   @IsNotEmpty()
   @IsString()
