@@ -48,7 +48,7 @@ export class CreateCreditPackagesTable1747600000004 implements MigrationInterfac
             name: 'currency',
             type: 'varchar',
             length: '10',
-            default: "'MYR'",
+            default: "'USD'",
           },
           {
             name: 'merchant_type',
