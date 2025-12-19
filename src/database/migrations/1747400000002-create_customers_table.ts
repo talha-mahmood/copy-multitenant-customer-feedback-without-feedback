@@ -19,6 +19,11 @@ export class CreateCustomersTable1747400000002 implements MigrationInterface {
             isNullable: true,
           },
           {
+            name: 'address',
+            type: 'text',
+            isNullable: true,
+          },
+          {
             name: 'date_of_birth',
             type: 'date',
             isNullable: true,

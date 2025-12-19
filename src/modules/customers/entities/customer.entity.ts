@@ -12,6 +12,9 @@ export class Customer extends BaseEntity {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
+  @Column({ type: 'text', nullable: true })
+  address: string;
+
   @Column({ name: 'date_of_birth', type: 'date', nullable: true })
   date_of_birth: Date;
 
