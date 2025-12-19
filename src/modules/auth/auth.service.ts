@@ -14,11 +14,17 @@ import { UploadFileDto } from './dtos/upload-file.dto';
 import { uploadFile } from 'src/common/helpers/file-upload.helper';
 import { UserHasRoleService } from '../roles-permission-management/user-has-role/user-has-role.service';
 import { EncryptionHelper } from 'src/common/helpers/encryption-helper';
+import { Admin } from '../admins/entities/admin.entity';
+import { Merchant } from '../merchants/entities/merchant.entity';
+import { Customer } from '../customers/entities/customer.entity';
 
 @Injectable()
 export class AuthService {
   constructor(
     @Inject('USER_REPOSITORY') private userRepository: Repository<User>,
+    @Inject('ADMIN_REPOSITORY') private adminRepository: Repository<Admin>,
+    @Inject('MERCHANT_REPOSITORY') private merchantRepository: Repository<Merchant>,
+    @Inject('CUSTOMER_REPOSITORY') private customerRepository: Repository<Customer>,
     private jwtService: JwtService,
     private userHasRoleService: UserHasRoleService,
     private encryptionHelper: EncryptionHelper,
@@ -55,16 +61,43 @@ export class AuthService {
       role: userHasRole.role_id,
     };
 
-    return {
+    const roleName = userHasRole.role.name;
+    const response: any = {
       access_token: await this.jwtService.signAsync(payload),
       user: {
         id: user.id,
         email: user.email,
         name: user.name,
         avatar: user.avatar,
-        role: userHasRole.role.name,
+        role: roleName,
       },
     };
+
+    // Fetch and include role-specific object
+    if (roleName === 'admin') {
+      const admin = await this.adminRepository.findOne({
+        where: { user_id: Number(user.id) },
+      });
+      if (admin) {
+        response.admin = admin;
+      }
+    } else if (roleName === 'merchant') {
+      const merchant = await this.merchantRepository.findOne({
+        where: { user_id: Number(user.id) },
+      });
+      if (merchant) {
+        response.merchant = merchant;
+      }
+    } else if (roleName === 'customer') {
+      const customer = await this.customerRepository.findOne({
+        where: { user_id: Number(user.id) },
+      });
+      if (customer) {
+        response.customer = customer;
+      }
+    }
+
+    return response;
   }
 
   async register(registerDto: RegisterDto) {
