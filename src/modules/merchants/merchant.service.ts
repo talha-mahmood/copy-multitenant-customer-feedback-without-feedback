@@ -9,6 +9,7 @@ import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { UpdateMerchantDto } from './dto/update-merchant.dto';
 import * as bcrypt from 'bcrypt';
 import { QRCodeHelper } from 'src/common/helpers/qrcode.helper';
+import { WalletService } from '../wallets/wallet.service';
 
 @Injectable()
 export class MerchantService {
@@ -23,6 +24,7 @@ export class MerchantService {
     private userHasRoleRepository: Repository<UserHasRole>,
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
+    private walletService: WalletService,
   ) {}
 
   async create(createMerchantDto: CreateMerchantDto) {
@@ -98,7 +100,13 @@ export class MerchantService {
         qr_code_hash: hash,
         qr_code_image: qrCodeImage,
       });
+// Create merchant wallet
+      await this.walletService.createMerchantWallet(
+        savedMerchant.id,
+        createMerchantDto.merchant_type || 'temporary',
+      );
 
+      
       await queryRunner.commitTransaction();
 
       // Load the merchant with user relation
