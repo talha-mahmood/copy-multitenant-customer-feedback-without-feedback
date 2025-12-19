@@ -38,7 +38,7 @@ export class CreateMerchantDto {
 
   @IsNotEmpty()
   @IsString()
-  merchant_type: string; // 'temporary' or 'permanent'
+  merchant_type: string; // 'temporary' or 'annual'
 
   @IsOptional()
   @IsString()
