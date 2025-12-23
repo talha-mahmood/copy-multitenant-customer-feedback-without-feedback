@@ -328,6 +328,8 @@ apt-get install -y nginx
 
 # Create Nginx configuration
 nano /etc/nginx/sites-available/customer-feedback-backend
+nano /etc/nginx/sites-available/qr-review.mustservices.io
+
 ```
 
 Paste this configuration:
@@ -361,6 +363,7 @@ Save and exit, then:
 ```bash
 # Enable the site
 ln -s /etc/nginx/sites-available/customer-feedback-backend /etc/nginx/sites-enabled/
+ln -s /etc/nginx/sites-available/qr-review.mustservices.io /etc/nginx/sites-enabled/
 
 # Remove default site
 rm -f /etc/nginx/sites-enabled/default
