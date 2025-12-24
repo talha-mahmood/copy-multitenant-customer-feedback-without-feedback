@@ -59,8 +59,8 @@ export class CouponBatchController {
    * Export all coupon batches and coupons for the current merchant as PDF (base64)
    */
 
-  @Get('export/pdf/:merchantId')
-  async exportPdf(@Param('merchantId') merchantId: number) {
-    return this.couponBatchService.exportPdf(merchantId);
-}
+  @Get('export/pdf/:batchId')
+  async exportBatchPdf(@Param('batchId') batchId: number) {
+    return this.couponBatchService.exportBatchPdf(batchId);
+  }
 }
