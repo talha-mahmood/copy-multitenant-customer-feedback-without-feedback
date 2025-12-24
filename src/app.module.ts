@@ -10,6 +10,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { envConfig } from './common/config/env.config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { StripeModule } from './stripe/stripe.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ScheduleModule } from '@nestjs/schedule';
       serveRoot: '/uploads',
     }),
     ScheduleModule.forRoot(),
+    StripeModule,
   ],
   providers: [
     AppService,
