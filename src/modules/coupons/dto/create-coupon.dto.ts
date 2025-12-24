@@ -1,4 +1,6 @@
 import { IsString, IsInt, IsOptional } from 'class-validator';
+import { IsUnique } from '../../../common/decorators/is-unique.decorator';
+import { Coupon } from '../entities/coupon.entity';
 
 export class CreateCouponDto {
   @IsInt()
@@ -11,6 +13,7 @@ export class CreateCouponDto {
   @IsOptional()
   customer_id?: number;
 
+  @IsUnique(() => Coupon, 'coupon_code')
   @IsString()
   coupon_code: string;
 
@@ -21,4 +24,19 @@ export class CreateCouponDto {
   @IsString()
   @IsOptional()
   status?: string;
+  @IsInt()
+  @IsOptional()
+  template_id?: number;
+
+  @IsString()
+  @IsOptional()
+  header?: string;
+
+  @IsString()
+  @IsOptional()
+  title?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
 }

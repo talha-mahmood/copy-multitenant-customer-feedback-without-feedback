@@ -42,6 +42,28 @@ export class CreateCouponsTable1747500000001 implements MigrationInterface {
             isNullable: true,
           },
           {
+            name: 'template_id',
+            type: 'int',
+            isNullable: true,
+          },
+          {
+            name: 'header',
+            type: 'varchar',
+            length: '255',
+            isNullable: true,
+          },
+          {
+            name: 'title',
+            type: 'varchar',
+            length: '255',
+            isNullable: true,
+          },
+          {
+            name: 'description',
+            type: 'text',
+            isNullable: true,
+          },
+          {
             name: 'status',
             type: 'varchar',
             length: '50',

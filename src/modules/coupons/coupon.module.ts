@@ -3,11 +3,12 @@ import { CouponService } from './coupon.service';
 import { CouponController } from './coupon.controller';
 import { couponProvider } from './coupon.provider';
 import { DatabaseModule } from 'src/database/database.module';
+import { couponTemplateProvider } from './coupon-template.provider';
 
 @Module({
   imports: [DatabaseModule],
   controllers: [CouponController],
-  providers: [CouponService, ...couponProvider],
+  providers: [CouponService, ...couponProvider, ...couponTemplateProvider],
   exports: [CouponService],
 })
 export class CouponModule {}
