@@ -63,4 +63,12 @@ export class CouponController {
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.couponService.remove(id);
   }
+
+  /**
+   * Redeem a coupon by its unique coupon_code
+   */
+  @Post('redeem')
+  async redeem(@Body('couponCode') couponCode: string) {
+    return this.couponService.redeemCoupon(couponCode);
+  }
 }

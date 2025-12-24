@@ -12,6 +12,24 @@ export class CouponService {
     private couponRepository: Repository<Coupon>,
   ) {}
 
+  /**
+   * Redeem a coupon by its unique coupon_code. Can only be redeemed once.
+   */
+
+  async redeemCoupon(couponCode: string) {
+    const coupon = await this.couponRepository.findOne({ where: { coupon_code: couponCode } });
+    if (!coupon) {
+      throw new NotFoundException('Coupon not found');
+    }
+    if (coupon.status === 'redeemed') {
+      return { message: 'Coupon already redeemed', data: instanceToPlain(coupon) };
+    }
+    coupon.status = 'redeemed';
+    coupon.redeemed_at = new Date();
+    await this.couponRepository.save(coupon);
+    return { message: 'Coupon redeemed successfully', data: instanceToPlain(coupon) };
+  }
+
   async create(createCouponDto: CreateCouponDto) {
     const coupon = this.couponRepository.create({
       ...createCouponDto,
