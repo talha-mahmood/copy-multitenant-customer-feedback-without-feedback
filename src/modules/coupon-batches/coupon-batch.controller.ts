@@ -17,6 +17,8 @@ import { UpdateCouponBatchDto } from './dto/update-coupon-batch.dto';
 import { ShowCouponBatchDto } from './dto/show-coupon-batch.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
+import { CurrentUser } from 'src/common/decorators/current-user';
+
 @Controller('coupon-batches')
 @UseGuards(JwtAuthGuard)
 export class CouponBatchController {
@@ -52,4 +54,13 @@ export class CouponBatchController {
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.couponBatchService.remove(id);
   }
+
+  /**
+   * Export all coupon batches and coupons for the current merchant as PDF (base64)
+   */
+
+  @Get('export/pdf/:merchantId')
+  async exportPdf(@Param('merchantId') merchantId: number) {
+    return this.couponBatchService.exportPdf(merchantId);
+}
 }
