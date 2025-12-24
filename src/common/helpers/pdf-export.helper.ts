@@ -30,8 +30,8 @@ export class PdfExportHelper {
 
     // --- Coupons Table ---
     // Table header
-    const tableColumn = ['Code', 'Status', 'Issued At', 'Redeemed At', 'Customer'];
-    const colWidths = [100, 60, 100, 100, 120];
+    const tableColumn = ['Code', 'Status', 'Issued At', 'Redeemed At'];
+    const colWidths = [100, 60, 100, 100];
     let x = 14;
     let tableY = yPos;
     doc.fontSize(10).fillColor('white').rect(x, tableY, colWidths.reduce((a, b) => a + b, 0), 20).fill('#16a34a');
@@ -45,21 +45,25 @@ export class PdfExportHelper {
 
     // Table rows
     let rowY = tableY + 20;
+    // Helper for date formatting
+    function formatDateTime(dt) {
+      if (!dt) return '-';
+      const d = new Date(dt);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      const ss = String(d.getSeconds()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+    }
     coupons.forEach((c, idx) => {
       colX = x;
-      let customerName = '-';
-      let customerEmail = '-';
-      if (c.customer && c.customer.user) {
-        customerName = c.customer.user.name ?? '-';
-        customerEmail = c.customer.user.email ?? '-';
-      }
-      const customerInfo = (customerName !== '-' || customerEmail !== '-') ? `${customerName}\n${customerEmail}` : '-';
       const rowData = [
         c.coupon_code ?? '-',
         c.status ?? '-',
-        c.issued_at ? (new Date(c.issued_at)).toLocaleString() : '-',
-        c.redeemed_at ? (new Date(c.redeemed_at)).toLocaleString() : '-',
-        customerInfo,
+        formatDateTime(c.issued_at),
+        formatDateTime(c.redeemed_at),
       ];
       rowData.forEach((cell, i) => {
         doc.fontSize(9).fillColor('black').text(cell, colX + 2, rowY + 4, { width: colWidths[i] - 4, align: 'left' });
