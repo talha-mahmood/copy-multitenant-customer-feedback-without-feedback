@@ -31,9 +31,11 @@ export class CouponBatchController {
   findAll(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
-    @Query('merchantId', ParseIntPipe) merchantId?: number,
+    @Query('merchantId') merchantId?: number,
   ) {
-    return this.couponBatchService.findAll(page, pageSize, merchantId);
+    return this.couponBatchService.findAll(page, pageSize, {
+      merchantId
+    });
   }
 
   @Get(':id')

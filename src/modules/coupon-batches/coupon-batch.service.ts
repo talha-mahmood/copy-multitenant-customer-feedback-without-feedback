@@ -124,7 +124,9 @@ export class CouponBatchService {
     };
   }
 
-  async findAll(page: number = 1, pageSize: number = 20, merchantId?: number) {
+  async findAll(page: number = 1, pageSize: number = 20, filters?: {
+    merchantId?: number;
+  }) {
     if (pageSize > 500) {
       pageSize = 500;
     }
@@ -133,8 +135,8 @@ export class CouponBatchService {
       .createQueryBuilder('couponBatch')
       .leftJoinAndSelect('couponBatch.merchant', 'merchant');
 
-    if (merchantId) {
-      queryBuilder.andWhere('couponBatch.merchantId = :merchantId', { merchantId });
+    if (filters?.merchantId) {
+      queryBuilder.andWhere('couponBatch.merchantId = :merchantId', { merchantId : filters?.merchantId });
     }
 
     const [results, total] = await queryBuilder
