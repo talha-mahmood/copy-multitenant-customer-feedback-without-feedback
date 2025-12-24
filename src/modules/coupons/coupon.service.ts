@@ -34,9 +34,12 @@ export class CouponService {
     const coupon = this.couponRepository.create({
       ...createCouponDto,
       issued_at: new Date(),
+        template_id: createCouponDto.template_id,
+      header: createCouponDto.header,
+      title: createCouponDto.title,
+      description: createCouponDto.description,
     });
     const savedCoupon = await this.couponRepository.save(coupon);
-    
     return {
       message: 'Coupon created successfully',
       data: instanceToPlain(savedCoupon),

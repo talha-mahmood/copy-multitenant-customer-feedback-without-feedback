@@ -59,7 +59,7 @@ export class CreateCouponBatchesTable1747500000000 implements MigrationInterface
             isNullable: false,
           },
           {
-            name: 'coupon_template_id',
+            name: 'template_id',
             type: 'int',
             isNullable: true,
           },

@@ -30,8 +30,21 @@ export class Coupon extends BaseEntity {
   @Column({ name: 'coupon_code', length: 50, unique: true })
   coupon_code: string;
 
+
   @Column({ name: 'qr_hash', length: 255, nullable: true })
   qr_hash: string;
+
+  @Column({ name: 'template_id', type: 'int', nullable: true })
+  template_id: number;
+
+  @Column({ name: 'header', type: 'varchar', length: 255, nullable: true })
+  header: string;
+
+  @Column({ name: 'title', type: 'varchar', length: 255, nullable: true })
+  title: string;
+
+  @Column({ name: 'description', type: 'text', nullable: true })
+  description: string;
 
   @Column({ length: 50, default: 'issued' }) // 'issued', 'redeemed', 'expired'
   status: string;

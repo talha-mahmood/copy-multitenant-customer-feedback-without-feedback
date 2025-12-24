@@ -65,7 +65,6 @@ export class CouponBatchService {
       for (let i = 0; i < createCouponBatchDto.total_quantity; i++) {
         const couponCode = CouponCodeGenerator.generate('CPN');
         const qrHash = QRCodeHelper.generateHash(savedBatch.merchant_id, savedBatch.id, secret);
-        
         const coupon = queryRunner.manager.create(Coupon, {
           batch_id: savedBatch.id,
           merchant_id: savedBatch.merchant_id,
@@ -73,6 +72,10 @@ export class CouponBatchService {
           qr_hash: qrHash,
           status: 'issued',
           issued_at: new Date(),
+          template_id: createCouponBatchDto.template_id,
+          header: createCouponBatchDto.header,
+          title: createCouponBatchDto.title,
+          description: createCouponBatchDto.description,
         });
         coupons.push(coupon);
       }

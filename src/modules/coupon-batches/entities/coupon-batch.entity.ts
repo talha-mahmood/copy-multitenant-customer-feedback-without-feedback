@@ -32,8 +32,8 @@ export class CouponBatch extends BaseEntity {
   @Column({ name: 'is_active', default: true })
   is_active: boolean;
 
-  @Column({ name: 'coupon_template_id', type: 'int', nullable: true })
-  coupon_template_id: number;
+  @Column({ name: 'template_id', type: 'int', nullable: true })
+  template_id: number;
 
   @Column({ name: 'whatsapp_enabled', default: false })
   whatsapp_enabled: boolean;

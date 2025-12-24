@@ -3,6 +3,7 @@ import { seedUser } from './user/user.seeder';
 
 import { rolesPermissionsSeeder } from './roles-permissions/roles-permissions.seeder';
 import { creditPackagesSeeder } from './credit-packages/credit-packages.seeder';
+import seedCouponTemplates from './seed-coupon-templates';
 
 async function runSeeders() {
   await dbConfig.initialize();
@@ -13,6 +14,7 @@ async function runSeeders() {
 
   // Credit Packages
   await creditPackagesSeeder(dbConfig);
+  await seedCouponTemplates(dbConfig);
 
   await dbConfig.destroy();
 }

@@ -28,9 +28,22 @@ export class CreateCouponBatchDto {
   @IsOptional()
   is_active?: boolean;
 
+
   @IsInt()
   @IsOptional()
-  coupon_template_id?: number;
+  template_id?: number;
+
+  @IsString()
+  @IsOptional()
+  header?: string;
+
+  @IsString()
+  @IsOptional()
+  title?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
 
   @IsBoolean()
   @IsOptional()

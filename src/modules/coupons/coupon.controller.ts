@@ -12,6 +12,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CouponService } from './coupon.service';
+import { Inject } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { CouponTemplate } from './entities/coupon-template.entity';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { UpdateCouponDto } from './dto/update-coupon.dto';
 import { ShowCouponDto } from './dto/show-coupon.dto';
@@ -20,7 +23,28 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 @Controller('coupons')
 @UseGuards(JwtAuthGuard)
 export class CouponController {
-  constructor(private readonly couponService: CouponService) {}
+  constructor(
+    private readonly couponService: CouponService,
+    @Inject('COUPON_TEMPLATE_REPOSITORY')
+    private readonly couponTemplateRepo: Repository<CouponTemplate>,
+  ) {}
+  /**
+   * List coupon templates for annual merchants
+   */
+  @Get('templates/annual')
+  async getAnnualTemplates() {
+    const templates = await this.couponTemplateRepo.find({ where: { type: 'annual' } });
+    return { message: 'Annual templates', data: templates };
+  }
+
+  /**
+   * List coupon template for temporary merchants
+   */
+  @Get('templates/temporary')
+  async getTemporaryTemplate() {
+    const templates = await this.couponTemplateRepo.find({ where: { type: 'temporary' } });
+    return { message: 'Temporary template', data: templates };
+  }
 
   @Post()
   create(@Body() createCouponDto: CreateCouponDto) {
