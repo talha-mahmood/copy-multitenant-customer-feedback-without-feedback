@@ -1,28 +1,79 @@
 import PDFDocument from 'pdfkit';
 
 export class PdfExportHelper {
-  static async generateCouponBatchesPdf(batches: any[], coupons: any[]): Promise<Buffer> {
+  static async generateCouponBatchesPdf(batch: any, coupons: any[]): Promise<Buffer> {
     const doc = new PDFDocument({ margin: 30 });
     const buffers: Buffer[] = [];
     doc.on('data', buffers.push.bind(buffers));
     doc.on('end', () => {});
 
-    doc.fontSize(18).text('Coupon Batches Report', { align: 'center' });
-    doc.moveDown();
+    // --- Title ---
+    doc.fontSize(18).text('Batch Details Report', 14, 20);
 
-    batches.forEach((batch, idx) => {
-      doc.fontSize(14).text(`Batch #${idx + 1}: ${batch.name || batch.id}`);
-      doc.fontSize(12).text(`Type: ${batch.batch_type}`);
-      doc.text(`Start Date: ${batch.start_date}`);
-      doc.text(`End Date: ${batch.end_date}`);
-      doc.text(`Total Quantity: ${batch.total_quantity}`);
-      doc.moveDown(0.5);
-      doc.fontSize(12).text('Coupons:', { underline: true });
-      const batchCoupons = coupons.filter(c => c.batch_id === batch.id);
-      batchCoupons.forEach((coupon, cidx) => {
-        doc.text(`  ${cidx + 1}. Code: ${coupon.code} | Status: ${coupon.status}`);
+    // --- Batch Info Section ---
+    doc.fontSize(11);
+    doc.fillColor('black');
+    let yPos = 40;
+    const lineHeight = 16;
+    doc.text(`Batch Name: ${batch.batch_name ?? '-'}`, 14, yPos);
+    yPos += lineHeight;
+    doc.text(`Batch ID: ${batch.id ?? '-'}`, 14, yPos);
+    yPos += lineHeight;
+    doc.text(`Type: ${batch.batch_type ?? '-'}`, 14, yPos);
+    yPos += lineHeight;
+    doc.text(`Status: ${batch.is_active === undefined ? '-' : batch.is_active ? 'Active' : 'Inactive'}`, 14, yPos);
+    yPos += lineHeight;
+    doc.text(`Validity: ${batch.start_date ? (new Date(batch.start_date)).toLocaleDateString() : '-'} to ${batch.end_date ? (new Date(batch.end_date)).toLocaleDateString() : '-'}`, 14, yPos);
+    yPos += lineHeight;
+    doc.text(`Utilization: ${batch.issued_quantity ?? '-'} / ${batch.total_quantity ?? '-'}`, 14, yPos);
+    yPos += lineHeight + 8;
+
+    // --- Coupons Table ---
+    // Table header
+    const tableColumn = ['Code', 'Status', 'Issued At', 'Redeemed At', 'Customer'];
+    const colWidths = [100, 60, 100, 100, 120];
+    let x = 14;
+    let tableY = yPos;
+    doc.fontSize(10).fillColor('white').rect(x, tableY, colWidths.reduce((a, b) => a + b, 0), 20).fill('#16a34a');
+    doc.fillColor('white');
+    let colX = x;
+    tableColumn.forEach((col, i) => {
+      doc.text(col, colX + 2, tableY + 5, { width: colWidths[i] - 4, align: 'left' });
+      colX += colWidths[i];
+    });
+    doc.fillColor('black');
+
+    // Table rows
+    let rowY = tableY + 20;
+    coupons.forEach((c, idx) => {
+      colX = x;
+      let customerName = '-';
+      let customerEmail = '-';
+      if (c.customer && c.customer.user) {
+        customerName = c.customer.user.name ?? '-';
+        customerEmail = c.customer.user.email ?? '-';
+      }
+      const customerInfo = (customerName !== '-' || customerEmail !== '-') ? `${customerName}\n${customerEmail}` : '-';
+      const rowData = [
+        c.coupon_code ?? '-',
+        c.status ?? '-',
+        c.issued_at ? (new Date(c.issued_at)).toLocaleString() : '-',
+        c.redeemed_at ? (new Date(c.redeemed_at)).toLocaleString() : '-',
+        customerInfo,
+      ];
+      rowData.forEach((cell, i) => {
+        doc.fontSize(9).fillColor('black').text(cell, colX + 2, rowY + 4, { width: colWidths[i] - 4, align: 'left' });
+        colX += colWidths[i];
       });
-      doc.moveDown();
+      // Row background
+      if (idx % 2 === 0) {
+        doc.rect(x, rowY, colWidths.reduce((a, b) => a + b, 0), 18).fillOpacity(0.07).fillAndStroke('#e5e7eb', '#e5e7eb').fillOpacity(1);
+      }
+      rowY += 18;
+      if (rowY > doc.page.height - 40) {
+        doc.addPage();
+        rowY = 40;
+      }
     });
 
     doc.end();

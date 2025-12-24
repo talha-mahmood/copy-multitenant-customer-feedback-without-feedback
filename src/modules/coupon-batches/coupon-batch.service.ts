@@ -217,22 +217,10 @@ export class CouponBatchService {
     if (!batch) {
       throw new NotFoundException('Coupon batch not found');
     }
-    const coupons = await this.couponRepository.find({ where: { batch_id: batchId } });
-    const batchObj = {
-      id: batch.id,
-      batch_name: batch.batch_name,
-      batch_type: batch.batch_type,
-      start_date: batch.start_date,
-      end_date: batch.end_date,
-      total_quantity: batch.total_quantity,
-    };
-    const couponObjs = coupons.map(c => ({
-      id: c.id,
-      batch_id: c.batch_id,
-      code: c.coupon_code,
-      status: c.status,
-    }));
-    const pdfBuffer = await PdfExportHelper.generateCouponBatchesPdf([batchObj], couponObjs);
+    // Get all coupons for this batch, including customer relation
+    const coupons = await this.couponRepository.find({ where: { batch_id: batchId }, relations: ['customer'] });
+    // Pass the batch and coupons directly to the new helper
+    const pdfBuffer = await PdfExportHelper.generateCouponBatchesPdf(batch, coupons);
     const base64 = pdfBuffer.toString('base64');
     return {
       message: 'PDF export generated successfully',
