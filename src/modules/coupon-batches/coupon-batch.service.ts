@@ -208,37 +208,31 @@ export class CouponBatchService {
     };
   }
 
-  /**
-   * Export all coupon batches and coupons for a merchant as PDF (base64)
-   */
-  async exportPdf(merchantId: number) {
-    // Get all batches for merchant
-    const batches = await this.couponBatchRepository.find({ where: { merchant_id: merchantId } });
-    if (!batches.length) {
-      throw new NotFoundException('No coupon batches found for this merchant');
-    }
-    // Get all coupons for these batches
-    const batchIds = batches.map(b => b.id);
-    const coupons = await this.couponRepository.find({ where: { batch_id: In(batchIds) } });
 
-    // Prepare plain objects for PDF
-    const batchObjs = batches.map(b => ({
-      id: b.id,
-      batch_name: b.batch_name,
-      batch_type: b.batch_type,
-      start_date: b.start_date,
-      end_date: b.end_date,
-      total_quantity: b.total_quantity,
-    }));
+    /**
+   * Export a single coupon batch and its coupons as PDF (base64)
+   */
+  async exportBatchPdf(batchId: number) {
+    const batch = await this.couponBatchRepository.findOne({ where: { id: batchId } });
+    if (!batch) {
+      throw new NotFoundException('Coupon batch not found');
+    }
+    const coupons = await this.couponRepository.find({ where: { batch_id: batchId } });
+    const batchObj = {
+      id: batch.id,
+      batch_name: batch.batch_name,
+      batch_type: batch.batch_type,
+      start_date: batch.start_date,
+      end_date: batch.end_date,
+      total_quantity: batch.total_quantity,
+    };
     const couponObjs = coupons.map(c => ({
       id: c.id,
       batch_id: c.batch_id,
       code: c.coupon_code,
       status: c.status,
     }));
-
-    // Generate PDF
-    const pdfBuffer = await PdfExportHelper.generateCouponBatchesPdf(batchObjs, couponObjs);
+    const pdfBuffer = await PdfExportHelper.generateCouponBatchesPdf([batchObj], couponObjs);
     const base64 = pdfBuffer.toString('base64');
     return {
       message: 'PDF export generated successfully',
