@@ -57,11 +57,23 @@ export class AuthService {
 
 
     let merchantId: number | null = null;
+    let adminId: number | null = null;
+    let customerId: number | null = null;
     const roleName = userHasRole.role.name;
     if (roleName === 'merchant') {
       const merchant = await this.merchantRepository.findOne({ where: { user_id: Number(user.id) } });
       if (merchant) {
         merchantId = merchant.id;
+      }
+    } else if (roleName === 'admin') {
+      const admin = await this.adminRepository.findOne({ where: { user_id: Number(user.id) } });
+      if (admin) {
+        adminId = admin.id;
+      }
+    } else if (roleName === 'customer') {
+      const customer = await this.customerRepository.findOne({ where: { user_id: Number(user.id) } });
+      if (customer) {
+        customerId = customer.id;
       }
     }
     const payload = {
@@ -69,6 +81,8 @@ export class AuthService {
       email: user.email,
       role: userHasRole.role_id,
       merchantId,
+      adminId,
+      customerId,
     };
     const response: any = {
       access_token: await this.jwtService.signAsync(payload),
@@ -79,6 +93,8 @@ export class AuthService {
         avatar: user.avatar,
         role: roleName,
         merchantId,
+        adminId,
+        customerId,
       },
     };
 
