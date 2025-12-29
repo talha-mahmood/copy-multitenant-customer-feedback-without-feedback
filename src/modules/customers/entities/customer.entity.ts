@@ -15,9 +15,13 @@ export class Customer extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   address: string;
 
+  @Column({ name: 'merchant_id', type: 'int', nullable: true })
+  merchant_id: number;
+
   @Column({ name: 'date_of_birth', type: 'date', nullable: true })
   date_of_birth: Date;
 
   @Column({ length: 20, nullable: true })
   gender: string;
+
 }

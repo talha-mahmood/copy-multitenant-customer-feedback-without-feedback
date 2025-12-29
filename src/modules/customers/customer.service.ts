@@ -22,7 +22,7 @@ export class CustomerService {
     };
   }
 
-  async findAll(page: number = 1, pageSize: number = 20, search = '') {
+  async findAll(page: number = 1, pageSize: number = 20, search = '', user?: { role: string; merchantId?: number | null }) {
     const queryBuilder = this.customerRepository.createQueryBuilder('customer');
 
     if (search) {
@@ -30,6 +30,11 @@ export class CustomerService {
         '(customer.name ILIKE :search OR customer.email ILIKE :search OR customer.phone ILIKE :search)',
         { search: `%${search}%` },
       );
+    }
+
+    // If merchant, filter by merchantId
+    if (user && user.role === 'merchant' && user.merchantId) {
+      queryBuilder.andWhere('customer.merchant_id = :merchantId', { merchantId: user.merchantId });
     }
 
     queryBuilder
@@ -51,9 +56,13 @@ export class CustomerService {
     };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, user?: { role: string; merchantId?: number | null }) {
     const customer = await this.customerRepository.findOne({ where: { id } });
     if (!customer) {
+      throw new HttpException('Customer not found', 404);
+    }
+    // If merchant, restrict to own customers
+    if (user && user.role === 'merchant' && user.merchantId && customer.merchant_id !== user.merchantId) {
       throw new HttpException('Customer not found', 404);
     }
     return {
