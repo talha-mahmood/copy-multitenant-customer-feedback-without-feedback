@@ -161,7 +161,7 @@ export class CouponBatchService {
     };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, user: { id: number; role: number | string; merchantId?: number | null }) {
     const couponBatch = await this.couponBatchRepository.findOne({
       where: { id },
       relations: ['merchant'],
@@ -169,6 +169,12 @@ export class CouponBatchService {
 
     if (!couponBatch) {
       throw new NotFoundException(`Coupon batch with ID ${id} not found`);
+    }
+
+    // Allow admin or merchant who owns the batch
+    const isAdmin = user.role === 1 || user.role === 'admin';
+    if (!isAdmin && couponBatch.merchant_id !== user.merchantId) {
+      throw new NotFoundException('Coupon batch not found');
     }
 
     return {

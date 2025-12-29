@@ -80,7 +80,7 @@ export class CouponController {
 
   @Get(':id')
   findOne(@CurrentUser() user: User, @Param() showCouponDto: ShowCouponDto) {
-    return this.couponService.findOne(showCouponDto.id);
+    return this.couponService.findOne(showCouponDto.id, user);
   }
 
   @Patch(':id')

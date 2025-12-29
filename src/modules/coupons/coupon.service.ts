@@ -95,7 +95,7 @@ export class CouponService {
     };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, user: { id: number; role: number | string; merchantId?: number | null }) {
     const coupon = await this.couponRepository.findOne({
       where: { id },
       relations: ['merchant', 'customer', 'batch'],
@@ -103,6 +103,12 @@ export class CouponService {
 
     if (!coupon) {
       throw new NotFoundException(`Coupon with ID ${id} not found`);
+    }
+
+    // Allow admin or merchant who owns the coupon
+    const isAdmin = user.role === 1;
+    if (!isAdmin && coupon.merchant_id !== user.merchantId) {
+      throw new NotFoundException('Coupon not found');
     }
 
     return {

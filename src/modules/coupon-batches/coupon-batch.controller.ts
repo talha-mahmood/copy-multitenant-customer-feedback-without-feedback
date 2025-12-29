@@ -45,7 +45,7 @@ export class CouponBatchController {
 
   @Get(':id')
   findOne(@CurrentUser() user: User, @Param() showCouponBatchDto: ShowCouponBatchDto) {
-    return this.couponBatchService.findOne(showCouponBatchDto.id);
+    return this.couponBatchService.findOne(showCouponBatchDto.id, user);
   }
 
   @Patch(':id')
