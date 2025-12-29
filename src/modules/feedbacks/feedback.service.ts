@@ -69,14 +69,15 @@ export class FeedbackService {
         user_id: savedUser.id,
         address: createFeedbackDto.address,
         gender: createFeedbackDto.gender,
+        merchant_id: createFeedbackDto.merchantId,
       };
-      
+
       if (createFeedbackDto.date_of_birth) {
         // Parse DD-MM-YYYY format to YYYY-MM-DD
         const [day, month, year] = createFeedbackDto.date_of_birth.split('-');
         customerData.date_of_birth = `${year}-${month}-${day}`;
       }
-      
+
       const customer = queryRunner.manager.create(Customer, customerData);
       const savedCustomer = await queryRunner.manager.save(customer);
 

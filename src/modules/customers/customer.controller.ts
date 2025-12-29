@@ -10,6 +10,7 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
 } from '@nestjs/common';
+import { CurrentUser, User } from 'src/common/decorators/current-user';
 import { CustomerService } from './customer.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
@@ -26,6 +27,7 @@ export class CustomerController {
 
   @Get()
   findAll(
+    @CurrentUser() user: User,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
     @Query('search') search?: string,
@@ -33,12 +35,12 @@ export class CustomerController {
     if (pageSize > 500) {
       throw new Error('Page size cannot be greater than 500');
     }
-    return this.customerService.findAll(page, pageSize, search);
+    return this.customerService.findAll(page, pageSize, search, user);
   }
 
   @Get(':id')
-  findOne(@Param() showCustomerDto: ShowCustomerDto) {
-    return this.customerService.findOne(showCustomerDto.id);
+  findOne(@CurrentUser() user: User, @Param() showCustomerDto: ShowCustomerDto) {
+    return this.customerService.findOne(showCustomerDto.id, user);
   }
 
   @Patch(':id')
