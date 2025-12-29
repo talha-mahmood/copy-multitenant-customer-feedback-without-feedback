@@ -19,6 +19,7 @@ import { CreateCouponDto } from './dto/create-coupon.dto';
 import { UpdateCouponDto } from './dto/update-coupon.dto';
 import { ShowCouponDto } from './dto/show-coupon.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { CurrentUser, User } from 'src/common/decorators/current-user';
 
 @Controller('coupons')
 @UseGuards(JwtAuthGuard)
@@ -53,6 +54,7 @@ export class CouponController {
 
   @Get()
   findAll(
+    @CurrentUser() user: User,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
     @Query('merchantId') merchantId?: number,
@@ -60,8 +62,11 @@ export class CouponController {
     @Query('batchId') batchId?: number,
     @Query('status') status?: string,
   ) {
+    const isAdmin = user.role === 1 || user.role === 'admin';
+    // Ensure merchantId is number or undefined, not null
+    const effectiveMerchantId = isAdmin ? merchantId : (typeof user.merchantId === 'number' ? user.merchantId : undefined);
     return this.couponService.findAll(page, pageSize, {
-      merchantId,
+      merchantId: effectiveMerchantId,
       customerId,
       batchId,
       status,
@@ -74,7 +79,7 @@ export class CouponController {
   }
 
   @Get(':id')
-  findOne(@Param() showCouponDto: ShowCouponDto) {
+  findOne(@CurrentUser() user: User, @Param() showCouponDto: ShowCouponDto) {
     return this.couponService.findOne(showCouponDto.id);
   }
 

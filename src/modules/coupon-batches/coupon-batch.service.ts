@@ -141,7 +141,7 @@ export class CouponBatchService {
       .leftJoinAndSelect('couponBatch.merchant', 'merchant');
 
     if (filters?.merchantId) {
-      queryBuilder.andWhere('couponBatch.merchantId = :merchantId', { merchantId : filters?.merchantId });
+      queryBuilder.andWhere('couponBatch.merchant_id = :merchantId', { merchantId : filters?.merchantId });
     }
 
     const [results, total] = await queryBuilder

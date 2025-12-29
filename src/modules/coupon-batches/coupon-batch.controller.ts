@@ -17,7 +17,7 @@ import { UpdateCouponBatchDto } from './dto/update-coupon-batch.dto';
 import { ShowCouponBatchDto } from './dto/show-coupon-batch.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
-import { CurrentUser } from 'src/common/decorators/current-user';
+import { CurrentUser, User } from 'src/common/decorators/current-user';
 
 @Controller('coupon-batches')
 @UseGuards(JwtAuthGuard)
@@ -31,17 +31,20 @@ export class CouponBatchController {
 
   @Get()
   findAll(
+    @CurrentUser() user: User,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
     @Query('merchantId') merchantId?: number,
   ) {
+    const isAdmin = user.role === 1;
+    const effectiveMerchantId = isAdmin ? merchantId : (typeof user.merchantId === 'number' ? user.merchantId : undefined);
     return this.couponBatchService.findAll(page, pageSize, {
-      merchantId
+      merchantId: effectiveMerchantId
     });
   }
 
   @Get(':id')
-  findOne(@Param() showCouponBatchDto: ShowCouponBatchDto) {
+  findOne(@CurrentUser() user: User, @Param() showCouponBatchDto: ShowCouponBatchDto) {
     return this.couponBatchService.findOne(showCouponBatchDto.id);
   }
 

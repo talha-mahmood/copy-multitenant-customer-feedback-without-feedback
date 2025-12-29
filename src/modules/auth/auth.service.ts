@@ -55,13 +55,21 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+
+    let merchantId: number | null = null;
+    const roleName = userHasRole.role.name;
+    if (roleName === 'merchant') {
+      const merchant = await this.merchantRepository.findOne({ where: { user_id: Number(user.id) } });
+      if (merchant) {
+        merchantId = merchant.id;
+      }
+    }
     const payload = {
       sub: user.id,
       email: user.email,
       role: userHasRole.role_id,
+      merchantId,
     };
-
-    const roleName = userHasRole.role.name;
     const response: any = {
       access_token: await this.jwtService.signAsync(payload),
       user: {
@@ -70,6 +78,7 @@ export class AuthService {
         name: user.name,
         avatar: user.avatar,
         role: roleName,
+        merchantId,
       },
     };
 
