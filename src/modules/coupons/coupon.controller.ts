@@ -62,7 +62,7 @@ export class CouponController {
     @Query('batchId') batchId?: number,
     @Query('status') status?: string,
   ) {
-    const isAdmin = user.role === 1 || user.role === 'admin';
+    const isAdmin = user.role === 'admin';
     // Ensure merchantId is number or undefined, not null
     const effectiveMerchantId = isAdmin ? merchantId : (typeof user.merchantId === 'number' ? user.merchantId : undefined);
     return this.couponService.findAll(page, pageSize, {

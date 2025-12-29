@@ -172,7 +172,7 @@ export class CouponBatchService {
     }
 
     // Allow admin or merchant who owns the batch
-    const isAdmin = user.role === 1 || user.role === 'admin';
+    const isAdmin = user.role === 'admin';
     if (!isAdmin && couponBatch.merchant_id !== user.merchantId) {
       throw new NotFoundException('Coupon batch not found');
     }

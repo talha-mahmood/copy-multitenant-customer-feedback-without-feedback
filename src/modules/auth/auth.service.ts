@@ -79,7 +79,7 @@ export class AuthService {
     const payload = {
       sub: user.id,
       email: user.email,
-      role: userHasRole.role_id,
+      role: roleName, // use string role name
       merchantId,
       adminId,
       customerId,
@@ -91,7 +91,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         avatar: user.avatar,
-        role: roleName,
+        role: roleName, // use string role name
         merchantId,
         adminId,
         customerId,

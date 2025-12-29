@@ -22,7 +22,7 @@ export class RoleService {
     console.log('Current User:', user);
     const query = this.roleRepository.createQueryBuilder('roles');
     if (user && user.role) {
-      const userRole = await this.roleRepository.findOneBy({ id: Number(user.role) });
+      const userRole = await this.roleRepository.findOneBy({ name: user.role});
       const userRoleName = userRole ? userRole.name : null;
       if (userRoleName !== RoleEnum.SUPER_ADMIN) {
         query.where('roles.name != :superAdmin AND roles.name != :resident', {

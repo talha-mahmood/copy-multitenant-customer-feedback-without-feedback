@@ -36,7 +36,7 @@ export class CouponBatchController {
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
     @Query('merchantId') merchantId?: number,
   ) {
-    const isAdmin = user.role === 1;
+    const isAdmin = user.role === 'admin';
     const effectiveMerchantId = isAdmin ? merchantId : (typeof user.merchantId === 'number' ? user.merchantId : undefined);
     return this.couponBatchService.findAll(page, pageSize, {
       merchantId: effectiveMerchantId

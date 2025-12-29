@@ -106,7 +106,7 @@ export class CouponService {
     }
 
     // Allow admin or merchant who owns the coupon
-    const isAdmin = user.role === 1;
+    const isAdmin = user.role === "admin";
     if (!isAdmin && coupon.merchant_id !== user.merchantId) {
       throw new NotFoundException('Coupon not found');
     }
