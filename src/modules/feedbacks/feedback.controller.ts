@@ -51,4 +51,14 @@ export class FeedbackController {
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.feedbackService.remove(id);
   }
+
+  @Patch(':id/complete-redirect')
+  markRedirectCompleted(@Param('id', ParseIntPipe) id: number) {
+    return this.feedbackService.markRedirectCompleted(id);
+  }
+
+  @Get('analytics/:merchantId')
+  getReviewAnalytics(@Param('merchantId', ParseIntPipe) merchantId: number) {
+    return this.feedbackService.getReviewAnalytics(merchantId);
+  }
 }
