@@ -4,6 +4,8 @@ import { Feedback } from './entities/feedback.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { User } from '../users/entities/user.entity';
 import { Role } from '../roles-permission-management/roles/entities/role.entity';
+import { Merchant } from '../merchants/entities/merchant.entity';
+import { PresetReview } from './entities/preset-review.entity';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { UpdateFeedbackDto } from './dto/update-feedback.dto';
 import * as bcrypt from 'bcrypt';
@@ -19,6 +21,10 @@ export class FeedbackService {
     private userRepository: Repository<User>,
     @Inject('ROLE_REPOSITORY')
     private roleRepository: Repository<Role>,
+    @Inject('MERCHANT_REPOSITORY')
+    private merchantRepository: Repository<Merchant>,
+    @Inject('PRESET_REVIEW_REPOSITORY')
+    private presetReviewRepository: Repository<PresetReview>,
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
   ) {}
@@ -81,12 +87,73 @@ export class FeedbackService {
       const customer = queryRunner.manager.create(Customer, customerData);
       const savedCustomer = await queryRunner.manager.save(customer);
 
-      // 5. Create Feedback
+      // 5. Validate merchant and platform availability
+      const merchant = await this.merchantRepository.findOne({
+        where: { id: createFeedbackDto.merchantId },
+      });
+
+      if (!merchant) {
+        throw new HttpException('Merchant not found', 404);
+      }
+
+      // Validate selected platform is enabled by merchant
+      const platformMap = {
+        google: merchant.enable_google_reviews,
+        facebook: merchant.enable_facebook_reviews,
+        instagram: merchant.enable_instagram_reviews,
+        xiaohongshu: merchant.enable_xiaohongshu_reviews,
+      };
+
+      if (!platformMap[createFeedbackDto.selectedPlatform]) {
+        throw new HttpException(
+          `${createFeedbackDto.selectedPlatform} reviews are not enabled for this merchant`,
+          400,
+        );
+      }
+
+      // 6. Validate and get review text
+      let reviewText = '';
+      if (createFeedbackDto.reviewType === 'preset') {
+        if (!createFeedbackDto.presetReviewId) {
+          throw new HttpException('Preset review ID is required for preset review type', 400);
+        }
+
+        const presetReview = await this.presetReviewRepository.findOne({
+          where: { id: createFeedbackDto.presetReviewId, is_active: true },
+        });
+
+        if (!presetReview) {
+          throw new HttpException('Preset review not found or inactive', 404);
+        }
+
+        // Verify preset review belongs to merchant or is system default
+        if (
+          presetReview.merchant_id !== null &&
+          presetReview.merchant_id !== createFeedbackDto.merchantId &&
+          !presetReview.is_system_default
+        ) {
+          throw new HttpException('Invalid preset review for this merchant', 400);
+        }
+
+        reviewText = presetReview.review_text;
+      } else if (createFeedbackDto.reviewType === 'custom') {
+        if (!createFeedbackDto.customReviewText?.trim()) {
+          throw new HttpException('Custom review text is required for custom review type', 400);
+        }
+        reviewText = createFeedbackDto.customReviewText;
+      }
+
+      // 7. Create Feedback
       const feedback = queryRunner.manager.create(Feedback, {
         merchant_id: createFeedbackDto.merchantId,
         customer_id: savedCustomer.id,
         rating: createFeedbackDto.rating,
         comment: createFeedbackDto.comment,
+        review_type: createFeedbackDto.reviewType,
+        preset_review_id: createFeedbackDto.presetReviewId || null,
+        review_text: reviewText,
+        selected_platform: createFeedbackDto.selectedPlatform,
+        redirect_completed: createFeedbackDto.redirectCompleted || false,
       });
       const savedFeedback = await queryRunner.manager.save(feedback);
 
@@ -95,12 +162,18 @@ export class FeedbackService {
       // Load feedback with relations
       const feedbackWithRelations = await this.feedbackRepository.findOne({
         where: { id: savedFeedback.id },
-        relations: ['merchant', 'customer'],
+        relations: ['merchant', 'customer', 'presetReview'],
       });
+
+      // Get redirect URL based on platform
+      const redirectUrl = this.getRedirectUrl(merchant, createFeedbackDto.selectedPlatform);
 
       return {
         message: 'Feedback created successfully. User and customer account have been created.',
-        data: feedbackWithRelations,
+        data: {
+          ...feedbackWithRelations,
+          redirectUrl,
+        },
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -183,6 +256,73 @@ export class FeedbackService {
     await this.feedbackRepository.softDelete(id);
     return {
       message: 'Feedback deleted successfully',
+    };
+  }
+
+  private getRedirectUrl(merchant: Merchant, platform: string): string {
+    const urlMap = {
+      google: merchant.google_review_url,
+      facebook: merchant.facebook_page_url,
+      instagram: merchant.instagram_url,
+      xiaohongshu: merchant.xiaohongshu_url,
+    };
+
+    return urlMap[platform] || '';
+  }
+
+  async markRedirectCompleted(feedbackId: number) {
+    const feedback = await this.feedbackRepository.findOne({
+      where: { id: feedbackId },
+    });
+
+    if (!feedback) {
+      throw new HttpException('Feedback not found', 404);
+    }
+
+    feedback.redirect_completed = true;
+    await this.feedbackRepository.save(feedback);
+
+    return {
+      message: 'Redirect marked as completed',
+      data: feedback,
+    };
+  }
+
+  async getReviewAnalytics(merchantId: number) {
+    const totalReviews = await this.feedbackRepository.count({
+      where: { merchant_id: merchantId },
+    });
+
+    const presetReviews = await this.feedbackRepository.count({
+      where: { merchant_id: merchantId, review_type: 'preset' },
+    });
+
+    const customReviews = await this.feedbackRepository.count({
+      where: { merchant_id: merchantId, review_type: 'custom' },
+    });
+
+    const completedRedirects = await this.feedbackRepository.count({
+      where: { merchant_id: merchantId, redirect_completed: true },
+    });
+
+    const platformStats = await this.feedbackRepository
+      .createQueryBuilder('feedback')
+      .select('feedback.selected_platform', 'platform')
+      .addSelect('COUNT(*)', 'count')
+      .where('feedback.merchant_id = :merchantId', { merchantId })
+      .groupBy('feedback.selected_platform')
+      .getRawMany();
+
+    return {
+      message: 'Review analytics retrieved successfully',
+      data: {
+        totalReviews,
+        presetReviews,
+        customReviews,
+        completedRedirects,
+        redirectCompletionRate: totalReviews > 0 ? (completedRedirects / totalReviews) * 100 : 0,
+        platformStats,
+      },
     };
   }
 }

@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, Min, Max } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, Min, Max, IsIn, IsBoolean } from 'class-validator';
 
 export class CreateFeedbackDto {
   @IsNotEmpty()
@@ -45,4 +45,27 @@ export class CreateFeedbackDto {
   @IsOptional()
   @IsString()
   comment?: string;
+
+  // Review fields
+  @IsNotEmpty()
+  @IsString()
+  @IsIn(['preset', 'custom'])
+  reviewType: string; // 'preset' or 'custom'
+
+  @IsOptional()
+  @IsNumber()
+  presetReviewId?: number; // Required if reviewType is 'preset'
+
+  @IsOptional()
+  @IsString()
+  customReviewText?: string; // Required if reviewType is 'custom'
+
+  @IsNotEmpty()
+  @IsString()
+  @IsIn(['google', 'facebook', 'instagram', 'xiaohongshu'])
+  selectedPlatform: string;
+
+  @IsOptional()
+  @IsBoolean()
+  redirectCompleted?: boolean;
 }
