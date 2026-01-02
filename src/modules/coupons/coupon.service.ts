@@ -11,6 +11,8 @@ export class CouponService {
   constructor(
     @Inject('COUPON_REPOSITORY')
     private couponRepository: Repository<Coupon>,
+    @Inject('MERCHANT_REPOSITORY')
+    private merchantRepository: Repository<Merchant>,
   ) { }
 
   /**
@@ -101,93 +103,72 @@ export class CouponService {
       pageSize = 500;
     }
 
-    const merchantRepository = this.couponRepository.manager.getRepository(Merchant);
-    const queryBuilder = merchantRepository
+    const queryBuilder = this.merchantRepository
       .createQueryBuilder('merchant')
       .leftJoinAndSelect('merchant.batches', 'batch')
       .leftJoinAndSelect('batch.template', 'template')
-      .leftJoinAndSelect('merchant.user', 'user') // Optional: if you need user details
+      .leftJoinAndSelect('merchant.user', 'user')
       .where('batch.is_active = :isActive', { isActive: true });
 
     if (businessType) {
       queryBuilder.andWhere('merchant.business_type = :businessType', { businessType });
     }
 
-    try {
-      const [results, total] = await queryBuilder
-        .skip((page - 1) * pageSize)
-        .take(pageSize)
-        .orderBy('merchant.created_at', 'DESC')
-        .getManyAndCount();
+    const [results, total] = await queryBuilder
+      .skip((page - 1) * pageSize)
+      .take(pageSize)
+      .orderBy('merchant.created_at', 'DESC')
+      .getManyAndCount();
 
-      // Process results to inject rendered HTML
-      const processedMerchants = await Promise.all(results.map(async (merchant) => {
-        const plainMerchant = instanceToPlain(merchant);
+    // Process results to inject rendered HTML
+    const processedMerchants = results.map(merchant => {
+      const plainMerchant = instanceToPlain(merchant);
 
-        if (plainMerchant.batches) {
-          plainMerchant.batches = await Promise.all(plainMerchant.batches.map(async (batch) => {
-            let renderedHtml = batch.template?.html || '';
+      if (plainMerchant.batches) {
+        plainMerchant.batches = plainMerchant.batches.map(batch => {
+          let renderedHtml = batch.template?.html || '';
 
-            // Check if we need fallback data from Coupon table (for legacy batches)
-            let header = batch.header;
-            let title = batch.title;
-            let description = batch.description;
+          // Use batch data directly since all coupons in a batch share the same values
+          const header = batch.header || '';
+          const title = batch.title || '';
+          const description = batch.description || '';
 
-            if (!header || !title || !description) {
-              // Fetch one representative coupon for this batch to get the metadata
-              const representativeCoupon = await this.couponRepository.findOne({
-                where: { batch_id: batch.id },
-                select: ['header', 'title', 'description']
-              });
-
-              if (representativeCoupon) {
-                header = header || representativeCoupon.header;
-                title = title || representativeCoupon.title;
-                description = description || representativeCoupon.description;
-              }
-            }
-
-            // Inject dynamic fields if HTML exists
-            if (renderedHtml) {
-              const replacements = {
-                '{{header}}': header || '',
-                '{{title}}': title || '',
-                '{{description}}': description || ''
-              };
-
-              Object.keys(replacements).forEach((placeholder) => {
-                const regex = new RegExp(placeholder.replace('{{', '{{\\s*').replace('}}', '\\s*}}'), 'gi');
-                renderedHtml = renderedHtml.replace(regex, replacements[placeholder]);
-              });
-            }
-
-            return {
-              ...batch,
-              // Return the resolved values as well, for clarity
-              header,
-              title,
-              description,
-              rendered_html: renderedHtml,
+          // Inject dynamic fields if HTML exists
+          if (renderedHtml) {
+            const replacements = {
+              '{{header}}': header,
+              '{{title}}': title,
+              '{{description}}': description,
             };
-          }));
-        }
 
-        return plainMerchant;
-      }));
+            Object.entries(replacements).forEach(([placeholder, value]) => {
+              const regex = new RegExp(placeholder.replace('{{', '{{\\s*').replace('}}', '\\s*}}'), 'gi');
+              renderedHtml = renderedHtml.replace(regex, value);
+            });
+          }
 
-      return {
-        message: 'Public merchants with coupons retrieved successfully',
-        data: {
-          merchants: processedMerchants,
-          total,
-          page,
-          pageSize,
+          return {
+            ...batch,
+            header,
+            title,
+            description,
+            rendered_html: renderedHtml,
+          };
+        });
+      }
+
+      return plainMerchant;
+    });
+
+    return {
+      message: 'Public merchants with coupons retrieved successfully',
+      data: {
+        merchants: processedMerchants,
+        total,
+        page,
+        pageSize,
         },
-      };
-    } catch (error) {
-      console.error('Error in findAllPublic:', error);
-      throw error;
-    }
+    };
   }
 
   async findOne(id: number, user: { id: number; role: number | string; merchantId?: number | null }) {
