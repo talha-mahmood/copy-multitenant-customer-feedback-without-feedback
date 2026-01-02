@@ -1,8 +1,9 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, HttpException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { PresetReview } from './entities/preset-review.entity';
-import { CreatePresetReviewDto } from './dto/create-preset-review.dto';
-import { UpdatePresetReviewDto } from './dto/update-preset-review.dto';
+import { CreatePresetReviewDto, BulkCreatePresetReviewDto } from './dto/create-preset-review.dto';
+import { UpdatePresetReviewDto, BulkUpdatePresetReviewDto } from './dto/update-preset-review.dto';
+import { BulkDeletePresetReviewDto } from './dto/bulk-delete-preset-review.dto';
 
 @Injectable()
 export class PresetReviewService {
@@ -162,6 +163,119 @@ export class PresetReviewService {
     return {
       message: 'System default reviews seeded successfully',
       data: presetReviews,
+    };
+  }
+
+  async bulkCreate(bulkCreateDto: BulkCreatePresetReviewDto) {
+    const presetReviews = bulkCreateDto.reviews.map((dto) =>
+      this.presetReviewRepository.create({
+        merchant_id: dto.merchantId || null,
+        review_text: dto.reviewText,
+        is_active: dto.isActive ?? true,
+        display_order: dto.displayOrder ?? 0,
+        is_system_default: !dto.merchantId,
+      }),
+    );
+
+    const saved = await this.presetReviewRepository.save(presetReviews);
+
+    return {
+      message: `${saved.length} preset reviews created successfully`,
+      data: saved,
+    };
+  }
+
+  async bulkUpdate(bulkUpdateDto: BulkUpdatePresetReviewDto) {
+    const results: PresetReview[] = [];
+    const errors: Array<{ id: number; error: string }> = [];
+
+    for (const item of bulkUpdateDto.reviews) {
+      try {
+        const presetReview = await this.presetReviewRepository.findOne({
+          where: { id: item.id },
+        });
+
+        if (!presetReview) {
+          errors.push({
+            id: item.id,
+            error: 'Preset review not found',
+          });
+          continue;
+        }
+
+        // Don't allow editing system defaults
+        if (presetReview.is_system_default) {
+          errors.push({
+            id: item.id,
+            error: 'Cannot edit system default preset reviews',
+          });
+          continue;
+        }
+
+        Object.assign(presetReview, {
+          review_text: item.reviewText ?? presetReview.review_text,
+          is_active: item.isActive ?? presetReview.is_active,
+          display_order: item.displayOrder ?? presetReview.display_order,
+        });
+
+        const updated = await this.presetReviewRepository.save(presetReview);
+        results.push(updated);
+      } catch (error) {
+        errors.push({
+          id: item.id,
+          error: error.message,
+        });
+      }
+    }
+
+    return {
+      message: `${results.length} preset reviews updated successfully`,
+      data: results,
+      errors: errors.length > 0 ? errors : undefined,
+    };
+  }
+
+  async bulkDelete(bulkDeleteDto: BulkDeletePresetReviewDto) {
+    const results: number[] = [];
+    const errors: Array<{ id: number; error: string }> = [];
+
+    for (const id of bulkDeleteDto.ids) {
+      try {
+        const presetReview = await this.presetReviewRepository.findOne({
+          where: { id },
+        });
+
+        if (!presetReview) {
+          errors.push({
+            id,
+            error: 'Preset review not found',
+          });
+          continue;
+        }
+
+        // Don't allow deleting system defaults
+        if (presetReview.is_system_default) {
+          errors.push({
+            id,
+            error: 'Cannot delete system default preset reviews',
+          });
+          continue;
+        }
+
+        await this.presetReviewRepository.softDelete(id);
+        results.push(id);
+      } catch (error) {
+        errors.push({
+          id,
+          error: error.message,
+        });
+      }
+    }
+
+    return {
+      message: `${results.length} preset reviews deleted successfully`,
+      data: { deletedIds: results },
+      errors: errors.length > 0 ? errors : undefined,
     };
   }
 }

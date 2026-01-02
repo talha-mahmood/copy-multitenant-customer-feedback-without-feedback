@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsString, IsOptional, IsBoolean, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsBoolean, IsNumber, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreatePresetReviewDto {
   @IsOptional()
@@ -16,4 +17,11 @@ export class CreatePresetReviewDto {
   @IsOptional()
   @IsNumber()
   displayOrder?: number;
+}
+
+export class BulkCreatePresetReviewDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreatePresetReviewDto)
+  reviews: CreatePresetReviewDto[];
 }
