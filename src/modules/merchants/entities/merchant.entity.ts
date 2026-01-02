@@ -1,6 +1,7 @@
-import { Column, Entity, ManyToOne, JoinColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { BaseEntity } from 'src/common/entities/base.entity';
 import { User } from 'src/modules/users/entities/user.entity';
+import { CouponBatch } from 'src/modules/coupon-batches/entities/coupon-batch.entity';
 
 @Entity('merchants')
 export class Merchant extends BaseEntity {
@@ -34,4 +35,7 @@ export class Merchant extends BaseEntity {
 
   @Column({ name: 'qr_code_image', type: 'text', nullable: true })
   qr_code_image: string;
+
+  @OneToMany(() => CouponBatch, (batch) => batch.merchant)
+  batches: CouponBatch[];
 }
