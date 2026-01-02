@@ -1,7 +1,8 @@
-import { Column, Entity, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Column, Entity, ManyToOne, JoinColumn, OneToMany, OneToOne } from 'typeorm';
 import { BaseEntity } from 'src/common/entities/base.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { CouponBatch } from 'src/modules/coupon-batches/entities/coupon-batch.entity';
+import { MerchantSetting } from 'src/modules/merchant-settings/entities/merchant-setting.entity';
 
 @Entity('merchants')
 export class Merchant extends BaseEntity {
@@ -36,33 +37,9 @@ export class Merchant extends BaseEntity {
   @Column({ name: 'qr_code_image', type: 'text', nullable: true })
   qr_code_image: string;
 
-  @Column({ name: 'enable_preset_reviews', default: true })
-  enable_preset_reviews: boolean;
-
-  @Column({ name: 'google_review_url', type: 'text', nullable: true })
-  google_review_url: string;
-
-  @Column({ name: 'facebook_page_url', type: 'text', nullable: true })
-  facebook_page_url: string;
-
-  @Column({ name: 'instagram_url', type: 'text', nullable: true })
-  instagram_url: string;
-
-  @Column({ name: 'xiaohongshu_url', type: 'text', nullable: true })
-  xiaohongshu_url: string;
-
-  @Column({ name: 'enable_google_reviews', default: true })
-  enable_google_reviews: boolean;
-
-  @Column({ name: 'enable_facebook_reviews', default: false })
-  enable_facebook_reviews: boolean;
-
-  @Column({ name: 'enable_instagram_reviews', default: false })
-  enable_instagram_reviews: boolean;
-
-  @Column({ name: 'enable_xiaohongshu_reviews', default: false })
-  enable_xiaohongshu_reviews: boolean;
-
   @OneToMany(() => CouponBatch, (batch) => batch.merchant)
   batches: CouponBatch[];
+
+  @OneToOne(() => MerchantSetting, (setting) => setting.merchant)
+  settings: MerchantSetting;
 }

@@ -7,6 +7,7 @@ import { DatabaseModule } from 'src/database/database.module';
 import { feedbackProviders } from './feedback.provider';
 import { presetReviewProvider } from './preset-review.provider';
 import { merchantProviders } from '../merchants/merchant.provider';
+import { merchantSettingProviders } from '../merchant-settings/merchant-setting.provider';
 
 @Module({
   imports: [DatabaseModule],
@@ -17,6 +18,7 @@ import { merchantProviders } from '../merchants/merchant.provider';
     ...feedbackProviders,
     ...presetReviewProvider,
     ...merchantProviders,
+    ...merchantSettingProviders,
   ],
   exports: [FeedbackService, PresetReviewService],
 })

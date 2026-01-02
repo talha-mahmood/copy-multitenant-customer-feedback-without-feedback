@@ -11,6 +11,9 @@ export { AdminModule } from './admins/admin.module';
 // Merchant management
 export { MerchantModule } from './merchants/merchant.module';
 
+// Merchant Settings management
+export { MerchantSettingModule } from './merchant-settings/merchant-setting.module';
+
 // Customer management
 export { CustomerModule } from './customers/customer.module';
 
