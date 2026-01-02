@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength, IsBoolean, IsUrl } from 'class-validator';
 
 export class CreateMerchantDto {
   // User fields
@@ -42,4 +42,41 @@ export class CreateMerchantDto {
 
   @IsOptional()
   admin_id?: number; // Required for annual merchants to credit commission
+
+  // Review platform settings
+  @IsOptional()
+  @IsBoolean()
+  enable_preset_reviews?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  enable_google_reviews?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  enable_facebook_reviews?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  enable_instagram_reviews?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  enable_xiaohongshu_reviews?: boolean;
+
+  @IsOptional()
+  @IsString()
+  google_review_url?: string;
+
+  @IsOptional()
+  @IsString()
+  facebook_page_url?: string;
+
+  @IsOptional()
+  @IsString()
+  instagram_url?: string;
+
+  @IsOptional()
+  @IsString()
+  xiaohongshu_url?: string;
 }
