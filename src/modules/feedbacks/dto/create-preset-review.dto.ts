@@ -4,7 +4,7 @@ import { Type } from 'class-transformer';
 export class CreatePresetReviewDto {
   @IsOptional()
   @IsNumber()
-  merchantId?: number; // null for system defaults
+  merchant_id?: number; // null for system defaults
 
   @IsNotEmpty()
   @IsString()
