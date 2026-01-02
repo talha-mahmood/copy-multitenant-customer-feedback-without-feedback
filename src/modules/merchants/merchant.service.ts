@@ -12,6 +12,7 @@ import { QRCodeHelper } from 'src/common/helpers/qrcode.helper';
 import { WalletService } from '../wallets/wallet.service';
 import { AdminWallet } from '../wallets/entities/admin-wallet.entity';
 import { WalletTransaction } from '../wallets/entities/wallet-transaction.entity';
+import { MerchantSettingService } from '../merchant-settings/merchant-setting.service';
 
 @Injectable()
 export class MerchantService {
@@ -27,6 +28,7 @@ export class MerchantService {
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
     private walletService: WalletService,
+    private merchantSettingService: MerchantSettingService,
   ) {}
 
   async create(createMerchantDto: CreateMerchantDto) {
@@ -126,6 +128,9 @@ export class MerchantService {
         is_active: true,
       });
       await queryRunner.manager.save(merchantWallet);
+
+      // Create default merchant settings
+      await this.merchantSettingService.createDefaultSettings(savedMerchant.id, queryRunner.manager);
 
       // If annual merchant, credit admin wallet with commission
       if (isAnnual && createMerchantDto.admin_id) {

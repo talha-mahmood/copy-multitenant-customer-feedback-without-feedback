@@ -6,6 +6,7 @@ import { User } from '../users/entities/user.entity';
 import { Role } from '../roles-permission-management/roles/entities/role.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { PresetReview } from './entities/preset-review.entity';
+import { MerchantSetting } from '../merchant-settings/entities/merchant-setting.entity';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { UpdateFeedbackDto } from './dto/update-feedback.dto';
 import * as bcrypt from 'bcrypt';
@@ -25,6 +26,8 @@ export class FeedbackService {
     private merchantRepository: Repository<Merchant>,
     @Inject('PRESET_REVIEW_REPOSITORY')
     private presetReviewRepository: Repository<PresetReview>,
+    @Inject('MERCHANT_SETTING_REPOSITORY')
+    private merchantSettingRepository: Repository<MerchantSetting>,
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
   ) {}
@@ -96,12 +99,21 @@ export class FeedbackService {
         throw new HttpException('Merchant not found', 404);
       }
 
+      // Get merchant settings
+      const merchantSettings = await this.merchantSettingRepository.findOne({
+        where: { merchant_id: createFeedbackDto.merchantId },
+      });
+
+      if (!merchantSettings) {
+        throw new HttpException('Merchant settings not found', 404);
+      }
+
       // Validate selected platform is enabled by merchant
       const platformMap = {
-        google: merchant.enable_google_reviews,
-        facebook: merchant.enable_facebook_reviews,
-        instagram: merchant.enable_instagram_reviews,
-        xiaohongshu: merchant.enable_xiaohongshu_reviews,
+        google: merchantSettings.enable_google_reviews,
+        facebook: merchantSettings.enable_facebook_reviews,
+        instagram: merchantSettings.enable_instagram_reviews,
+        xiaohongshu: merchantSettings.enable_xiaohongshu_reviews,
       };
 
       if (!platformMap[createFeedbackDto.selectedPlatform]) {
@@ -166,7 +178,7 @@ export class FeedbackService {
       });
 
       // Get redirect URL based on platform
-      const redirectUrl = this.getRedirectUrl(merchant, createFeedbackDto.selectedPlatform);
+      const redirectUrl = this.getRedirectUrl(merchantSettings, createFeedbackDto.selectedPlatform);
 
       return {
         message: 'Feedback created successfully. User and customer account have been created.',
@@ -259,12 +271,12 @@ export class FeedbackService {
     };
   }
 
-  private getRedirectUrl(merchant: Merchant, platform: string): string {
+  private getRedirectUrl(settings: MerchantSetting, platform: string): string {
     const urlMap = {
-      google: merchant.google_review_url,
-      facebook: merchant.facebook_page_url,
-      instagram: merchant.instagram_url,
-      xiaohongshu: merchant.xiaohongshu_url,
+      google: settings.google_review_url,
+      facebook: settings.facebook_page_url,
+      instagram: settings.instagram_url,
+      xiaohongshu: settings.xiaohongshu_url,
     };
 
     return urlMap[platform] || '';

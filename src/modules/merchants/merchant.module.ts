@@ -4,9 +4,10 @@ import { MerchantController } from './merchant.controller';
 import { DatabaseModule } from 'src/database/database.module';
 import { merchantProviders } from './merchant.provider';
 import { WalletModule } from '../wallets/wallet.module';
+import { MerchantSettingModule } from '../merchant-settings/merchant-setting.module';
 
 @Module({
-  imports: [DatabaseModule, WalletModule],
+  imports: [DatabaseModule, WalletModule, MerchantSettingModule],
   controllers: [MerchantController],
   providers: [MerchantService, ...merchantProviders],
   exports: [MerchantService],
