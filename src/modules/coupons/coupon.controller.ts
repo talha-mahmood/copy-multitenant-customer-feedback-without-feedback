@@ -20,6 +20,7 @@ import { UpdateCouponDto } from './dto/update-coupon.dto';
 import { ShowCouponDto } from './dto/show-coupon.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CurrentUser, User } from 'src/common/decorators/current-user';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('coupons')
 @UseGuards(JwtAuthGuard)
@@ -28,14 +29,28 @@ export class CouponController {
     private readonly couponService: CouponService,
     @Inject('COUPON_TEMPLATE_REPOSITORY')
     private readonly couponTemplateRepo: Repository<CouponTemplate>,
-  ) {}
+  ) { }
+
+  /**
+   * Get public coupon feed, optionally filtered by merchant business type.
+   * This endpoint is public and does not require authentication.
+   */
+  @Public()
+  @Get('public-feed')
+  getPublicCoupons(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
+    @Query('businessType') businessType?: string,
+  ) {
+    return this.couponService.findAllPublic(page, pageSize, businessType);
+  }
   /**
    * List coupon templates for annual merchants
    */
   @Get('templates/annual')
   async getAnnualTemplates() {
     const templates = await this.couponTemplateRepo.find({ where: { type: 'annual' } });
-    return { message: 'Annual templates', data: templates };
+    return { message: 'Annual templat es', data: templates };
   }
 
   /**

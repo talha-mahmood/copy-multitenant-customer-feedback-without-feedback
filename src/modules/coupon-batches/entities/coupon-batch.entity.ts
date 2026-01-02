@@ -1,6 +1,7 @@
 import { Column, Entity, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { BaseEntity } from 'src/common/entities/base.entity';
 import { Merchant } from 'src/modules/merchants/entities/merchant.entity';
+import { CouponTemplate } from 'src/modules/coupons/entities/coupon-template.entity';
 
 @Entity('coupon_batches')
 export class CouponBatch extends BaseEntity {
@@ -40,4 +41,17 @@ export class CouponBatch extends BaseEntity {
 
   @Column({ name: 'lucky_draw_enabled', default: false })
   lucky_draw_enabled: boolean;
+
+  @ManyToOne(() => CouponTemplate)
+  @JoinColumn({ name: 'template_id' })
+  template: CouponTemplate;
+
+  @Column({ name: 'header', type: 'varchar', length: 255, nullable: true })
+  header: string;
+
+  @Column({ name: 'title', type: 'varchar', length: 255, nullable: true })
+  title: string;
+
+  @Column({ name: 'description', type: 'text', nullable: true })
+  description: string;
 }

@@ -1,6 +1,7 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Coupon } from './entities/coupon.entity';
+import { Merchant } from '../merchants/entities/merchant.entity';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { UpdateCouponDto } from './dto/update-coupon.dto';
 import { instanceToPlain } from 'class-transformer';
@@ -10,7 +11,9 @@ export class CouponService {
   constructor(
     @Inject('COUPON_REPOSITORY')
     private couponRepository: Repository<Coupon>,
-  ) {}
+    @Inject('MERCHANT_REPOSITORY')
+    private merchantRepository: Repository<Merchant>,
+  ) { }
 
   /**
    * Redeem a coupon by its unique coupon_code. Can only be redeemed once.
@@ -34,7 +37,7 @@ export class CouponService {
     const coupon = this.couponRepository.create({
       ...createCouponDto,
       issued_at: new Date(),
-        template_id: createCouponDto.template_id,
+      template_id: createCouponDto.template_id,
       header: createCouponDto.header,
       title: createCouponDto.title,
       description: createCouponDto.description,
@@ -92,6 +95,79 @@ export class CouponService {
         page,
         pageSize,
       },
+    };
+  }
+
+  async findAllPublic(page: number = 1, pageSize: number = 20, businessType?: string) {
+    if (pageSize > 500) {
+      pageSize = 500;
+    }
+
+    const queryBuilder = this.merchantRepository
+      .createQueryBuilder('merchant')
+      .leftJoinAndSelect('merchant.batches', 'batch')
+      .leftJoinAndSelect('batch.template', 'template')
+      .leftJoinAndSelect('merchant.user', 'user')
+      .where('batch.is_active = :isActive', { isActive: true });
+
+    if (businessType) {
+      queryBuilder.andWhere('merchant.business_type = :businessType', { businessType });
+    }
+
+    const [results, total] = await queryBuilder
+      .skip((page - 1) * pageSize)
+      .take(pageSize)
+      .orderBy('merchant.created_at', 'DESC')
+      .getManyAndCount();
+
+    // Process results to inject rendered HTML
+    const processedMerchants = results.map(merchant => {
+      const plainMerchant = instanceToPlain(merchant);
+
+      if (plainMerchant.batches) {
+        plainMerchant.batches = plainMerchant.batches.map(batch => {
+          let renderedHtml = batch.template?.html || '';
+
+          // Use batch data directly since all coupons in a batch share the same values
+          const header = batch.header || '';
+          const title = batch.title || '';
+          const description = batch.description || '';
+
+          // Inject dynamic fields if HTML exists
+          if (renderedHtml) {
+            const replacements = {
+              '{{header}}': header,
+              '{{title}}': title,
+              '{{description}}': description,
+            };
+
+            Object.entries(replacements).forEach(([placeholder, value]) => {
+              const regex = new RegExp(placeholder.replace('{{', '{{\\s*').replace('}}', '\\s*}}'), 'gi');
+              renderedHtml = renderedHtml.replace(regex, value);
+            });
+          }
+
+          return {
+            ...batch,
+            header,
+            title,
+            description,
+            rendered_html: renderedHtml,
+          };
+        });
+      }
+
+      return plainMerchant;
+    });
+
+    return {
+      message: 'Public merchants with coupons retrieved successfully',
+      data: {
+        merchants: processedMerchants,
+        total,
+        page,
+        pageSize,
+        },
     };
   }
 
