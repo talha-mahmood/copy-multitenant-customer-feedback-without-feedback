@@ -2,15 +2,19 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Query,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { WalletService } from './wallet.service';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { AddCreditsDto } from './dto/add-credits.dto';
 import { UpgradeToAnnualDto } from './dto/upgrade-to-annual.dto';
+import { CreateCreditPackageDto } from './dto/create-credit-package.dto';
+import { UpdateCreditPackageDto } from './dto/update-credit-package.dto';
 
 @Controller('wallets')
 @UseGuards(JwtAuthGuard)
@@ -91,7 +95,23 @@ export class WalletController {
   }
 
   @Get('credit-packages')
-  async getCreditPackages(@Query('merchant_type') merchantType?: string) {
-    return await this.walletService.getCreditPackages(merchantType);
+  async getCreditPackages(
+    @Query('merchant_type') merchantType?: string,
+    @Query('admin_id') adminId?: number,
+  ) {
+    return await this.walletService.getCreditPackages(merchantType, adminId);
+  }
+
+  @Post('credit-packages')
+  async createCreditPackage(@Body() createDto: CreateCreditPackageDto) {
+    return await this.walletService.createCreditPackage(createDto);
+  }
+
+  @Patch('credit-packages/:id')
+  async updateCreditPackage(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDto: UpdateCreditPackageDto,
+  ) {
+    return await this.walletService.updateCreditPackage(id, updateDto);
   }
 }
