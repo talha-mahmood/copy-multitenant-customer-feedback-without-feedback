@@ -42,6 +42,9 @@ export class CouponBatch extends BaseEntity {
   @Column({ name: 'lucky_draw_enabled', default: false })
   lucky_draw_enabled: boolean;
 
+  @Column({ name: 'ishalal', default: false })
+  ishalal: boolean;
+
   @ManyToOne(() => CouponTemplate)
   @JoinColumn({ name: 'template_id' })
   template: CouponTemplate;

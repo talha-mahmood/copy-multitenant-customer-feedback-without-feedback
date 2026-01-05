@@ -76,6 +76,7 @@ export class CouponBatchService {
           header: createCouponBatchDto.header,
           title: createCouponBatchDto.title,
           description: createCouponBatchDto.description,
+          ishalal: createCouponBatchDto.ishalal ?? false,
         });
         coupons.push(coupon);
       }
