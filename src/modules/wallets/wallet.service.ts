@@ -3,6 +3,7 @@ import {
   Inject,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Repository, DataSource } from 'typeorm';
 import {
@@ -16,6 +17,8 @@ import { MerchantWallet } from './entities/merchant-wallet.entity';
 import { WalletTransaction } from './entities/wallet-transaction.entity';
 import { CreditPackage } from './entities/credit-package.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
+import { CreateCreditPackageDto } from './dto/create-credit-package.dto';
+import { UpdateCreditPackageDto } from './dto/update-credit-package.dto';
 
 @Injectable()
 export class WalletService {
@@ -490,17 +493,86 @@ export class WalletService {
   /**
    * Get all credit packages
    */
-  async getCreditPackages(merchantType?: string) {
+  async getCreditPackages(merchantType?: string, adminId?: number) {
     const query: any = { is_active: true };
 
     if (merchantType) {
       query.merchant_type = merchantType;
     }
 
+    if (adminId) {
+      query.admin_id = adminId;
+    }
+
     return await this.creditPackageRepository.find({
       where: query,
       order: { sort_order: 'ASC', price: 'ASC' },
     });
+  }
+
+  /**
+   * Create a new credit package (admin only)
+   */
+  async createCreditPackage(createDto: CreateCreditPackageDto) {
+    const creditPackage = this.creditPackageRepository.create({
+      name: createDto.name,
+      description: createDto.description,
+      credits: createDto.credits,
+      credit_type: createDto.credit_type,
+      price: createDto.price,
+      price_per_credit: createDto.price_per_credit,
+      currency: createDto.currency || 'USD',
+      merchant_type: createDto.merchant_type,
+      admin_id: createDto.admin_id,
+      is_active: createDto.is_active ?? true,
+      sort_order: createDto.sort_order ?? 0,
+      bonus_credits: createDto.bonus_credits ?? 0,
+    });
+
+    const saved = await this.creditPackageRepository.save(creditPackage);
+
+    return {
+      message: 'Credit package created successfully',
+      data: saved,
+    };
+  }
+
+  /**
+   * Update a credit package (only by the admin who created it)
+   */
+  async updateCreditPackage(id: number, updateDto: UpdateCreditPackageDto) {
+    const creditPackage = await this.creditPackageRepository.findOne({
+      where: { id },
+    });
+
+    if (!creditPackage) {
+      throw new NotFoundException('Credit package not found');
+    }
+
+    // Verify that the admin trying to update is the one who created it
+    if (creditPackage.admin_id !== updateDto.admin_id) {
+      throw new ForbiddenException('You can only edit credit packages you created');
+    }
+
+    // Update fields
+    if (updateDto.name !== undefined) creditPackage.name = updateDto.name;
+    if (updateDto.description !== undefined) creditPackage.description = updateDto.description;
+    if (updateDto.credits !== undefined) creditPackage.credits = updateDto.credits;
+    if (updateDto.credit_type !== undefined) creditPackage.credit_type = updateDto.credit_type;
+    if (updateDto.price !== undefined) creditPackage.price = updateDto.price;
+    if (updateDto.price_per_credit !== undefined) creditPackage.price_per_credit = updateDto.price_per_credit;
+    if (updateDto.currency !== undefined) creditPackage.currency = updateDto.currency;
+    if (updateDto.merchant_type !== undefined) creditPackage.merchant_type = updateDto.merchant_type;
+    if (updateDto.is_active !== undefined) creditPackage.is_active = updateDto.is_active;
+    if (updateDto.sort_order !== undefined) creditPackage.sort_order = updateDto.sort_order;
+    if (updateDto.bonus_credits !== undefined) creditPackage.bonus_credits = updateDto.bonus_credits;
+
+    const updated = await this.creditPackageRepository.save(creditPackage);
+
+    return {
+      message: 'Credit package updated successfully',
+      data: updated,
+    };
   }
 
   /**
