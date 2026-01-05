@@ -78,6 +78,11 @@ export class MerchantService {
       const merchant = queryRunner.manager.create(Merchant, {
         user_id: savedUser.id,
         address: createMerchantDto.address,
+        city: createMerchantDto.city,
+        country: createMerchantDto.country,
+        map_link: createMerchantDto.map_link,
+        longitude: createMerchantDto.longitude,
+        latitude: createMerchantDto.latitude,
         business_name: createMerchantDto.business_name,
         business_type: createMerchantDto.business_type,
         merchant_type: createMerchantDto.merchant_type,
