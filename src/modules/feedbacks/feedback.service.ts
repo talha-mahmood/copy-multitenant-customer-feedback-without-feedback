@@ -79,6 +79,7 @@ export class FeedbackService {
         address: createFeedbackDto.address,
         gender: createFeedbackDto.gender,
         merchant_id: createFeedbackDto.merchantId,
+        reward: createFeedbackDto.redirectCompleted || false,
       };
 
       if (createFeedbackDto.date_of_birth) {
@@ -285,6 +286,7 @@ export class FeedbackService {
   async markRedirectCompleted(feedbackId: number) {
     const feedback = await this.feedbackRepository.findOne({
       where: { id: feedbackId },
+      relations: ['customer'],
     });
 
     if (!feedback) {
@@ -294,8 +296,14 @@ export class FeedbackService {
     feedback.redirect_completed = true;
     await this.feedbackRepository.save(feedback);
 
+    // Update customer reward to true
+    if (feedback.customer) {
+      feedback.customer.reward = true;
+      await this.customerRepository.update(feedback.customer.id, { reward: true });
+    }
+ 
     return {
-      message: 'Redirect marked as completed',
+      message: 'Redirect marked as completed and customer rewarded',
       data: feedback,
     };
   }

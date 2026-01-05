@@ -24,4 +24,7 @@ export class Customer extends BaseEntity {
   @Column({ length: 20, nullable: true })
   gender: string;
 
+  @Column({ name: 'reward', default: false })
+  reward: boolean;
+
 }
