@@ -16,6 +16,21 @@ export class Merchant extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   address: string;
 
+  @Column({ length: 100, nullable: true })
+  city: string;
+
+  @Column({ length: 100, nullable: true })
+  country: string;
+
+  @Column({ name: 'map_link', type: 'text', nullable: true })
+  map_link: string;
+
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  longitude: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  latitude: number;
+
   @Column({ name: 'business_name', length: 255 })
   business_name: string;
 

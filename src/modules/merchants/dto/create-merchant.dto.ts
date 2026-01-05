@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength, IsBoolean, IsUrl } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength, IsBoolean, IsUrl, IsNumber } from 'class-validator';
 
 export class CreateMerchantDto {
   // User fields
@@ -23,6 +23,26 @@ export class CreateMerchantDto {
   @IsOptional()
   @IsString()
   address?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  country?: string;
+
+  @IsOptional()
+  @IsString()
+  map_link?: string;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
 
   @IsNotEmpty()
   @IsString()
