@@ -52,4 +52,8 @@ export class CreateCouponBatchDto {
   @IsBoolean()
   @IsOptional()
   lucky_draw_enabled?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  ishalal?: boolean;
 }

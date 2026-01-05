@@ -49,6 +49,9 @@ export class Coupon extends BaseEntity {
   @Column({ length: 50, default: 'issued' }) // 'issued', 'redeemed', 'expired'
   status: string;
 
+  @Column({ name: 'ishalal', default: false })
+  ishalal: boolean;
+
   @Column({ name: 'issued_at', type: 'timestamp', nullable: true })
   issued_at: Date;
 
