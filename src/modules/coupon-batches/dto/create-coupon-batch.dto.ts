@@ -56,4 +56,12 @@ export class CreateCouponBatchDto {
   @IsBoolean()
   @IsOptional()
   ishalal?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  visibility?: boolean;
+
+  @IsString()
+  @IsOptional()
+  placement?: string;
 }

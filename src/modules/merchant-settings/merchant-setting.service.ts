@@ -3,18 +3,23 @@ import { Repository } from 'typeorm';
 import { MerchantSetting } from './entities/merchant-setting.entity';
 import { CreateMerchantSettingDto } from './dto/create-merchant-setting.dto';
 import { UpdateMerchantSettingDto } from './dto/update-merchant-setting.dto';
+import { uploadFile } from 'src/common/helpers/file-upload.helper';
+import { FileUploadStorageType } from 'src/common/enums/file-upload-storage-type.enum';
+import { Merchant } from '../merchants/entities/merchant.entity';
 
 @Injectable()
 export class MerchantSettingService {
   constructor(
     @Inject('MERCHANT_SETTING_REPOSITORY')
     private merchantSettingRepository: Repository<MerchantSetting>,
-  ) {}
+    @Inject('MERCHANT_REPOSITORY')
+    private merchantRepository: Repository<Merchant>,
+  ) { }
 
   async create(createMerchantSettingDto: CreateMerchantSettingDto) {
     // Check if settings already exist for this merchant
     const existing = await this.merchantSettingRepository.findOne({
-      where: { merchant_id: createMerchantSettingDto.merchantId },
+      where: { merchant_id: createMerchantSettingDto.merchant_id },
     });
 
     if (existing) {
@@ -25,16 +30,17 @@ export class MerchantSettingService {
     }
 
     const setting = this.merchantSettingRepository.create({
-      merchant_id: createMerchantSettingDto.merchantId,
-      enable_preset_reviews: createMerchantSettingDto.enablePresetReviews ?? true,
-      enable_google_reviews: createMerchantSettingDto.enableGoogleReviews ?? true,
-      enable_facebook_reviews: createMerchantSettingDto.enableFacebookReviews ?? false,
-      enable_instagram_reviews: createMerchantSettingDto.enableInstagramReviews ?? false,
-      enable_xiaohongshu_reviews: createMerchantSettingDto.enableXiaohongshuReviews ?? false,
-      google_review_url: createMerchantSettingDto.googleReviewUrl,
-      facebook_page_url: createMerchantSettingDto.facebookPageUrl,
-      instagram_url: createMerchantSettingDto.instagramUrl,
-      xiaohongshu_url: createMerchantSettingDto.xiaohongshuUrl,
+      merchant_id: createMerchantSettingDto.merchant_id,
+      enable_preset_reviews: createMerchantSettingDto.enable_preset_reviews ?? true,
+      enable_google_reviews: createMerchantSettingDto.enable_google_reviews ?? true,
+      enable_facebook_reviews: createMerchantSettingDto.enable_facebook_reviews ?? false,
+      enable_instagram_reviews: createMerchantSettingDto.enable_instagram_reviews ?? false,
+      enable_xiaohongshu_reviews: createMerchantSettingDto.enable_xiaohongshu_reviews ?? false,
+      google_review_url: createMerchantSettingDto.google_review_url,
+      facebook_page_url: createMerchantSettingDto.facebook_page_url,
+      instagram_url: createMerchantSettingDto.instagram_url,
+      xiaohongshu_url: createMerchantSettingDto.xiaohongshu_url,
+      paid_ads: createMerchantSettingDto.paid_ads ?? false,
     });
 
     const saved = await this.merchantSettingRepository.save(setting);
@@ -70,22 +76,57 @@ export class MerchantSettingService {
     }
 
     Object.assign(setting, {
-      enable_preset_reviews: updateMerchantSettingDto.enablePresetReviews ?? setting.enable_preset_reviews,
-      enable_google_reviews: updateMerchantSettingDto.enableGoogleReviews ?? setting.enable_google_reviews,
-      enable_facebook_reviews: updateMerchantSettingDto.enableFacebookReviews ?? setting.enable_facebook_reviews,
-      enable_instagram_reviews: updateMerchantSettingDto.enableInstagramReviews ?? setting.enable_instagram_reviews,
-      enable_xiaohongshu_reviews: updateMerchantSettingDto.enableXiaohongshuReviews ?? setting.enable_xiaohongshu_reviews,
-      google_review_url: updateMerchantSettingDto.googleReviewUrl ?? setting.google_review_url,
-      facebook_page_url: updateMerchantSettingDto.facebookPageUrl ?? setting.facebook_page_url,
-      instagram_url: updateMerchantSettingDto.instagramUrl ?? setting.instagram_url,
-      xiaohongshu_url: updateMerchantSettingDto.xiaohongshuUrl ?? setting.xiaohongshu_url,
+      enable_preset_reviews: updateMerchantSettingDto.enable_preset_reviews ?? setting.enable_preset_reviews,
+      enable_google_reviews: updateMerchantSettingDto.enable_google_reviews ?? setting.enable_google_reviews,
+      enable_facebook_reviews: updateMerchantSettingDto.enable_facebook_reviews ?? setting.enable_facebook_reviews,
+      enable_instagram_reviews: updateMerchantSettingDto.enable_instagram_reviews ?? setting.enable_instagram_reviews,
+      enable_xiaohongshu_reviews: updateMerchantSettingDto.enable_xiaohongshu_reviews ?? setting.enable_xiaohongshu_reviews,
+      google_review_url: updateMerchantSettingDto.google_review_url ?? setting.google_review_url,
+      facebook_page_url: updateMerchantSettingDto.facebook_page_url ?? setting.facebook_page_url,
+      instagram_url: updateMerchantSettingDto.instagram_url ?? setting.instagram_url,
+      xiaohongshu_url: updateMerchantSettingDto.xiaohongshu_url ?? setting.xiaohongshu_url,
+      paid_ads: updateMerchantSettingDto.paid_ads ?? setting.paid_ads,
     });
 
     const updated = await this.merchantSettingRepository.save(setting);
 
+    // Update paid_ads in merchant table as well
+    if (updateMerchantSettingDto.paid_ads !== undefined) {
+      await this.merchantRepository.update(
+        { id: merchantId },
+        { paid_ads: updateMerchantSettingDto.paid_ads }
+      );
+    }
+
     return {
       message: 'Merchant settings updated successfully',
       data: updated,
+    };
+  }
+
+  async uploadPaidAdImage(merchantId: number, paidAdImage: any) {
+    const setting = await this.merchantSettingRepository.findOne({
+      where: { merchant_id: merchantId },
+    });
+
+    if (!setting) {
+      throw new NotFoundException(`Settings for merchant ID ${merchantId} not found`);
+    }
+
+    const uploadResult = await uploadFile(
+      paidAdImage,
+      'merchant-ads',
+      FileUploadStorageType.LOCAL_STORAGE,
+    );
+
+    setting.paid_ad_image = uploadResult.relativePath;
+    const updated = await this.merchantSettingRepository.save(setting);
+
+    return {
+      message: 'Paid ad image uploaded successfully',
+      data: {
+        paid_ad_image: updated.paid_ad_image,
+      },
     };
   }
 
@@ -108,7 +149,7 @@ export class MerchantSettingService {
 
   async createDefaultSettings(merchantId: number, manager?: any) {
     const repository = manager ? manager.getRepository('MerchantSetting') : this.merchantSettingRepository;
-    
+
     const existing = await repository.findOne({
       where: { merchant_id: merchantId },
     });

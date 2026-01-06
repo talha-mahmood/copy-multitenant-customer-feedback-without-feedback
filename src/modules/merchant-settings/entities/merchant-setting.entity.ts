@@ -34,6 +34,12 @@ export class MerchantSetting extends BaseEntity {
   @Column({ name: 'xiaohongshu_url', type: 'text', nullable: true })
   xiaohongshu_url: string;
 
+  @Column({ name: 'paid_ads', type: 'boolean', default: false })
+  paid_ads: boolean;
+
+  @Column({ name: 'paid_ad_image', type: 'text', nullable: true, default: null })
+  paid_ad_image: string;
+
   @OneToOne(() => Merchant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'merchant_id' })
   merchant: Merchant;

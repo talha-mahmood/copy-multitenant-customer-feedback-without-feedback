@@ -5,5 +5,5 @@ import { IsNumber, IsOptional } from 'class-validator';
 export class UpdateMerchantSettingDto extends PartialType(CreateMerchantSettingDto) {
   @IsOptional()
   @IsNumber()
-  merchantId?: number;
+  merchant_id?: number;
 }
