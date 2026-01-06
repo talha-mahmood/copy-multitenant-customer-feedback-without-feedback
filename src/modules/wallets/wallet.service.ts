@@ -538,6 +538,24 @@ export class WalletService {
   }
 
   /**
+   * Get a single credit package by ID
+   */
+  async getCreditPackage(id: number) {
+    const creditPackage = await this.creditPackageRepository.findOne({
+      where: { id },
+    });
+
+    if (!creditPackage) {
+      throw new NotFoundException('Credit package not found');
+    }
+
+    return {
+      message: 'Credit package retrieved successfully',
+      data: creditPackage,
+    };
+  }
+
+  /**
    * Update a credit package (only by the admin who created it)
    */
   async updateCreditPackage(id: number, updateDto: UpdateCreditPackageDto) {
@@ -572,6 +590,30 @@ export class WalletService {
     return {
       message: 'Credit package updated successfully',
       data: updated,
+    };
+  }
+
+  /**
+   * Delete a credit package (only by the admin who created it)
+   */
+  async deleteCreditPackage(id: number, adminId: number) {
+    const creditPackage = await this.creditPackageRepository.findOne({
+      where: { id },
+    });
+
+    if (!creditPackage) {
+      throw new NotFoundException('Credit package not found');
+    }
+
+    // Verify that the admin trying to delete is the one who created it
+    if (creditPackage.admin_id !== adminId) {
+      throw new ForbiddenException('You can only delete credit packages you created');
+    }
+
+    await this.creditPackageRepository.softDelete(id);
+
+    return {
+      message: 'Credit package deleted successfully',
     };
   }
 
