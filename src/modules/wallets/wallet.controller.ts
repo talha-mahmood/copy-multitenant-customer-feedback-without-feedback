@@ -8,7 +8,6 @@ import {
   Param,
   Query,
   UseGuards,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { WalletService } from './wallet.service';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
@@ -96,7 +95,7 @@ export class WalletController {
   }
 
   @Get('credit-packages/:id')
-  async getCreditPackage(@Param('id', ParseIntPipe) id: number) {
+  async getCreditPackage(@Param('id') id: number) {
     return await this.walletService.getCreditPackage(id);
   }
 
@@ -115,7 +114,7 @@ export class WalletController {
 
   @Patch('credit-packages/:id')
   async updateCreditPackage(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: number,
     @Body() updateDto: UpdateCreditPackageDto,
   ) {
     return await this.walletService.updateCreditPackage(id, updateDto);
@@ -123,10 +122,9 @@ export class WalletController {
 
   @Delete('credit-packages/:id')
   async deleteCreditPackage(
-    @Param('id', ParseIntPipe) id: number,
-    @Query('admin_id', ParseIntPipe) adminId: number,
+    @Param('id') id: number,
+    @Query('admin_id') adminId: number,
   ) {
     return await this.walletService.deleteCreditPackage(id, adminId);
   }
 }
-  
