@@ -36,6 +36,22 @@ export class LuckyDrawController {
     return this.luckyDrawService.updatePrize(id, updateDto);
   }
 
+  @Get('prizes')
+  getAllPrizes(
+    @Query('merchantId') merchantId?: number,
+    @Query('batchId') batchId?: number,
+    @Query('isActive') isActive?: boolean,
+    @Query('page') page: number = 1,
+    @Query('pageSize') pageSize: number = 20,
+  ) {
+    return this.luckyDrawService.getAllPrizes(merchantId, batchId, isActive, Number(page), Number(pageSize));
+  }
+
+  @Get('prizes/:id')
+  getPrize(@Param('id', ParseIntPipe) id: number) {
+    return this.luckyDrawService.getPrize(id);
+  }
+
   @Get('prizes/merchant/:merchantId')
   findPrizesByMerchant(
     @Param('merchantId', ParseIntPipe) merchantId: number,

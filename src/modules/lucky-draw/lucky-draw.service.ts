@@ -96,6 +96,57 @@ export class LuckyDrawService {
     };
   }
 
+  async getPrize(id: number) {
+    const prize = await this.prizeRepository.findOne({ where: { id } });
+
+    if (!prize) {
+      throw new NotFoundException('Prize not found');
+    }
+
+    return {
+      message: 'Prize retrieved successfully',
+      data: prize,
+    };
+  }
+
+  async getAllPrizes(merchantId?: number, batchId?: number, isActive?: boolean, page: number = 1, pageSize: number = 20) {
+    const where: any = {};
+
+    if (merchantId !== undefined) {
+      where.merchant_id = merchantId;
+    }
+
+    if (batchId !== undefined) {
+      where.batch_id = batchId;
+    }
+
+    if (isActive !== undefined) {
+      where.is_active = Boolean(isActive);
+    }
+
+    const skip = (page - 1) * pageSize;
+
+    const [prizes, total] = await this.prizeRepository.findAndCount({
+      where,
+      order: { sort_order: 'ASC', created_at: 'DESC' },
+      skip,
+      take: pageSize,
+    });
+
+    const totalPages = Math.ceil(total / pageSize);
+
+    return {
+      message: 'Prizes retrieved successfully',
+      data: prizes,
+      meta: {
+        total,
+        page,
+        pageSize,
+        totalPages,
+      },
+    };
+  }
+
   async findPrizesByMerchant(merchantId: number, batchId?: number) {
     const where: any = { merchant_id: merchantId, is_active: true };
     if (batchId) {
