@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -94,6 +95,11 @@ export class WalletController {
     };
   }
 
+  @Get('credit-packages/:id')
+  async getCreditPackage(@Param('id', ParseIntPipe) id: number) {
+    return await this.walletService.getCreditPackage(id);
+  }
+
   @Get('credit-packages')
   async getCreditPackages(
     @Query('merchant_type') merchantType?: string,
@@ -114,4 +120,13 @@ export class WalletController {
   ) {
     return await this.walletService.updateCreditPackage(id, updateDto);
   }
+
+  @Delete('credit-packages/:id')
+  async deleteCreditPackage(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('admin_id', ParseIntPipe) adminId: number,
+  ) {
+    return await this.walletService.deleteCreditPackage(id, adminId);
+  }
 }
+  
