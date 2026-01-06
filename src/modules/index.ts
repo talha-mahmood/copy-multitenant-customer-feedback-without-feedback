@@ -40,3 +40,6 @@ export { WalletModule } from './wallets/wallet.module';
 
 // Lucky Draw
 export { LuckyDrawModule } from './lucky-draw/lucky-draw.module';
+
+// WhatsApp
+export { WhatsAppModule } from './whatsapp/whatsapp.module';
