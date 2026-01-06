@@ -38,4 +38,5 @@ export { RoleModule } from './roles-permission-management/roles/role.module';
 // Wallets
 export { WalletModule } from './wallets/wallet.module';
 
-
+// Lucky Draw
+export { LuckyDrawModule } from './lucky-draw/lucky-draw.module';
