@@ -33,6 +33,9 @@ export class Feedback extends BaseEntity {
   @Column({ name: 'review_text', type: 'text', nullable: true })
   review_text: string; // Stores preset or custom review text
 
+  @Column({ name: 'coupon_batch_id', type: 'int', nullable: true })
+  coupon_batch_id: number | null;
+
   @ManyToOne(() => Merchant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'merchant_id' })
   merchant: Merchant;
