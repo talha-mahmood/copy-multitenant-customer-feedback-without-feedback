@@ -39,7 +39,7 @@ export class LuckyDrawController {
   @Get('prizes/merchant/:merchantId')
   findPrizesByMerchant(
     @Param('merchantId', ParseIntPipe) merchantId: number,
-    @Query('batchId', ParseIntPipe) batchId?: number,
+    @Query('batchId') batchId?: number,
   ) {
     return this.luckyDrawService.findPrizesByMerchant(merchantId, batchId);
   }
@@ -59,7 +59,7 @@ export class LuckyDrawController {
   @Get('results/customer/:customerId')
   getCustomerResults(
     @Param('customerId', ParseIntPipe) customerId: number,
-    @Query('merchantId', ParseIntPipe) merchantId?: number,
+    @Query('merchantId') merchantId?: number,
   ) {
     return this.luckyDrawService.getCustomerResults(customerId, merchantId);
   }
