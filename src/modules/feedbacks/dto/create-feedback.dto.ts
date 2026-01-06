@@ -68,4 +68,8 @@ export class CreateFeedbackDto {
   @IsOptional()
   @IsBoolean()
   redirectCompleted?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  coupon_batch_id?: number;
 }

@@ -167,6 +167,7 @@ export class FeedbackService {
         review_text: reviewText,
         selected_platform: createFeedbackDto.selectedPlatform,
         redirect_completed: createFeedbackDto.redirectCompleted || false,
+        coupon_batch_id: createFeedbackDto.coupon_batch_id || null,
       });
       const savedFeedback = await queryRunner.manager.save(feedback);
 
