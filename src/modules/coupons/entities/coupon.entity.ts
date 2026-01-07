@@ -46,7 +46,7 @@ export class Coupon extends BaseEntity {
   @Column({ name: 'description', type: 'text', nullable: true })
   description: string;
 
-  @Column({ length: 50, default: 'issued' }) // 'issued', 'redeemed', 'expired'
+  @Column({ length: 50, default: 'created' }) // 'created', 'issued', 'redeemed', 'expired'
   status: string;
 
   @Column({ name: 'ishalal', default: false })

@@ -103,6 +103,20 @@ export class CouponController {
     return this.couponService.update(id, updateCouponDto);
   }
 
+  /**
+   * Update coupon status (created -> issued -> redeemed)
+   */
+  @Patch(':id/status')
+  updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateCouponDto: UpdateCouponDto
+  ) {
+    if (!updateCouponDto.status) {
+      throw new Error('Status is required');
+    }
+    return this.couponService.updateCouponStatus(id, updateCouponDto.status);
+  }
+
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.couponService.remove(id);

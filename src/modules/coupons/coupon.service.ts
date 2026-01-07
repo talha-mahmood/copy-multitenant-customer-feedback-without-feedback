@@ -36,7 +36,7 @@ export class CouponService {
   async create(createCouponDto: CreateCouponDto) {
     const coupon = this.couponRepository.create({
       ...createCouponDto,
-      issued_at: new Date(),
+      status: 'created',
       template_id: createCouponDto.template_id,
       header: createCouponDto.header,
       title: createCouponDto.title,
@@ -221,6 +221,42 @@ export class CouponService {
 
     return {
       message: 'Coupon updated successfully',
+      data: instanceToPlain(updatedCoupon),
+    };
+  }
+
+  async updateCouponStatus(id: number, status: string) {
+    const coupon = await this.couponRepository.findOne({ 
+      where: { id },
+      relations: ['batch']
+    });
+
+    if (!coupon) {
+      throw new NotFoundException(`Coupon with ID ${id} not found`);
+    }
+
+    const oldStatus = coupon.status;
+
+    // Update coupon status
+    coupon.status = status;
+
+    // Set timestamps based on status
+    if (status === 'issued' && oldStatus !== 'issued') {
+      coupon.issued_at = new Date();
+      
+      // Increment batch issued_quantity when status changes to 'issued'
+      if (coupon.batch) {
+        coupon.batch.issued_quantity += 1;
+        await this.couponRepository.manager.save(coupon.batch);
+      }
+    } else if (status === 'redeemed' && oldStatus !== 'redeemed') {
+      coupon.redeemed_at = new Date();
+    }
+
+    const updatedCoupon = await this.couponRepository.save(coupon);
+
+    return {
+      message: 'Coupon status updated successfully',
       data: instanceToPlain(updatedCoupon),
     };
   }
