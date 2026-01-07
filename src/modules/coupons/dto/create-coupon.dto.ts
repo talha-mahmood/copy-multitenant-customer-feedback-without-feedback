@@ -1,4 +1,4 @@
-import { IsString, IsInt, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsInt, IsOptional, IsBoolean, IsIn } from 'class-validator';
 import { IsUnique } from '../../../common/decorators/is-unique.decorator';
 import { Coupon } from '../entities/coupon.entity';
 
@@ -23,6 +23,7 @@ export class CreateCouponDto {
 
   @IsString()
   @IsOptional()
+  @IsIn(['created', 'issued', 'redeemed', 'expired'])
   status?: string;
   @IsInt()
   @IsOptional()

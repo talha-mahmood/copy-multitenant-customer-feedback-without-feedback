@@ -67,9 +67,9 @@ export class CreateCouponsTable1747500000001 implements MigrationInterface {
             name: 'status',
             type: 'varchar',
             length: '50',
-            default: "'issued'",
+            default: "'created'",
             isNullable: false,
-            comment: 'issued, redeemed, expired',
+            comment: 'created, issued, redeemed, expired',
           },
           {
             name: 'issued_at',
