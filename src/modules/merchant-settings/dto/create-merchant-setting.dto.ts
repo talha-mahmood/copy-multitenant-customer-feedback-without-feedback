@@ -1,42 +1,47 @@
-import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString, IsInt } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateMerchantSettingDto {
   @IsNumber()
-  merchantId: number;
+  merchant_id: number;
 
   @IsOptional()
   @IsBoolean()
-  enablePresetReviews?: boolean;
+  enable_preset_reviews?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  enableGoogleReviews?: boolean;
+  enable_google_reviews?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  enableFacebookReviews?: boolean;
+  enable_facebook_reviews?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  enableInstagramReviews?: boolean;
+  enable_instagram_reviews?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  enableXiaohongshuReviews?: boolean;
+  enable_xiaohongshu_reviews?: boolean;
 
   @IsOptional()
   @IsString()
-  googleReviewUrl?: string;
+  google_review_url?: string;
 
   @IsOptional()
   @IsString()
-  facebookPageUrl?: string;
+  facebook_page_url?: string;
 
   @IsOptional()
   @IsString()
-  instagramUrl?: string;
+  instagram_url?: string;
 
   @IsOptional()
   @IsString()
-  xiaohongshuUrl?: string;
+  xiaohongshu_url?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  paid_ads?: boolean;
 }

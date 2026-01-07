@@ -52,6 +52,12 @@ export class Merchant extends BaseEntity {
   @Column({ name: 'qr_code_image', type: 'text', nullable: true })
   qr_code_image: string;
 
+  @Column({ name: 'paid_ads', type: 'boolean', default: false })
+  paid_ads: boolean;
+
+  @Column({ name: 'paid_ad_image', type: 'text', nullable: true, default: null })
+  paid_ad_image: string;
+
   @OneToMany(() => CouponBatch, (batch) => batch.merchant)
   batches: CouponBatch[];
 
