@@ -36,6 +36,7 @@ export class LuckyDrawController {
     return this.luckyDrawService.updatePrize(id, updateDto);
   }
 
+
   @Get('prizes')
   getAllPrizes(
     @Query('merchantId') merchantId?: number,

@@ -14,11 +14,12 @@ import { FeedbackService } from './feedback.service';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { UpdateFeedbackDto } from './dto/update-feedback.dto';
 import { ShowFeedbackDto } from './dto/show-feedback.dto';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('feedbacks')
 export class FeedbackController {
   constructor(private readonly feedbackService: FeedbackService) {}
-
+  @Public()
   @Post()
   create(@Body() createFeedbackDto: CreateFeedbackDto) {
     return this.feedbackService.create(createFeedbackDto);
@@ -52,6 +53,7 @@ export class FeedbackController {
     return this.feedbackService.remove(id);
   }
 
+  @Public()
   @Patch(':id/complete-redirect')
   markRedirectCompleted(@Param('id', ParseIntPipe) id: number) {
     return this.feedbackService.markRedirectCompleted(id);
@@ -60,5 +62,5 @@ export class FeedbackController {
   @Get('analytics/:merchantId')
   getReviewAnalytics(@Param('merchantId', ParseIntPipe) merchantId: number) {
     return this.feedbackService.getReviewAnalytics(merchantId);
-  }
+  } 
 }
