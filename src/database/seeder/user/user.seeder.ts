@@ -121,24 +121,15 @@ export async function seedUser(dataSource: DataSource) {
       });
     }
 
-    const customer = await userRepo.findOne({
-      where: { email: 'customer@must.services' },
+    // Create standalone customer (customers don't have user accounts)
+    const customerRepo = dataSource.getRepository(Customer);
+    await customerRepo.insert({
+      name: 'Demo Customer',
+      email: 'customer@must.services',
+      phone: '+923001234567',
+      address: '456 Customer St',
+      gender: 'male',
     });
-
-    if (customer) {
-      await userHasRoleRepo.insert({
-        role_id: 3,
-        user_id: Number(customer?.id ?? 1),
-      });
-
-      // Create customer record
-      const customerRepo = dataSource.getRepository(Customer);
-      await customerRepo.insert({
-        user_id: customer.id,
-        address: '456 Customer St',
-        gender: 'male',
-      });
-    }
 
     console.info('Saving Users');
   }

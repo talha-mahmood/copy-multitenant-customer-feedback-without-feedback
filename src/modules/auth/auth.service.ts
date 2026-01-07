@@ -70,12 +70,8 @@ export class AuthService {
       if (admin) {
         adminId = admin.id;
       }
-    } else if (roleName === 'customer') {
-      const customer = await this.customerRepository.findOne({ where: { user_id: Number(user.id) } });
-      if (customer) {
-        customerId = customer.id;
-      }
     }
+    // Note: Customers don't have user accounts anymore
     const payload = {
       sub: user.id,
       email: user.email,
@@ -113,14 +109,8 @@ export class AuthService {
       if (merchant) {
         response.merchant = merchant;
       }
-    } else if (roleName === 'customer') {
-      const customer = await this.customerRepository.findOne({
-        where: { user_id: Number(user.id) },
-      });
-      if (customer) {
-        response.customer = customer;
-      }
     }
+    // Note: Customers don't have user accounts anymore
 
     return response;
   }
