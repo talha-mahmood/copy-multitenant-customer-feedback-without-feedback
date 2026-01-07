@@ -10,11 +10,12 @@ import {
 import { PresetReviewService } from './preset-review.service';
 import { UpdatePresetReviewDto, BulkUpdatePresetReviewDto } from './dto/update-preset-review.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('preset-reviews')
 export class PresetReviewController {
   constructor(private readonly presetReviewService: PresetReviewService) {}
-
+  @Public()
   @Get()
   findAll(
     @Query('merchantId') merchantId?: string,
@@ -22,7 +23,7 @@ export class PresetReviewController {
     const merchantIdNum = merchantId ? parseInt(merchantId, 10) : undefined;
     return this.presetReviewService.findAll(merchantIdNum);
   }
-
+  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.presetReviewService.findOne(+id);
