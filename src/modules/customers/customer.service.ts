@@ -4,7 +4,6 @@ import { Customer } from './entities/customer.entity';
 import { instanceToPlain } from 'class-transformer';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
-import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class CustomerService {

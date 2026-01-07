@@ -5,14 +5,10 @@ export class CreateFeedbackDto {
   @IsNumber()
   merchantId: number;
 
-  // User fields for customer creation
+  // Customer fields
   @IsNotEmpty()
   @IsEmail()
   email: string;
-
-  @IsNotEmpty()
-  @IsString()
-  password: string;
 
   @IsNotEmpty()
   @IsString()

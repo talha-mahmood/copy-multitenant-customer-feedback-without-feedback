@@ -2,14 +2,11 @@ import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { Repository, DataSource } from 'typeorm';
 import { Feedback } from './entities/feedback.entity';
 import { Customer } from '../customers/entities/customer.entity';
-import { User } from '../users/entities/user.entity';
-import { Role } from '../roles-permission-management/roles/entities/role.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { PresetReview } from './entities/preset-review.entity';
 import { MerchantSetting } from '../merchant-settings/entities/merchant-setting.entity';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { UpdateFeedbackDto } from './dto/update-feedback.dto';
-import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class FeedbackService {
@@ -18,10 +15,6 @@ export class FeedbackService {
     private feedbackRepository: Repository<Feedback>,
     @Inject('CUSTOMER_REPOSITORY')
     private customerRepository: Repository<Customer>,
-    @Inject('USER_REPOSITORY')
-    private userRepository: Repository<User>,
-    @Inject('ROLE_REPOSITORY')
-    private roleRepository: Repository<Role>,
     @Inject('MERCHANT_REPOSITORY')
     private merchantRepository: Repository<Merchant>,
     @Inject('PRESET_REVIEW_REPOSITORY')
@@ -38,44 +31,20 @@ export class FeedbackService {
     await queryRunner.startTransaction();
 
     try {
-      // Check if user already exists
-      const existingUser = await this.userRepository.findOne({
+      // 1. Check if customer already exists
+      const existingCustomer = await this.customerRepository.findOne({
         where: { email: createFeedbackDto.email },
       });
 
-      if (existingUser) {
-        throw new HttpException('User with this email already exists', 400);
+      if (existingCustomer) {
+        throw new HttpException('Customer with this email already exists', 400);
       }
 
-      // 1. Create User
-      const hashedPassword = await bcrypt.hash(createFeedbackDto.password, 10);
-      const user = queryRunner.manager.create(User, {
+      // 2. Create Customer
+      const customerData: any = {
         name: createFeedbackDto.name,
         email: createFeedbackDto.email,
         phone: createFeedbackDto.phoneNumber,
-        password: hashedPassword,
-        is_active: true,
-      });
-      const savedUser = await queryRunner.manager.save(user);
-
-      // 2. Find customer role
-      const customerRole = await this.roleRepository.findOne({
-        where: { name: 'customer' },
-      });
-
-      if (!customerRole) {
-        throw new HttpException('Customer role not found', 404);
-      }
-
-      // 3. Assign customer role to user
-      await queryRunner.manager.query(
-        'INSERT INTO user_has_role (user_id, role_id) VALUES ($1, $2)',
-        [savedUser.id, customerRole.id],
-      );
-
-      // 4. Create Customer
-      const customerData: any = {
-        user_id: savedUser.id,
         address: createFeedbackDto.address,
         gender: createFeedbackDto.gender,
         merchant_id: createFeedbackDto.merchantId,
@@ -91,7 +60,7 @@ export class FeedbackService {
       const customer = queryRunner.manager.create(Customer, customerData);
       const savedCustomer = await queryRunner.manager.save(customer);
 
-      // 5. Validate merchant and platform availability
+      // 3. Validate merchant and platform availability
       const merchant = await this.merchantRepository.findOne({
         where: { id: createFeedbackDto.merchantId },
       });
@@ -183,7 +152,7 @@ export class FeedbackService {
       const redirectUrl = this.getRedirectUrl(merchantSettings, createFeedbackDto.selectedPlatform);
 
       return {
-        message: 'Feedback created successfully. User and customer account have been created.',
+        message: 'Feedback created successfully. Customer account has been created.',
         data: {
           ...feedbackWithRelations,
           redirectUrl,

@@ -19,7 +19,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: payload.role, // now always string
       merchantId: payload.merchantId,
       adminId: payload.adminId,
-      customerId: payload.customerId,
+      // Note: customerId removed - customers don't have user accounts anymore
     };
   }
 }
