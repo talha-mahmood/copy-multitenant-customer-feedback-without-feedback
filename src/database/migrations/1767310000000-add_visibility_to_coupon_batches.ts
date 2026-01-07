@@ -11,20 +11,9 @@ export class AddVisibilityAndPlacementToCouponBatches1767310000000 implements Mi
       }),
     );
 
-    await queryRunner.addColumn(
-      'coupon_batches',
-      new TableColumn({
-        name: 'placement',
-        type: 'varchar',
-        length: '255',
-        isNullable: true,
-        default: null,
-      }),
-    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropColumn('coupon_batches', 'placement');
-    await queryRunner.dropColumn('coupon_batches', 'visibility');
   }
 }

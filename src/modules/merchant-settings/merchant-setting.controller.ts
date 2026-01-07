@@ -15,6 +15,7 @@ import { UpdateMerchantSettingDto } from './dto/update-merchant-setting.dto';
 import { UploadPaidAdImageDto } from './dto/upload-paid-ad-image.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { FormDataRequest } from 'nestjs-form-data';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('merchant-settings')
 export class MerchantSettingController {
@@ -26,6 +27,7 @@ export class MerchantSettingController {
     return this.merchantSettingService.create(createMerchantSettingDto);
   }
 
+  @Public()
   @Get('merchant/:merchantId')
   findByMerchantId(@Param('merchantId', ParseIntPipe) merchantId: number) {
     return this.merchantSettingService.findByMerchantId(merchantId);

@@ -40,6 +40,9 @@ export class MerchantSetting extends BaseEntity {
   @Column({ name: 'paid_ad_image', type: 'text', nullable: true, default: null })
   paid_ad_image: string;
 
+  @Column({ name: 'placement', length: 255, nullable: true, default: null })
+  placement: string;
+
   @OneToOne(() => Merchant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'merchant_id' })
   merchant: Merchant;

@@ -86,15 +86,23 @@ export class MerchantSettingService {
       instagram_url: updateMerchantSettingDto.instagram_url ?? setting.instagram_url,
       xiaohongshu_url: updateMerchantSettingDto.xiaohongshu_url ?? setting.xiaohongshu_url,
       paid_ads: updateMerchantSettingDto.paid_ads ?? setting.paid_ads,
+      placement: updateMerchantSettingDto.placement ?? setting.placement,
     });
 
     const updated = await this.merchantSettingRepository.save(setting);
 
-    // Update paid_ads in merchant table as well
+    // Update paid_ads and placement in merchant table as well
+    const merchantUpdates: any = {};
     if (updateMerchantSettingDto.paid_ads !== undefined) {
+      merchantUpdates.paid_ads = updateMerchantSettingDto.paid_ads;
+    }
+    if (updateMerchantSettingDto.placement !== undefined) {
+      merchantUpdates.placement = updateMerchantSettingDto.placement;
+    }
+    if (Object.keys(merchantUpdates).length > 0) {
       await this.merchantRepository.update(
         { id: merchantId },
-        { paid_ads: updateMerchantSettingDto.paid_ads }
+        merchantUpdates
       );
     }
 

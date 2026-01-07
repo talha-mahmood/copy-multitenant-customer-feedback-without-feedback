@@ -48,9 +48,6 @@ export class CouponBatch extends BaseEntity {
   @Column({ name: 'visibility', default: false })
   visibility: boolean;
 
-  @Column({ name: 'placement', length: 255, nullable: true, default: null })
-  placement: string;
-
   @ManyToOne(() => CouponTemplate)
   @JoinColumn({ name: 'template_id' })
   template: CouponTemplate;

@@ -32,7 +32,7 @@ export class CouponController {
   ) { }
 
   /**
-   * Get public coupon feed, optionally filtered by merchant business type.
+   * Get public coupon feed, optionally filtered by merchant business type and placement.
    * This endpoint is public and does not require authentication.
    */
   @Public()
@@ -41,8 +41,9 @@ export class CouponController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
     @Query('businessType') businessType?: string,
+    @Query('placement') placement?: string,
   ) {
-    return this.couponService.findAllPublic(page, pageSize, businessType);
+    return this.couponService.findAllPublic(page, pageSize, businessType, placement);
   }
   /**
    * List coupon templates for annual merchants

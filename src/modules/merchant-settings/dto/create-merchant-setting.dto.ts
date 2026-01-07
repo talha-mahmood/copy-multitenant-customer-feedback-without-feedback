@@ -44,4 +44,8 @@ export class CreateMerchantSettingDto {
   @IsOptional()
   @IsBoolean()
   paid_ads?: boolean;
+
+  @IsOptional()
+  @IsString()
+  placement?: string;
 }
