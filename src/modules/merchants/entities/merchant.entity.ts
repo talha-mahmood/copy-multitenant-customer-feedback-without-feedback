@@ -58,6 +58,9 @@ export class Merchant extends BaseEntity {
   @Column({ name: 'paid_ad_image', type: 'text', nullable: true, default: null })
   paid_ad_image: string;
 
+  @Column({ name: 'placement', length: 255, nullable: true, default: null })
+  placement: string;
+
   @OneToMany(() => CouponBatch, (batch) => batch.merchant)
   batches: CouponBatch[];
 

@@ -62,4 +62,8 @@ export class CreateMerchantDto {
 
   @IsOptional()
   admin_id?: number; // Required for annual merchants to credit commission
+
+  @IsOptional()
+  @IsString()
+  placement?: string;
 }
