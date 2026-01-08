@@ -303,9 +303,16 @@ export class LuckyDrawService {
           where: { id: wonPrize.batch_id },
         });
 
-        
+        // Check if batch exists and is not expired
+        if (!batch) {
+          throw new BadRequestException('Coupon batch not found for the won prize');
+        }
 
-        if (batch && batch.end_date < new Date()) {
+        const currentDate = new Date();
+        const batchEndDate = new Date(batch.end_date);
+        
+        // Compare dates by converting to time (milliseconds)
+        if (batchEndDate.getTime() < currentDate.getTime()) {
           throw new BadRequestException('The coupon batch for the won prize has expired');
         }
 
@@ -397,9 +404,8 @@ export class LuckyDrawService {
       }
       else {
         // notify no coupons available
-        return {
-          message: 'Lucky draw completed, but no coupons available to assign'
-        };
+      throw new BadRequestException('No available coupons in the batch for the won prize');
+
       }
     }
 
