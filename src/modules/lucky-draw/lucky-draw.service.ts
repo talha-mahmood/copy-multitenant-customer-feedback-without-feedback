@@ -196,7 +196,6 @@ export class LuckyDrawService {
     const prizes = await this.prizeRepository.find({
       where: {
         merchant_id: spinDto.merchant_id,
-        batch_id: spinDto.batch_id,
         is_active: true,
       },
       order: { probability: 'DESC' },
@@ -326,7 +325,7 @@ export class LuckyDrawService {
         const result = this.resultRepository.create({
           customer_id: spinDto.customer_id,
           merchant_id: spinDto.merchant_id,
-          batch_id: spinDto.batch_id,
+          batch_id: wonPrize.batch_id,
           prize_id: wonPrize.id,
           spin_date: new Date(),
           is_claimed: false,
