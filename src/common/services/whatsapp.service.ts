@@ -103,6 +103,71 @@ export class WhatsAppService {
         },
       };
 
+      return await this.sendTemplate(formattedPhoneNumber, templateMessage);
+    } catch (error) {
+      this.logger.error('Error sending general message:', error);
+      return {
+        success: false,
+        error: error.message || 'Network error occurred',
+      };
+    }
+  }
+
+  /**
+   * Send coupon delivery message with coupon details
+   * Template: coupon_delivery
+   */
+  async sendCouponDelivery(
+    phoneNumber: string,
+    customerName: string,
+    merchantName: string,
+    couponCode: string,
+    expiryDate: string,
+    merchantAddress: string,
+  ): Promise<SendMessageResult> {
+    try {
+      const formattedPhoneNumber = this.formatPhoneNumber(phoneNumber);
+
+      const templateMessage: WhatsAppTemplateMessage = {
+        messaging_product: 'whatsapp',
+        to: formattedPhoneNumber,
+        type: 'template',
+        template: {
+          name: 'coupon_delivery',
+          language: { code: 'en' },
+          components: [
+            {
+              type: 'body',
+              parameters: [
+                { type: 'text', text: customerName },
+                { type: 'text', text: merchantName },
+                { type: 'text', text: couponCode },
+                { type: 'text', text: expiryDate },
+                { type: 'text', text: merchantAddress },
+              ],
+            },
+          ],
+        },
+      };
+
+      return await this.sendTemplate(formattedPhoneNumber, templateMessage);
+    } catch (error) {
+      this.logger.error('Error sending coupon delivery:', error);
+      return {
+        success: false,
+        error: error.message || 'Network error occurred',
+      };
+    }
+  }
+
+  /**
+   * Private helper method to send WhatsApp template
+   */
+  private async sendTemplate(
+    formattedPhoneNumber: string,
+    templateMessage: WhatsAppTemplateMessage,
+  ): Promise<SendMessageResult> {
+    try {
       const response = await fetch(
         `${this.apiUrl}/${this.phoneNumberId}/messages`,
         {
@@ -119,22 +184,26 @@ export class WhatsAppService {
 
       if (response.ok && result.messages && result.messages.length > 0) {
         this.logger.log(
-          `General message sent to ${formattedPhoneNumber}. Message ID: ${result.messages[0].id}`,
+          `Template ${templateMessage.template.name} sent to ${formattedPhoneNumber}. Message ID: ${result.messages[0].id}`,
         );
         return {
           success: true,
           messageId: result.messages[0].id,
         };
       } else {
-        this.logger.error('Failed to send general message:', result);
+        this.logger.error(
+          `Failed to send template ${templateMessage.template.name}:`,
+          result,
+        );
         return {
           success: false,
           error:
-            (result as any).error?.message || 'Failed to send general message',
+            (result as any).error?.message ||
+            `Failed to send template ${templateMessage.template.name}`,
         };
       }
     } catch (error) {
-      this.logger.error('Error sending general message:', error);
+      this.logger.error('Error sending WhatsApp template:', error);
       return {
         success: false,
         error: error.message || 'Network error occurred',

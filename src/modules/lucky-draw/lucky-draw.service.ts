@@ -2,10 +2,15 @@ import { Injectable, Inject, NotFoundException, BadRequestException } from '@nes
 import { Repository, MoreThan } from 'typeorm';
 import { LuckyDrawPrize } from './entities/lucky-draw-prize.entity';
 import { LuckyDrawResult } from './entities/lucky-draw-result.entity';
+import { Customer } from '../customers/entities/customer.entity';
+import { Merchant } from '../merchants/entities/merchant.entity';
+import { Coupon } from '../coupons/entities/coupon.entity';
+import { CouponBatch } from '../coupon-batches/entities/coupon-batch.entity';
 import { CreateLuckyDrawPrizeDto } from './dto/create-lucky-draw-prize.dto';
 import { UpdateLuckyDrawPrizeDto } from './dto/update-lucky-draw-prize.dto';
 import { SpinWheelDto } from './dto/spin-wheel.dto';
 import { LUCKY_DRAW_PRIZE_REPOSITORY, LUCKY_DRAW_RESULT_REPOSITORY } from './lucky-draw.provider';
+import { WhatsAppService } from 'src/common/services/whatsapp.service';
 
 @Injectable()
 export class LuckyDrawService {
@@ -14,7 +19,16 @@ export class LuckyDrawService {
     private prizeRepository: Repository<LuckyDrawPrize>,
     @Inject(LUCKY_DRAW_RESULT_REPOSITORY)
     private resultRepository: Repository<LuckyDrawResult>,
-  ) {}
+    @Inject('CUSTOMER_REPOSITORY')
+    private customerRepository: Repository<Customer>,
+    @Inject('MERCHANT_REPOSITORY')
+    private merchantRepository: Repository<Merchant>,
+    @Inject('COUPON_REPOSITORY')
+    private couponRepository: Repository<Coupon>,
+    @Inject('COUPON_BATCH_REPOSITORY')
+    private couponBatchRepository: Repository<CouponBatch>,
+    private whatsappService: WhatsAppService,
+  ) { }
 
   async createPrize(createDto: CreateLuckyDrawPrizeDto) {
     // Validate total probabilities don't exceed 100
@@ -22,7 +36,7 @@ export class LuckyDrawService {
       merchant_id: createDto.merchant_id,
       is_active: true,
     };
-    
+
     if (createDto.batch_id) {
       where.batch_id = createDto.batch_id;
     }
@@ -236,34 +250,172 @@ export class LuckyDrawService {
       wonPrize = normalizedPrizes[normalizedPrizes.length - 1]; // Fallback to last prize
     }
 
-    // Update prize counts
-    await this.prizeRepository.update(wonPrize.id, {
-      daily_count: wonPrize.daily_count + 1,
-      total_count: wonPrize.total_count + 1,
-    });
+    // // Update prize counts
+    // await this.prizeRepository.update(wonPrize.id, {
+    //   daily_count: wonPrize.daily_count + 1,
+    //   total_count: wonPrize.total_count + 1,
+    // });
 
-    // Create result record
-    const result = this.resultRepository.create({
-      customer_id: spinDto.customer_id,
-      merchant_id: spinDto.merchant_id,
-      batch_id: spinDto.batch_id,
-      prize_id: wonPrize.id,
-      spin_date: new Date(),
-      is_claimed: false,
-    });
+    // // Create result record
+    // const result = this.resultRepository.create({
+    //   customer_id: spinDto.customer_id,
+    //   merchant_id: spinDto.merchant_id,
+    //   batch_id: spinDto.batch_id,
+    //   prize_id: wonPrize.id,
+    //   spin_date: new Date(),
+    //   is_claimed: false,
+    // });
 
-    const savedResult = await this.resultRepository.save(result);
+    // const savedResult = await this.resultRepository.save(result);
 
-    // Load result with prize details
-    const resultWithPrize = await this.resultRepository.findOne({
-      where: { id: savedResult.id },
-      relations: ['prize'],
-    });
+    // // Load result with prize details
+    // const resultWithPrize = await this.resultRepository.findOne({
+    //   where: { id: savedResult.id },
+    //   relations: ['prize'],
+    // });
 
-    return {
-      message: 'Lucky draw completed successfully',
-      data: resultWithPrize,
-    };
+    // Find and send coupon if prize has batch_id
+    let coupon: Coupon | null = null;
+    let whatsappSent = false;
+
+    if (wonPrize.batch_id && wonPrize.prize_type === 'coupon') {
+      // Find an available coupon with status='created' from the prize's batch
+      coupon = await this.couponRepository.findOne({
+        where: {
+          batch_id: wonPrize.batch_id,
+          status: 'created',
+        },
+        order: { created_at: 'ASC' }, // Get oldest created coupon first
+      });
+
+      if (coupon) {
+        
+        // Get customer and merchant details
+        const customer = await this.customerRepository.findOne({
+          where: { id: spinDto.customer_id },
+        });
+
+        const merchant = await this.merchantRepository.findOne({
+          where: { id: spinDto.merchant_id },
+        });
+
+        const batch = await this.couponBatchRepository.findOne({
+          where: { id: wonPrize.batch_id },
+        });
+
+        
+
+        if (batch && batch.end_date < new Date()) {
+          throw new BadRequestException('The coupon batch for the won prize has expired');
+        }
+
+        // Update prize counts
+        await this.prizeRepository.update(wonPrize.id, {
+          daily_count: wonPrize.daily_count + 1,
+          total_count: wonPrize.total_count + 1,
+        });
+
+        // Create result record
+        const result = this.resultRepository.create({
+          customer_id: spinDto.customer_id,
+          merchant_id: spinDto.merchant_id,
+          batch_id: spinDto.batch_id,
+          prize_id: wonPrize.id,
+          spin_date: new Date(),
+          is_claimed: false,
+        });
+
+        const savedResult = await this.resultRepository.save(result);
+
+        // Load result with prize details
+        const resultWithPrize = await this.resultRepository.findOne({
+          where: { id: savedResult.id },
+          relations: ['prize'],
+        });
+
+
+        if (customer && merchant && batch) {
+          // Update coupon: assign to customer and mark as issued
+          coupon.customer_id = customer.id;
+          coupon.status = 'issued';
+          coupon.issued_at = new Date();
+
+          // Send coupon via WhatsApp
+          if (customer.phone) {
+            const expiryDate = new Date(batch.end_date).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            });
+
+
+            // const whatsappResult = await this.whatsappService.sendCouponDelivery(
+            //   customer.phone,
+            //   customer.name,
+            //   merchant.business_name,
+            //   coupon.coupon_code,
+            //   expiryDate,
+            //   merchant.address || 'Visit merchant location',
+            // );
+
+            const message = `Hello ${customer.name}, congratulations on winning a coupon from ${merchant.business_name}! With coupon code ${coupon.coupon_code} valid until ${expiryDate}. Please visit ${merchant.address || 'the merchant location'} to redeem your coupon.`;
+
+            const whatsappResult = await this.whatsappService.sendGeneralMessage(
+              customer.phone,
+              message,
+            );
+
+
+            if (whatsappResult.success) {
+              whatsappSent = true;
+              coupon.whatsapp_sent = true;
+            }
+          }
+
+          // Save updated coupon
+          await this.couponRepository.save(coupon);
+
+          // Increment batch issued_quantity
+          batch.issued_quantity += 1;
+          await this.couponBatchRepository.save(batch);
+        }
+
+
+        return {
+          message: 'Lucky draw completed successfully',
+          data: {
+            ...resultWithPrize,
+            coupon: coupon ? {
+              id: coupon.id,
+              coupon_code: coupon.coupon_code,
+              status: coupon.status,
+              whatsapp_sent: coupon.whatsapp_sent,
+            } : null,
+            whatsapp_sent: whatsappSent,
+          },
+        };
+      }
+      else {
+        // notify no coupons available
+        return {
+          message: 'Lucky draw completed, but no coupons available to assign'
+        };
+      }
+    }
+
+    // return {
+    //   message: 'Lucky draw completed successfully',
+    //   data: {
+    //     ...resultWithPrize,
+    //     coupon: coupon ? {
+    //       id: coupon.id,
+    //       coupon_code: coupon.coupon_code,
+    //       status: coupon.status,
+    //       whatsapp_sent: coupon.whatsapp_sent,
+    //     } : null,
+    //     whatsapp_sent: whatsappSent,
+    //   },
+    // };
   }
 
   async getCustomerResults(customerId: number, merchantId?: number) {
