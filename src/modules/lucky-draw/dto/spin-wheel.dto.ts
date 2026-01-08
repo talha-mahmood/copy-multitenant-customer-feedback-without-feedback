@@ -7,6 +7,4 @@ export class SpinWheelDto {
   @IsInt()
   merchant_id: number;
 
-  @IsInt()
-  batch_id: number;
 }
