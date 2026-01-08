@@ -5,8 +5,12 @@ import { Customer } from '../customers/entities/customer.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { PresetReview } from './entities/preset-review.entity';
 import { MerchantSetting } from '../merchant-settings/entities/merchant-setting.entity';
+import { Coupon } from '../coupons/entities/coupon.entity';
+import { CouponBatch } from '../coupon-batches/entities/coupon-batch.entity';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { UpdateFeedbackDto } from './dto/update-feedback.dto';
+import { WhatsAppService } from 'src/common/services/whatsapp.service';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class FeedbackService {
@@ -21,8 +25,13 @@ export class FeedbackService {
     private presetReviewRepository: Repository<PresetReview>,
     @Inject('MERCHANT_SETTING_REPOSITORY')
     private merchantSettingRepository: Repository<MerchantSetting>,
+    @Inject('COUPON_REPOSITORY')
+    private couponRepository: Repository<Coupon>,
+    @Inject('COUPON_BATCH_REPOSITORY')
+    private couponBatchRepository: Repository<CouponBatch>,
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
+    private whatsappService: WhatsAppService,
   ) {}
 
   async create(createFeedbackDto: CreateFeedbackDto) {
@@ -140,6 +149,78 @@ export class FeedbackService {
       });
       const savedFeedback = await queryRunner.manager.save(feedback);
 
+      // 8. Check luckydraw_enabled and send coupon if needed
+      let coupon: Coupon | null = null;
+      let whatsappSent = false;
+
+      // Only send coupon directly if luckydraw is NOT enabled and whatsapp_enabled_for_batch_id is set
+      if (!merchantSettings.luckydraw_enabled) {
+        if (!merchantSettings.whatsapp_enabled_for_batch_id) {
+          throw new HttpException('WhatsApp coupon batch is not configured for this merchant', 500);
+        }
+        const batch = await this.couponBatchRepository.findOne({
+          where: { 
+            id: merchantSettings.whatsapp_enabled_for_batch_id,
+            merchant_id: createFeedbackDto.merchantId,
+            is_active: true
+          },
+        });
+        console.log('Found coupon batch:', batch);
+
+        if (batch) {
+          // Find available coupon with status='created'
+          coupon = await this.couponRepository.findOne({
+            where: {
+              batch_id: batch.id,
+              status: 'created',
+            },
+            order: { created_at: 'ASC' },
+          });
+
+          if (coupon) {
+
+            if( batch.end_date < new Date()) {
+              throw new HttpException('Coupon has expired', 404);
+            }
+            // Update coupon: assign to customer and mark as issued
+            coupon.customer_id = savedCustomer.id;
+            coupon.status = 'issued';
+            coupon.issued_at = new Date();
+
+            // Send coupon via WhatsApp
+            if (savedCustomer.phone) {
+              const expiryDate = new Date(batch.end_date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              });
+
+              const message = `Hello ${savedCustomer.name}, thank you for your feedback at ${merchant.business_name}! Here's your coupon code ${coupon.coupon_code} valid until ${expiryDate}. Visit ${merchant.address || 'our location'} to redeem.`;
+
+              const whatsappResult = await this.whatsappService.sendGeneralMessage(
+                savedCustomer.phone,
+                message,
+              );
+
+              if (whatsappResult.success) {
+                whatsappSent = true;
+                coupon.whatsapp_sent = true;
+              }
+            }
+
+            // Save updated coupon
+            await queryRunner.manager.save(coupon);
+
+            // Increment batch issued_quantity
+            batch.issued_quantity += 1;
+            await queryRunner.manager.save(batch);
+          }
+          else {
+            throw new HttpException('No available coupons', 404);
+          }
+        }
+      }
+
       await queryRunner.commitTransaction();
 
       // Load feedback with relations
@@ -156,6 +237,13 @@ export class FeedbackService {
         data: {
           ...feedbackWithRelations,
           redirectUrl,
+          coupon: coupon ? {
+            id: coupon.id,
+            coupon_code: coupon.coupon_code,
+            status: coupon.status,
+            whatsapp_sent: coupon.whatsapp_sent,
+          } : null,
+          luckydraw_enabled: merchantSettings.luckydraw_enabled,
         },
       };
     } catch (error) {

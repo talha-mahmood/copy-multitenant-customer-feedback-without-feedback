@@ -8,6 +8,9 @@ import { feedbackProviders } from './feedback.provider';
 import { presetReviewProvider } from './preset-review.provider';
 import { merchantProviders } from '../merchants/merchant.provider';
 import { merchantSettingProviders } from '../merchant-settings/merchant-setting.provider';
+import { couponProvider } from '../coupons/coupon.provider';
+import { couponBatchProvider } from '../coupon-batches/coupon-batch.provider';
+import { WhatsAppService } from 'src/common/services/whatsapp.service';
 
 @Module({
   imports: [DatabaseModule],
@@ -15,10 +18,13 @@ import { merchantSettingProviders } from '../merchant-settings/merchant-setting.
   providers: [
     FeedbackService,
     PresetReviewService,
+    WhatsAppService,
     ...feedbackProviders,
     ...presetReviewProvider,
     ...merchantProviders,
     ...merchantSettingProviders,
+    ...couponProvider,
+    ...couponBatchProvider,
   ],
   exports: [FeedbackService, PresetReviewService],
 })
