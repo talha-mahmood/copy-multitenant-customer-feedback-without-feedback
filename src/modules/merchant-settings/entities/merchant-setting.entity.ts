@@ -43,6 +43,9 @@ export class MerchantSetting extends BaseEntity {
   @Column({ name: 'placement', length: 255, nullable: true, default: null })
   placement: string;
 
+  @Column({ name: 'luckydraw_enabled', default: false })
+  luckydraw_enabled: boolean;
+
   @OneToOne(() => Merchant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'merchant_id' })
   merchant: Merchant;
