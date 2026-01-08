@@ -58,6 +58,9 @@ export class Coupon extends BaseEntity {
   @Column({ name: 'redeemed_at', type: 'timestamp', nullable: true })
   redeemed_at: Date;
 
+  @Column({ name: 'whatsapp_sent', default: false })
+  whatsapp_sent: boolean;
+
   @Column({ name: 'pdf_url', type: 'text', nullable: true })
   pdf_url: string;
 }
