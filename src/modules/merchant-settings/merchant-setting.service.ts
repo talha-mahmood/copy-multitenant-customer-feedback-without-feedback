@@ -87,6 +87,8 @@ export class MerchantSettingService {
       xiaohongshu_url: updateMerchantSettingDto.xiaohongshu_url ?? setting.xiaohongshu_url,
       paid_ads: updateMerchantSettingDto.paid_ads ?? setting.paid_ads,
       placement: updateMerchantSettingDto.placement ?? setting.placement,
+      luckydraw_enabled: updateMerchantSettingDto.luckydraw_enabled ?? setting.luckydraw_enabled,
+      whatsapp_enabled_for_batch_id: updateMerchantSettingDto.whatsapp_enabled_for_batch_id ?? setting.whatsapp_enabled_for_batch_id,
     });
 
     const updated = await this.merchantSettingRepository.save(setting);

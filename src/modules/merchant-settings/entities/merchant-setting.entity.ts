@@ -46,6 +46,9 @@ export class MerchantSetting extends BaseEntity {
   @Column({ name: 'luckydraw_enabled', default: false })
   luckydraw_enabled: boolean;
 
+  @Column({ name: 'whatsapp_enabled_for_batch_id', type: 'int', nullable: true })
+  whatsapp_enabled_for_batch_id: number;
+
   @OneToOne(() => Merchant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'merchant_id' })
   merchant: Merchant;

@@ -52,4 +52,8 @@ export class CreateMerchantSettingDto {
   @IsOptional()
   @IsBoolean()
   luckydraw_enabled?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  whatsapp_enabled_for_batch_id?: number;
 }

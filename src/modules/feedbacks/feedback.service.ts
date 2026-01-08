@@ -153,10 +153,17 @@ export class FeedbackService {
       let coupon: Coupon | null = null;
       let whatsappSent = false;
 
-      // Only send coupon directly if luckydraw is NOT enabled
+      // Only send coupon directly if luckydraw is NOT enabled and whatsapp_enabled_for_batch_id is set
       if (!merchantSettings.luckydraw_enabled) {
+        if (!merchantSettings.whatsapp_enabled_for_batch_id) {
+          throw new HttpException('WhatsApp coupon batch is not configured for this merchant', 500);
+        }
         const batch = await this.couponBatchRepository.findOne({
-          where: { whatsapp_enabled: true, is_active: true},
+          where: { 
+            id: merchantSettings.whatsapp_enabled_for_batch_id,
+            merchant_id: createFeedbackDto.merchantId,
+            is_active: true
+          },
         });
         console.log('Found coupon batch:', batch);
 
