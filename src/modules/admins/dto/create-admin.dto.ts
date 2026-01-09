@@ -25,4 +25,12 @@ export class CreateAdminDto {
   @IsOptional()
   @IsBoolean()
   isSuperAdmin?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  is_active?: boolean;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
 }

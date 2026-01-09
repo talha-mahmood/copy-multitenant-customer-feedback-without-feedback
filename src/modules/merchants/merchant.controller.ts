@@ -15,6 +15,7 @@ import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { UpdateMerchantDto } from './dto/update-merchant.dto';
 import { ShowMerchantDto } from './dto/show-merchant.dto';
 import { MerchantDashboardQueryDto } from './dto/merchant-dashboard.dto';
+import { bool } from 'aws-sdk/clients/signer';
 
 @Controller('merchants')
 export class MerchantController {
@@ -30,11 +31,12 @@ export class MerchantController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
     @Query('search') search?: string,
+    @Query('isActive') isActive?: boolean,
   ) {
     if (pageSize > 500) {
       throw new Error('Page size cannot be greater than 500');
     }
-    return this.merchantService.findAll(page, pageSize, search);
+    return this.merchantService.findAll(page, pageSize, search, isActive);
   }
 
   @Get(':id/dashboard')

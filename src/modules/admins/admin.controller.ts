@@ -30,11 +30,12 @@ export class AdminController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
     @Query('search') search?: string,
+    @Query('isActive') isActive?: boolean,
   ) {
     if (pageSize > 500) {
       throw new Error('Page size cannot be greater than 500');
     }
-    return this.adminService.findAll(page, pageSize, search);
+    return this.adminService.findAll(page, pageSize, search, isActive);
   }
 
   @Get(':id/dashboard')

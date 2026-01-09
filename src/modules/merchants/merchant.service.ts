@@ -63,7 +63,7 @@ export class MerchantService {
         password: hashedPassword,
         phone: '', // Optional, can be added to DTO if needed
         avatar: '',
-        is_active: true,
+        is_active: createMerchantDto.is_active !== undefined ? createMerchantDto.is_active : true,
       });
       const savedUser = await queryRunner.manager.save(user);
 
@@ -189,10 +189,14 @@ export class MerchantService {
     }
   }
 
-  async findAll(page: number = 1, pageSize: number = 20, search = '') {
+  async findAll(page: number = 1, pageSize: number = 20, search = '', isActive?: boolean) {
     const queryBuilder = this.merchantRepository
       .createQueryBuilder('merchant')
       .leftJoinAndSelect('merchant.user', 'user');
+
+    if (isActive !== undefined) {
+      queryBuilder.where('user.is_active = :isActive', { isActive });
+    }
 
     if (search) {
       queryBuilder.andWhere(
@@ -235,21 +239,70 @@ export class MerchantService {
   }
 
   async update(id: number, updateMerchantDto: UpdateMerchantDto) {
-    const merchant = await this.merchantRepository.findOne({ where: { id } });
+    const merchant = await this.merchantRepository.findOne({ 
+      where: { id },
+      relations: ['user'],
+    });
     if (!merchant) {
       throw new HttpException('Merchant not found', 404);
     }
 
-    await this.merchantRepository.update(id, updateMerchantDto);
-    const updatedMerchant = await this.merchantRepository.findOne({
-      where: { id },
-      relations: ['user'],
-    });
-    
-    return {
-      message: 'Merchant updated successfully',
-      data: instanceToPlain(updatedMerchant),
-    };
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Update user fields if provided
+      const userUpdateData: any = {};
+      if (updateMerchantDto.name !== undefined) userUpdateData.name = updateMerchantDto.name;
+      if (updateMerchantDto.email !== undefined) userUpdateData.email = updateMerchantDto.email;
+      if (updateMerchantDto.is_active !== undefined) userUpdateData.is_active = updateMerchantDto.is_active;
+      
+      if (updateMerchantDto.password) {
+        userUpdateData.password = await bcrypt.hash(updateMerchantDto.password, 10);
+      }
+
+      if (Object.keys(userUpdateData).length > 0 && merchant.user_id) {
+        await queryRunner.manager.update(User, merchant.user_id, userUpdateData);
+      }
+
+      // Update merchant-specific fields
+      const merchantUpdateData: any = {};
+      if (updateMerchantDto.address !== undefined) merchantUpdateData.address = updateMerchantDto.address;
+      if (updateMerchantDto.city !== undefined) merchantUpdateData.city = updateMerchantDto.city;
+      if (updateMerchantDto.country !== undefined) merchantUpdateData.country = updateMerchantDto.country;
+      if (updateMerchantDto.map_link !== undefined) merchantUpdateData.map_link = updateMerchantDto.map_link;
+      if (updateMerchantDto.longitude !== undefined) merchantUpdateData.longitude = updateMerchantDto.longitude;
+      if (updateMerchantDto.latitude !== undefined) merchantUpdateData.latitude = updateMerchantDto.latitude;
+      if (updateMerchantDto.business_name !== undefined) merchantUpdateData.business_name = updateMerchantDto.business_name;
+      if (updateMerchantDto.business_type !== undefined) merchantUpdateData.business_type = updateMerchantDto.business_type;
+      if (updateMerchantDto.merchant_type !== undefined) merchantUpdateData.merchant_type = updateMerchantDto.merchant_type;
+      if (updateMerchantDto.tax_id !== undefined) merchantUpdateData.tax_id = updateMerchantDto.tax_id;
+      
+      if (Object.keys(merchantUpdateData).length > 0) {
+        await queryRunner.manager.update(Merchant, id, merchantUpdateData);
+      }
+
+      await queryRunner.commitTransaction();
+      
+      const updatedMerchant = await this.merchantRepository.findOne({
+        where: { id },
+        relations: ['user'],
+      });
+      
+      return {
+        message: 'Merchant updated successfully',
+        data: instanceToPlain(updatedMerchant),
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(
+        error.message || 'Failed to update merchant',
+        error.status || 500,
+      );
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async remove(id: number) {
