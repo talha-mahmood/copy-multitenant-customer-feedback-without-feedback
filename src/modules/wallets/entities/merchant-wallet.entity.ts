@@ -12,14 +12,14 @@ export class MerchantWallet extends BaseEntity {
   @JoinColumn({ name: 'merchant_id' })
   merchant: Merchant;
 
-  @Column({ name: 'message_credits', type: 'int', default: 0 })
-  message_credits: number;
+  @Column({ name: 'whatsapp_message_credits', type: 'int', default: 0 })
+  whatsapp_message_credits: number;
 
-  @Column({ name: 'marketing_credits', type: 'int', default: 0 })
-  marketing_credits: number;
+  @Column({ name: 'paid_ad_credits', type: 'int', default: 0 })
+  paid_ad_credits: number;
 
-  @Column({ name: 'utility_credits', type: 'int', default: 0 })
-  utility_credits: number;
+  @Column({ name: 'coupon_credits', type: 'int', default: 0 })
+  coupon_credits: number;
 
   @Column({ name: 'total_credits_purchased', type: 'int', default: 0 })
   total_credits_purchased: number;

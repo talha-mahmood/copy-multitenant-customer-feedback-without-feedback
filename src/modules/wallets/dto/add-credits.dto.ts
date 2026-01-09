@@ -6,8 +6,7 @@ export class AddCreditsDto {
   credits: number;
 
   @IsString()
-  @IsIn(['marketing', 'utility', 'general'])
-  credit_type: 'marketing' | 'utility' | 'general';
+  credit_type: string; // e.g., "whatsapp message", "paid ads", "coupon"
 
   @IsNumber()
   @Min(0)

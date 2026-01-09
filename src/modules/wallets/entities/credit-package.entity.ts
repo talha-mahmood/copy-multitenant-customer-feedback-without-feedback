@@ -13,7 +13,7 @@ export class CreditPackage extends BaseEntity {
   credits: number;
 
   @Column({ name: 'credit_type', type: 'varchar', length: 20 })
-  credit_type: string; // 'marketing', 'utility', 'general'
+  credit_type: string; // "whatsapp message", "paid ads", "coupon"
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   price: number;

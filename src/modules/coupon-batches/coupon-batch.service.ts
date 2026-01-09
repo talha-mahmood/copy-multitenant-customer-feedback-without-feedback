@@ -11,6 +11,7 @@ import { CouponCodeGenerator } from 'src/common/helpers/coupon-code-generator.he
 import { PdfExportHelper } from 'src/common/helpers/pdf-export.helper';
 import { In } from 'typeorm';
 import { Merchant } from '../merchants/entities/merchant.entity';
+import { WalletService } from '../wallets/wallet.service';
 
 @Injectable()
 export class CouponBatchService {
@@ -24,6 +25,7 @@ export class CouponBatchService {
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
     private configService: ConfigService,
+    private walletService: WalletService,
   ) {}
 
   async create(createCouponBatchDto: CreateCouponBatchDto) {
@@ -39,6 +41,19 @@ export class CouponBatchService {
 
       if (!merchant) {
         throw new NotFoundException(`Merchant with ID ${createCouponBatchDto.merchant_id} not found`);
+      }
+
+      // Check if merchant has sufficient coupon credits
+      const creditCheck = await this.walletService.checkMerchantCredits(
+        createCouponBatchDto.merchant_id,
+        'coupon',
+        createCouponBatchDto.total_quantity,
+      );
+
+      if (!creditCheck.hasCredits) {
+        throw new BadRequestException(
+          `Insufficient coupon credits. Required: ${createCouponBatchDto.total_quantity}, Available: ${creditCheck.availableCredits}`,
+        );
       }
 
       // Validate batch type based on merchant type
@@ -81,13 +96,21 @@ export class CouponBatchService {
       }
 
       await queryRunner.manager.save(Coupon, coupons);
+
+      // Deduct coupon credits from merchant wallet
+      await this.walletService.deductCouponCredits(
+        createCouponBatchDto.merchant_id,
+        createCouponBatchDto.total_quantity,
+      );
+
       await queryRunner.commitTransaction();
       
       return {
-        message: `Coupon batch created successfully with ${coupons.length} coupons`,
+        message: `Coupon batch created successfully with ${coupons.length} coupons. ${createCouponBatchDto.total_quantity} coupon credits deducted.`,
         data: {
           ...instanceToPlain(savedBatch),
           couponsGenerated: coupons.length,
+          creditsDeducted: createCouponBatchDto.total_quantity,
         },
       };
     } catch (error) {

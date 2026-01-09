@@ -10,6 +10,7 @@ import { CouponBatch } from '../coupon-batches/entities/coupon-batch.entity';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { UpdateFeedbackDto } from './dto/update-feedback.dto';
 import { WhatsAppService } from 'src/common/services/whatsapp.service';
+import { WalletService } from '../wallets/wallet.service';
 import { randomBytes } from 'crypto';
 
 @Injectable()
@@ -32,6 +33,7 @@ export class FeedbackService {
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
     private whatsappService: WhatsAppService,
+    private walletService: WalletService,
   ) {}
 
   async create(createFeedbackDto: CreateFeedbackDto) {
@@ -189,22 +191,37 @@ export class FeedbackService {
 
             // Send coupon via WhatsApp
             if (savedCustomer.phone) {
-              const expiryDate = new Date(batch.end_date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              });
-
-              const message = `Hello ${savedCustomer.name}, thank you for your feedback at ${merchant.business_name}! Here's your coupon code ${coupon.coupon_code} valid until ${expiryDate}. Visit ${merchant.address || 'our location'} to redeem.`;
-
-              const whatsappResult = await this.whatsappService.sendGeneralMessage(
-                savedCustomer.phone,
-                message,
+              // Check if merchant has WhatsApp credits before sending
+              const creditCheck = await this.walletService.checkMerchantCredits(
+                merchant.id,
+                'whatsapp message',
+                1,
               );
 
-              if (whatsappResult.success) {
-                whatsappSent = true;
-                coupon.whatsapp_sent = true;
+              if (creditCheck.hasCredits) {
+                const expiryDate = new Date(batch.end_date).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                });
+
+                const message = `Hello ${savedCustomer.name}, thank you for your feedback at ${merchant.business_name}! Here's your coupon code ${coupon.coupon_code} valid until ${expiryDate}. Visit ${merchant.address || 'our location'} to redeem.`;
+
+                const whatsappResult = await this.whatsappService.sendGeneralMessage(
+                  savedCustomer.phone,
+                  message,
+                );
+
+                if (whatsappResult.success) {
+                  whatsappSent = true;
+                  coupon.whatsapp_sent = true;
+                  
+                  // Deduct WhatsApp credit after successful send
+                  await this.walletService.deductWhatsAppCredit(merchant.id, 1);
+                }
+              } else {
+                // Log warning but don't block the feedback creation
+                console.warn(`Merchant ${merchant.id} has insufficient WhatsApp credits. Available: ${creditCheck.availableCredits}`);
               }
             }
 
