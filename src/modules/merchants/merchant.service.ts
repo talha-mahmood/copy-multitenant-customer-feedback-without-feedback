@@ -449,46 +449,46 @@ export class MerchantService {
       LIMIT 10
     `, [merchantId]);
 
-    // Daily Timeline
-    let timeline;
-    if (hasDateFilter) {
-      timeline = await dataSource.query(`
-        SELECT 
-          DATE(date_series) as date,
-          COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'issued'), 0) as coupons_issued,
-          COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'redeemed'), 0) as coupons_redeemed,
-          COALESCE(COUNT(DISTINCT f.id), 0) as feedbacks_received,
-          COALESCE(COUNT(DISTINCT l.id), 0) as lucky_draw_spins
-        FROM generate_series($2::date, $3::date, '1 day'::interval) date_series
-        LEFT JOIN coupons c ON DATE(c.created_at) = DATE(date_series) AND c.merchant_id = $1
-        LEFT JOIN feedbacks f ON DATE(f.created_at) = DATE(date_series) AND f.merchant_id = $1
-        LEFT JOIN lucky_draw_results l ON DATE(l.spin_date) = DATE(date_series) AND l.merchant_id = $1
-        GROUP BY date_series
-        ORDER BY date_series ASC
-      `, [merchantId, start, end]);
-    } else {
-      // For all-time, group by date from actual data
-      timeline = await dataSource.query(`
-        SELECT 
-          DATE(date_series) as date,
-          COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'issued'), 0) as coupons_issued,
-          COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'redeemed'), 0) as coupons_redeemed,
-          COALESCE(COUNT(DISTINCT f.id), 0) as feedbacks_received,
-          COALESCE(COUNT(DISTINCT l.id), 0) as lucky_draw_spins
-        FROM (
-          SELECT DISTINCT DATE(created_at) as date_series FROM coupons WHERE merchant_id = $1
-          UNION
-          SELECT DISTINCT DATE(created_at) FROM feedbacks WHERE merchant_id = $1
-          UNION
-          SELECT DISTINCT DATE(spin_date) FROM lucky_draw_results WHERE merchant_id = $1
-        ) dates
-        LEFT JOIN coupons c ON DATE(c.created_at) = dates.date_series AND c.merchant_id = $1
-        LEFT JOIN feedbacks f ON DATE(f.created_at) = dates.date_series AND f.merchant_id = $1
-        LEFT JOIN lucky_draw_results l ON DATE(l.spin_date) = dates.date_series AND l.merchant_id = $1
-        GROUP BY dates.date_series
-        ORDER BY dates.date_series ASC
-      `, [merchantId]);
-    }
+    // Daily Timeline - COMMENTED OUT FOR NOW
+    // let timeline;
+    // if (hasDateFilter) {
+    //   timeline = await dataSource.query(`
+    //     SELECT 
+    //       DATE(date_series) as date,
+    //       COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'issued'), 0) as coupons_issued,
+    //       COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'redeemed'), 0) as coupons_redeemed,
+    //       COALESCE(COUNT(DISTINCT f.id), 0) as feedbacks_received,
+    //       COALESCE(COUNT(DISTINCT l.id), 0) as lucky_draw_spins
+    //     FROM generate_series($2::date, $3::date, '1 day'::interval) date_series
+    //     LEFT JOIN coupons c ON DATE(c.created_at) = DATE(date_series) AND c.merchant_id = $1
+    //     LEFT JOIN feedbacks f ON DATE(f.created_at) = DATE(date_series) AND f.merchant_id = $1
+    //     LEFT JOIN lucky_draw_results l ON DATE(l.spin_date) = DATE(date_series) AND l.merchant_id = $1
+    //     GROUP BY date_series
+    //     ORDER BY date_series ASC
+    //   `, [merchantId, start, end]);
+    // } else {
+    //   // For all-time, group by date from actual data
+    //   timeline = await dataSource.query(`
+    //     SELECT 
+    //       DATE(date_series) as date,
+    //       COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'issued'), 0) as coupons_issued,
+    //       COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'redeemed'), 0) as coupons_redeemed,
+    //       COALESCE(COUNT(DISTINCT f.id), 0) as feedbacks_received,
+    //       COALESCE(COUNT(DISTINCT l.id), 0) as lucky_draw_spins
+    //     FROM (
+    //       SELECT DISTINCT DATE(created_at) as date_series FROM coupons WHERE merchant_id = $1
+    //       UNION
+    //       SELECT DISTINCT DATE(created_at) FROM feedbacks WHERE merchant_id = $1
+    //       UNION
+    //       SELECT DISTINCT DATE(spin_date) FROM lucky_draw_results WHERE merchant_id = $1
+    //     ) dates
+    //     LEFT JOIN coupons c ON DATE(c.created_at) = dates.date_series AND c.merchant_id = $1
+    //     LEFT JOIN feedbacks f ON DATE(f.created_at) = dates.date_series AND f.merchant_id = $1
+    //     LEFT JOIN lucky_draw_results l ON DATE(l.spin_date) = dates.date_series AND l.merchant_id = $1
+    //     GROUP BY dates.date_series
+    //     ORDER BY dates.date_series ASC
+    //   `, [merchantId]);
+    // }
 
     const totalIssued = parseInt(couponStats[0].issued) || 0;
     const totalRedeemed = parseInt(couponStats[0].redeemed) || 0;
@@ -575,15 +575,15 @@ export class MerchantService {
           campaignMessagesSent: 0, // Track separately
           estimatedCost: totalWhatsappSent * 0.05, // $0.05 per message estimate
         },
-        timeline: {
-          daily: timeline.map(day => ({
-            date: day.date,
-            couponsIssued: parseInt(day.coupons_issued) || 0,
-            couponsRedeemed: parseInt(day.coupons_redeemed) || 0,
-            feedbacksReceived: parseInt(day.feedbacks_received) || 0,
-            luckyDrawSpins: parseInt(day.lucky_draw_spins) || 0,
-          })),
-        },
+        // timeline: {
+        //   daily: timeline.map(day => ({
+        //     date: day.date,
+        //     couponsIssued: parseInt(day.coupons_issued) || 0,
+        //     couponsRedeemed: parseInt(day.coupons_redeemed) || 0,
+        //     feedbacksReceived: parseInt(day.feedbacks_received) || 0,
+        //     luckyDrawSpins: parseInt(day.lucky_draw_spins) || 0,
+        //   })),
+        // },
       },
     };
   }
