@@ -1,7 +1,7 @@
 {
 	"info": {
-		"_postman_id": "c1dcc0da-bb11-4eff-abed-f173ebfeabc9",
-		"name": "15QR Review & Coupon SaaS API - With Wallets Copy 15",
+		"_postman_id": "f888261d-4b7e-4192-aa8f-da02eb3ec0b1",
+		"name": "21QR Review & Coupon SaaS API - With Wallets Copy 21",
 		"description": "Complete API collection including wallet system for admins and merchants",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "22622973"
@@ -189,6 +189,38 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Get Admin Dashboard Analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admins/{{admin_id}}/dashboard?startDate=2025-01-01&endDate=2026-01-31",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admins",
+								"{{admin_id}}",
+								"dashboard"
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2025-01-01",
+									"description": "Start date (YYYY-MM-DD) - Optional, defaults to 3 months ago"
+								},
+								{
+									"key": "endDate",
+									"value": "2026-01-31",
+									"description": "End date (YYYY-MM-DD) - Optional, defaults to today"
+								}
+							]
+						},
+						"description": "Get comprehensive admin dashboard analytics including:\n- Platform overview (merchants by type/status)\n- Merchant statistics (recent, top performers)\n- Revenue tracking (annual fees, credit sales, commissions)\n- Wallet statistics\n- Coupon performance platform-wide\n- WhatsApp usage and costs\n- Customer engagement metrics\n- Platform growth timeline\n\nDefault: Last 3 months"
+					},
+					"response": []
 				}
 			]
 		},
@@ -344,6 +376,38 @@
 								"1"
 							]
 						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Merchant Dashboard Analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/merchants/{{merchant_id}}/dashboard?startDate=2025-12-01&endDate=2026-01-31",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"merchants",
+								"{{merchant_id}}",
+								"dashboard"
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2025-12-01",
+									"description": "Start date (YYYY-MM-DD) - Optional, defaults to 30 days ago"
+								},
+								{
+									"key": "endDate",
+									"value": "2026-01-31",
+									"description": "End date (YYYY-MM-DD) - Optional, defaults to today"
+								}
+							]
+						},
+						"description": "Get comprehensive merchant dashboard analytics including:\n- Coupon statistics (issued, redeemed, expired, redemption rate)\n- Coupon breakdown by batch\n- Feedback/review statistics by platform (Google, Facebook, Instagram, XiaoHongShu)\n- Lucky draw participation and prize distribution\n- Customer statistics (total, new, returning, top 10 customers)\n- WhatsApp message tracking and cost estimation\n- Daily timeline trends for all metrics\n\nDefault: Last 30 days"
 					},
 					"response": []
 				}
@@ -780,7 +844,9 @@
 									"    console.log('Customer ID saved:', jsonData.data.id);",
 									"}"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
 							}
 						}
 					],
@@ -794,7 +860,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Customer\",\n  \"email\": \"customer1@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"customer\",\n  \"phone\": \"+60123456789\",\n  \"birthday\": \"1990-05-15\"\n}"
+							"raw": "{\n  \"name\": \"Jane\",\n  \"email\": \"customer1@example.com\",\n  \"phone\": \"+60123456789\",\n  \"date_of_birth\": \"1990-05-15\",\n  \"gender\":\"male\"\n  \n}   "
 						},
 						"url": {
 							"raw": "{{base_url}}/customers",
@@ -932,7 +998,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"batch_name\": \"Winter Sale 2026\",\n  \"batch_type\": \"temporary\",\n  \"total_quantity\": 70,\n  \"start_date\": \"2026-01-01\",\n  \"end_date\": \"2026-01-05\",\n  \"is_active\": true,\n  \"whatsapp_enabled\": true,\n  \"lucky_draw_enabled\": false,\n  \"template_id\": 2,\n  \"header\": \"Special Offer\",\n  \"title\": \"50% Off\",\n  \"description\": \"Use this coupon to get 50% off your next purchase.\",\n  \"ishalal\": true\n\n}"
+							"raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"batch_name\": \"Winter Sale 2029\",\n  \"batch_type\": \"temporary\",\n  \"total_quantity\": 3,\n  \"start_date\": \"2026-01-01\",\n  \"end_date\": \"2026-02-05\",\n  \"is_active\": true,\n//   \"whatsapp_enabled\": false,\n//   \"lucky_draw_enabled\": false,\n  \"template_id\": 2,\n  \"header\": \"Special Offer\",\n  \"title\": \"50% Off\",\n  \"description\": \"Use this coupon to get 50% off your next purchase.\",\n  \"ishalal\": true\n\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/coupon-batches",
@@ -1096,7 +1162,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/coupons?page=1&pageSize=20&merchantId=3",
+							"raw": "{{base_url}}/coupons?page=1&pageSize=20",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1111,10 +1177,6 @@
 								{
 									"key": "pageSize",
 									"value": "20"
-								},
-								{
-									"key": "merchantId",
-									"value": "3"
 								}
 							]
 						}
@@ -1194,6 +1256,35 @@
 					"response": []
 				},
 				{
+					"name": "Update Coupon Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"issued\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/coupons/1/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"coupons",
+								"1",
+								"status"
+							]
+						},
+						"description": "Update a coupon. Typically used to change status or assign to a customer."
+					},
+					"response": []
+				},
+				{
 					"name": "Delete Coupon",
 					"request": {
 						"method": "DELETE",
@@ -1230,7 +1321,9 @@
 									"    console.log('Prize ID saved:', jsonData.data.id);",
 									"}"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
 							}
 						}
 					],
@@ -1248,7 +1341,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"batch_id\": {{batch_id}},\n  \"prize_name\": \"50% Off Coupon\",\n  \"prize_description\": \"Get 50% off your next purchase\",\n  \"prize_type\": \"coupon\",\n  \"probability\": 25.00,\n  \"daily_limit\": 10,\n  \"total_limit\": 100,\n  \"is_active\": true,\n  \"sort_order\": 1\n}"
+							"raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"batch_id\": {{batch_id}},\n  \"prize_name\": \"70% Off Coupon\",\n  \"prize_description\": \"Get 50% off your next purchase\",\n  \"prize_type\": \"coupon\",\n  \"probability\": 25.00,\n  \"daily_limit\": 10,\n  \"total_limit\": 100,\n  \"is_active\": true,\n  \"sort_order\": 1\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/lucky-draw/prizes",
@@ -1384,7 +1477,9 @@
 									"    console.log('Won prize:', jsonData.data.prize.prize_name);",
 									"}"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
 							}
 						}
 					],
@@ -1398,7 +1493,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"customer_id\": {{customer_id}},\n  \"merchant_id\": {{merchant_id}},\n  \"batch_id\": {{batch_id}}\n}"
+							"raw": "{\n  \"customer_id\": {{customer_id}},\n  \"merchant_id\": {{merchant_id}}\n}   "
 						},
 						"url": {
 							"raw": "{{base_url}}/lucky-draw/spin",
@@ -1509,6 +1604,44 @@
 							]
 						},
 						"description": "Reset daily prize count for all prizes (typically called by cron job at midnight)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get One Prize",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/lucky-draw/prizes/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"lucky-draw",
+								"prizes",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Prize",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/lucky-draw/prizes/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"lucky-draw",
+								"prizes",
+								""
+							]
+						}
 					},
 					"response": []
 				}
@@ -2111,7 +2244,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"merchantId\": 1,\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"John Doe\",\n  \"phoneNumber\": \"+1234567890\",\n  \"date_of_birth\": \"15-05-1990\",\n  \"address\": \"123 Main St\",\n  \"gender\": \"male\",\n  \"rating\": 5,\n  \"reviewType\": \"preset\",\n  \"presetReviewId\": 3,\n  \"selectedPlatform\": \"google\",\n  \"redirectCompleted\": false\n}\n\n\n//old feedback\n// {\n//   \"merchantId\": 1,\n//   \"email\": \"newuser@must.services\",\n//   \"password\": \"Password@123\",\n//    \"name\":\"John Doe\",\n//   \"phoneNumber\": \"9876543210\",\n//   \"address\": \"456 Customer St\",\n//   \"date_of_birth\": \"21-10-2001\",\n//   \"gender\": \"male\",\n//   \"rating\": 5,\n//   \"comment\": \"Great service!\"\n// }"
+							"raw": "{\n  \"merchantId\": {{merchant_id}},\n  \"email\": \"talhamahmood1261445@gmail.com\",\n//   \"password\": \"password123\",\n  \"name\": \"Talha Mahmood\",\n  \"phoneNumber\": \"+923351968117\",\n  \"date_of_birth\": \"21-10-2001\",\n  \"address\": \"123 Main St\",\n  \"gender\": \"male\",\n  \"rating\": 5,\n  \"reviewType\": \"preset\",\n  \"presetReviewId\": 3,\n  \"selectedPlatform\": \"google\",\n  \"redirectCompleted\": false,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n\n//old feedback\n// {\n//   \"merchantId\": 1,\n//   \"email\": \"newuser@must.services\",\n//   \"password\": \"Password@123\",\n//    \"name\":\"John Doe\",\n//   \"phoneNumber\": \"9876543210\",\n//   \"address\": \"456 Customer St\",\n//   \"date_of_birth\": \"21-10-2001\",\n//   \"gender\": \"male\",\n//   \"rating\": 5,\n//   \"comment\": \"Great service!\"\n// }"
 						},
 						"url": {
 							"raw": "{{base_url}}/feedbacks",
@@ -2138,7 +2271,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"merchantId\": 1,\n  \"email\": \"jane.smith@example.com\",\n  \"password\": \"password456\",\n  \"name\": \"Jane Smith\",\n  \"phoneNumber\": \"+1234567891\",\n  \"date_of_birth\": \"20-08-1992\",\n  \"address\": \"456 Oak Ave\",\n  \"gender\": \"female\",\n  \"rating\": 5,\n  \"comment\": \"Loved everything!\",\n  \"reviewType\": \"custom\",\n  \"customReviewText\": \"Amazing food and great atmosphere! The staff was incredibly friendly and the service was quick. Will definitely come back again!\",\n  \"selectedPlatform\": \"facebook\",\n  \"redirectCompleted\": false\n}"
+							"raw": "{\n  \"merchantId\": 1,\n  \"email\": \"jane.smith@example.com\",\n  \"password\": \"password456\",\n  \"name\": \"Jane Smith\",\n  \"phoneNumber\": \"+1234567891\",\n  \"date_of_birth\": \"20-08-1992\",\n  \"address\": \"456 Oak Ave\",\n  \"gender\": \"female\",\n  \"rating\": 5,\n  \"comment\": \"Loved everything!\",\n  \"reviewType\": \"custom\",\n  \"customReviewText\": \"Amazing food and great atmosphere! The staff was incredibly friendly and the service was quick. Will definitely come back again!\",\n  \"selectedPlatform\": \"facebook\",\n  \"redirectCompleted\": false,\n  \"coupon_batch_id\": 1\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/feedbacks",
@@ -2341,6 +2474,9 @@
 				{
 					"name": "Get Merchant Settings",
 					"request": {
+						"auth": {
+							"type": "noauth"
+						},
 						"method": "GET",
 						"header": [],
 						"url": {
@@ -2374,7 +2510,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"enableGoogleReviews\": true,\n  \"enableFacebookReviews\": true,\n  \"googleReviewUrl\": \"https://g.page/r/updated-url\",\n  \"facebookPageUrl\": \"https://facebook.com/updated-page\"\n}"
+							"raw": "// {\n//   \"enableGoogleReviews\": true,\n//   \"enableFacebookReviews\": true,\n//   \"googleReviewUrl\": \"https://g.page/r/updated-url\",\n//   \"facebookPageUrl\": \"https://facebook.com/updated-page\"\n// }\n\n{\n    \"whatsapp_enabled_for_batch_id\": 1,\n    \"luckydraw_enabled\": false\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
@@ -2433,7 +2569,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"phoneNumber\": \"+923001234567\",\n  \"otpCode\": \"123456\"\n}"
+							"raw": "{\n  \"phoneNumber\": \"+923351968117\",\n  \"otpCode\": \"123456\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/whatsapp/send-otp",
@@ -2461,7 +2597,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"phoneNumber\": \"+923001234567\",\n  \"firstName\": \"John\"\n}"
+							"raw": "{\n  \"phoneNumber\": \"+923351968117\",\n  \"firstName\": \"TAlha\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/whatsapp/send-welcome",
@@ -2517,7 +2653,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"phoneNumber\": \"+923001234567\",\n  \"message\": \"Your custom message here\"\n}"
+							"raw": "{\n  \"phoneNumber\": \"+923351968117\",\n  \"message\": \"Your custom message here\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/whatsapp/send-text",
@@ -2635,6 +2771,60 @@
 						"description": "Health check endpoint for WhatsApp service"
 					},
 					"response": []
+				},
+				{
+					"name": "New Request",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"phoneNumber\":\"+923351968117\",\n    \"invoiceLink\":\"BC\",\n    \"patientName\": \"patientName\",\n    \"formattedDate\": \"formattedDate\",\n    \"formattedTime\":\"formattedTime\",\n    \"practitionerName\":\"practitionerName\",\n    \"appointmentType\":\"appointmentType\"\n\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/whatsapp/send-appointment-booked",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"whatsapp",
+								"send-appointment-booked"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "New Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phoneNumber\": \"+923351968117\",\n  \"message\": \"hello\"\n}   "
+						},
+						"url": {
+							"raw": "{{base_url}}/whatsapp/send-general-message",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"whatsapp",
+								"send-general-message"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		}
@@ -2661,6 +2851,10 @@
 			"type": "string"
 		},
 		{
+			"key": "admin_id",
+			"value": ""
+		},
+		{
 			"key": "merchant_id",
 			"value": ""
 		},
@@ -2678,6 +2872,10 @@
 		},
 		{
 			"key": "credit_package_id",
+			"value": ""
+		},
+		{
+			"key": "customer_id",
 			"value": ""
 		}
 	]
