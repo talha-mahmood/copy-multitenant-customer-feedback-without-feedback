@@ -247,26 +247,62 @@ export class MerchantService {
       throw new HttpException('Merchant not found', 404);
     }
 
-    // If is_active is being updated, update the user's is_active field
-    if (updateMerchantDto.is_active !== undefined && merchant.user) {
-      await this.userRepository.update(merchant.user_id, {
-        is_active: updateMerchantDto.is_active,
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Update user fields if provided
+      const userUpdateData: any = {};
+      if (updateMerchantDto.name !== undefined) userUpdateData.name = updateMerchantDto.name;
+      if (updateMerchantDto.email !== undefined) userUpdateData.email = updateMerchantDto.email;
+      if (updateMerchantDto.is_active !== undefined) userUpdateData.is_active = updateMerchantDto.is_active;
+      
+      if (updateMerchantDto.password) {
+        userUpdateData.password = await bcrypt.hash(updateMerchantDto.password, 10);
+      }
+
+      if (Object.keys(userUpdateData).length > 0 && merchant.user_id) {
+        await queryRunner.manager.update(User, merchant.user_id, userUpdateData);
+      }
+
+      // Update merchant-specific fields
+      const merchantUpdateData: any = {};
+      if (updateMerchantDto.address !== undefined) merchantUpdateData.address = updateMerchantDto.address;
+      if (updateMerchantDto.city !== undefined) merchantUpdateData.city = updateMerchantDto.city;
+      if (updateMerchantDto.country !== undefined) merchantUpdateData.country = updateMerchantDto.country;
+      if (updateMerchantDto.map_link !== undefined) merchantUpdateData.map_link = updateMerchantDto.map_link;
+      if (updateMerchantDto.longitude !== undefined) merchantUpdateData.longitude = updateMerchantDto.longitude;
+      if (updateMerchantDto.latitude !== undefined) merchantUpdateData.latitude = updateMerchantDto.latitude;
+      if (updateMerchantDto.business_name !== undefined) merchantUpdateData.business_name = updateMerchantDto.business_name;
+      if (updateMerchantDto.business_type !== undefined) merchantUpdateData.business_type = updateMerchantDto.business_type;
+      if (updateMerchantDto.merchant_type !== undefined) merchantUpdateData.merchant_type = updateMerchantDto.merchant_type;
+      if (updateMerchantDto.tax_id !== undefined) merchantUpdateData.tax_id = updateMerchantDto.tax_id;
+      
+      if (Object.keys(merchantUpdateData).length > 0) {
+        await queryRunner.manager.update(Merchant, id, merchantUpdateData);
+      }
+
+      await queryRunner.commitTransaction();
+      
+      const updatedMerchant = await this.merchantRepository.findOne({
+        where: { id },
+        relations: ['user'],
       });
+      
+      return {
+        message: 'Merchant updated successfully',
+        data: instanceToPlain(updatedMerchant),
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(
+        error.message || 'Failed to update merchant',
+        error.status || 500,
+      );
+    } finally {
+      await queryRunner.release();
     }
-
-    // Remove is_active from merchant update since it belongs to user
-    const { is_active, ...merchantUpdateData } = updateMerchantDto as any;
-
-    await this.merchantRepository.update(id, merchantUpdateData);
-    const updatedMerchant = await this.merchantRepository.findOne({
-      where: { id },
-      relations: ['user'],
-    });
-    
-    return {
-      message: 'Merchant updated successfully',
-      data: instanceToPlain(updatedMerchant),
-    };
   }
 
   async remove(id: number) {

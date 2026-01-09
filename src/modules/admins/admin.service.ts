@@ -62,8 +62,17 @@ export class AdminService {
       });
       const savedAdmin = await queryRunner.manager.save(admin);
 
-      // Create admin wallet
-      await this.walletService.createAdminWallet(savedAdmin.id);
+      // Create admin wallet within transaction
+      const adminWallet = queryRunner.manager.create('AdminWallet', {
+        admin_id: savedAdmin.id,
+        balance: 0,
+        total_earnings: 0,
+        total_spent: 0,
+        pending_amount: 0,
+        currency: 'MYR',
+        is_active: true,
+      });
+      await queryRunner.manager.save(adminWallet);
 
       await queryRunner.commitTransaction();
 
