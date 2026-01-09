@@ -112,9 +112,10 @@ export class AdminService {
       throw new HttpException('Admin not found', 404);
     }
 
-    // Parse date range
-    const start = startDate ? new Date(startDate) : new Date(new Date().setMonth(new Date().getMonth() - 3));
-    const end = endDate ? new Date(endDate) : new Date();
+    // Parse date range - if not provided, show all-time records
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+    const hasDateFilter = start && end;
 
     const dataSource = this.dataSource;
 
@@ -127,8 +128,8 @@ export class AdminService {
         COUNT(*) FILTER (WHERE m.merchant_type = 'temporary') as temporary_merchants,
         COUNT(*) FILTER (WHERE m.merchant_type = 'annual') as annual_merchants
       FROM merchants m
-      WHERE m.created_at <= $1
-    `, [end]);
+      ${hasDateFilter ? 'WHERE m.created_at <= $1' : ''}
+    `, hasDateFilter ? [end] : []);
 
     // Recent Merchants
     const recentMerchants = await dataSource.query(`
@@ -138,10 +139,10 @@ export class AdminService {
         m.merchant_type,
         m.created_at
       FROM merchants m
-      WHERE m.created_at BETWEEN $1 AND $2
+      ${hasDateFilter ? 'WHERE m.created_at BETWEEN $1 AND $2' : ''}
       ORDER BY m.created_at DESC
       LIMIT 10
-    `, [start, end]);
+    `, hasDateFilter ? [start, end] : []);
 
     // Top Performing Merchants
     const topMerchants = await dataSource.query(`
@@ -188,8 +189,8 @@ export class AdminService {
         COALESCE(SUM(amount) FILTER (WHERE type = 'commission'), 0) as total_commissions
       FROM wallet_transactions
       WHERE admin_wallet_id IN (SELECT id FROM admin_wallets WHERE admin_id = $1)
-      AND created_at BETWEEN $2 AND $3
-    `, [adminId, start, end]);
+      ${hasDateFilter ? 'AND created_at BETWEEN $2 AND $3' : ''}
+    `, hasDateFilter ? [adminId, start, end] : [adminId]);
 
     // Monthly Revenue Breakdown
     const monthlyRevenue = await dataSource.query(`
@@ -199,10 +200,10 @@ export class AdminService {
         COALESCE(SUM(amount) FILTER (WHERE type = 'commission'), 0) as commissions_earned
       FROM wallet_transactions
       WHERE admin_wallet_id IN (SELECT id FROM admin_wallets WHERE admin_id = $1)
-      AND created_at BETWEEN $2 AND $3
+      ${hasDateFilter ? 'AND created_at BETWEEN $2 AND $3' : ''}
       GROUP BY DATE_TRUNC('month', created_at)
       ORDER BY month ASC
-    `, [adminId, start, end]);
+    `, hasDateFilter ? [adminId, start, end] : [adminId]);
 
     // Coupon Statistics Across All Merchants
     const couponStats = await dataSource.query(`
@@ -210,8 +211,8 @@ export class AdminService {
         COUNT(*) FILTER (WHERE status = 'issued') as total_issued,
         COUNT(*) FILTER (WHERE status = 'redeemed') as total_redeemed
       FROM coupons
-      WHERE created_at BETWEEN $1 AND $2
-    `, [start, end]);
+      ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
+    `, hasDateFilter ? [start, end] : []);
 
     // Coupon Stats by Merchant
     const couponByMerchant = await dataSource.query(`
@@ -222,20 +223,20 @@ export class AdminService {
         COUNT(*) FILTER (WHERE c.status = 'redeemed') as redeemed
       FROM merchants m
       LEFT JOIN coupons c ON c.merchant_id = m.id
-      WHERE c.created_at BETWEEN $1 AND $2
+      ${hasDateFilter ? 'WHERE c.created_at BETWEEN $1 AND $2' : ''}
       GROUP BY m.id, m.business_name
       HAVING COUNT(c.id) > 0
       ORDER BY issued DESC
       LIMIT 10
-    `, [start, end]);
+    `, hasDateFilter ? [start, end] : []);
 
     // WhatsApp Statistics
     const whatsappStats = await dataSource.query(`
       SELECT 
         COUNT(*) FILTER (WHERE whatsapp_sent = true) as total_messages_sent
       FROM coupons
-      WHERE created_at BETWEEN $1 AND $2
-    `, [start, end]);
+      ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
+    `, hasDateFilter ? [start, end] : []);
 
     // WhatsApp by Merchant
     const whatsappByMerchant = await dataSource.query(`
@@ -245,12 +246,12 @@ export class AdminService {
         COUNT(*) FILTER (WHERE c.whatsapp_sent = true) as messages_sent
       FROM merchants m
       LEFT JOIN coupons c ON c.merchant_id = m.id
-      WHERE c.created_at BETWEEN $1 AND $2
+      ${hasDateFilter ? 'WHERE c.created_at BETWEEN $1 AND $2' : ''}
       GROUP BY m.id, m.business_name
       HAVING COUNT(c.id) FILTER (WHERE c.whatsapp_sent = true) > 0
       ORDER BY messages_sent DESC
       LIMIT 10
-    `, [start, end]);
+    `, hasDateFilter ? [start, end] : []);
 
     // Customer Engagement
     const customerEngagement = await dataSource.query(`
@@ -261,8 +262,8 @@ export class AdminService {
       FROM customers c
       LEFT JOIN feedbacks f ON c.id = f.customer_id
       LEFT JOIN lucky_draw_results l ON c.id = l.customer_id
-      WHERE c.created_at <= $1
-    `, [end]);
+      ${hasDateFilter ? 'WHERE c.created_at <= $1' : ''}
+    `, hasDateFilter ? [end] : []);
 
     // Platform Growth
     const platformGrowth = await dataSource.query(`
@@ -270,20 +271,20 @@ export class AdminService {
         TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') as month,
         COUNT(*) as new_merchants
       FROM merchants
-      WHERE created_at BETWEEN $1 AND $2
+      ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
       GROUP BY DATE_TRUNC('month', created_at)
       ORDER BY month ASC
-    `, [start, end]);
+    `, hasDateFilter ? [start, end] : []);
 
     const customerGrowth = await dataSource.query(`
       SELECT 
         TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') as month,
         COUNT(*) as new_customers
       FROM customers
-      WHERE created_at BETWEEN $1 AND $2
+      ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
       GROUP BY DATE_TRUNC('month', created_at)
       ORDER BY month ASC
-    `, [start, end]);
+    `, hasDateFilter ? [start, end] : []);
 
     // Calculate totals and rates
     const totalIssued = parseInt(couponStats[0].total_issued) || 0;

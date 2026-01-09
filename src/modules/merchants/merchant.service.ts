@@ -344,9 +344,10 @@ export class MerchantService {
       throw new HttpException('Merchant not found', 404);
     }
 
-    // Parse date range
-    const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
-    const end = endDate ? new Date(endDate) : new Date();
+    // Parse date range - if not provided, show all-time records
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+    const hasDateFilter = start && end;
 
     const dataSource = this.dataSource;
 
@@ -361,8 +362,8 @@ export class MerchantService {
         COUNT(*) FILTER (WHERE whatsapp_sent = true) as whatsapp_sent
       FROM coupons
       WHERE merchant_id = $1
-      AND created_at BETWEEN $2 AND $3
-    `, [merchantId, start, end]);
+      ${hasDateFilter ? 'AND created_at BETWEEN $2 AND $3' : ''}
+    `, hasDateFilter ? [merchantId, start, end] : [merchantId]);
 
     // Coupon by Batch
     const couponByBatch = await dataSource.query(`
@@ -392,8 +393,8 @@ export class MerchantService {
         COUNT(*) FILTER (WHERE redirect_completed = true) as completed_redirects
       FROM feedbacks
       WHERE merchant_id = $1
-      AND created_at BETWEEN $2 AND $3
-    `, [merchantId, start, end]);
+      ${hasDateFilter ? 'AND created_at BETWEEN $2 AND $3' : ''}
+    `, hasDateFilter ? [merchantId, start, end] : [merchantId]);
 
     // Lucky Draw Statistics
     const luckyDrawStats = await dataSource.query(`
@@ -403,8 +404,8 @@ export class MerchantService {
         COUNT(DISTINCT customer_id) as unique_participants
       FROM lucky_draw_results
       WHERE merchant_id = $1
-      AND spin_date BETWEEN $2 AND $3
-    `, [merchantId, start, end]);
+      ${hasDateFilter ? 'AND spin_date BETWEEN $2 AND $3' : ''}
+    `, hasDateFilter ? [merchantId, start, end] : [merchantId]);
 
     // Prize Distribution
     const prizeDistribution = await dataSource.query(`
@@ -414,10 +415,10 @@ export class MerchantService {
       FROM lucky_draw_results r
       JOIN lucky_draw_prizes p ON r.prize_id = p.id
       WHERE r.merchant_id = $1
-      AND r.spin_date BETWEEN $2 AND $3
+      ${hasDateFilter ? 'AND r.spin_date BETWEEN $2 AND $3' : ''}
       GROUP BY p.prize_name
       ORDER BY times_won DESC
-    `, [merchantId, start, end]);
+    `, hasDateFilter ? [merchantId, start, end] : [merchantId]);
 
     // Customer Statistics
     const customerStats = await dataSource.query(`
@@ -449,20 +450,45 @@ export class MerchantService {
     `, [merchantId]);
 
     // Daily Timeline
-    const timeline = await dataSource.query(`
-      SELECT 
-        DATE(date_series) as date,
-        COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'issued'), 0) as coupons_issued,
-        COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'redeemed'), 0) as coupons_redeemed,
-        COALESCE(COUNT(DISTINCT f.id), 0) as feedbacks_received,
-        COALESCE(COUNT(DISTINCT l.id), 0) as lucky_draw_spins
-      FROM generate_series($2::date, $3::date, '1 day'::interval) date_series
-      LEFT JOIN coupons c ON DATE(c.created_at) = DATE(date_series) AND c.merchant_id = $1
-      LEFT JOIN feedbacks f ON DATE(f.created_at) = DATE(date_series) AND f.merchant_id = $1
-      LEFT JOIN lucky_draw_results l ON DATE(l.spin_date) = DATE(date_series) AND l.merchant_id = $1
-      GROUP BY date_series
-      ORDER BY date_series ASC
-    `, [merchantId, start, end]);
+    let timeline;
+    if (hasDateFilter) {
+      timeline = await dataSource.query(`
+        SELECT 
+          DATE(date_series) as date,
+          COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'issued'), 0) as coupons_issued,
+          COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'redeemed'), 0) as coupons_redeemed,
+          COALESCE(COUNT(DISTINCT f.id), 0) as feedbacks_received,
+          COALESCE(COUNT(DISTINCT l.id), 0) as lucky_draw_spins
+        FROM generate_series($2::date, $3::date, '1 day'::interval) date_series
+        LEFT JOIN coupons c ON DATE(c.created_at) = DATE(date_series) AND c.merchant_id = $1
+        LEFT JOIN feedbacks f ON DATE(f.created_at) = DATE(date_series) AND f.merchant_id = $1
+        LEFT JOIN lucky_draw_results l ON DATE(l.spin_date) = DATE(date_series) AND l.merchant_id = $1
+        GROUP BY date_series
+        ORDER BY date_series ASC
+      `, [merchantId, start, end]);
+    } else {
+      // For all-time, group by date from actual data
+      timeline = await dataSource.query(`
+        SELECT 
+          DATE(date_series) as date,
+          COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'issued'), 0) as coupons_issued,
+          COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'redeemed'), 0) as coupons_redeemed,
+          COALESCE(COUNT(DISTINCT f.id), 0) as feedbacks_received,
+          COALESCE(COUNT(DISTINCT l.id), 0) as lucky_draw_spins
+        FROM (
+          SELECT DISTINCT DATE(created_at) as date_series FROM coupons WHERE merchant_id = $1
+          UNION
+          SELECT DISTINCT DATE(created_at) FROM feedbacks WHERE merchant_id = $1
+          UNION
+          SELECT DISTINCT DATE(spin_date) FROM lucky_draw_results WHERE merchant_id = $1
+        ) dates
+        LEFT JOIN coupons c ON DATE(c.created_at) = dates.date_series AND c.merchant_id = $1
+        LEFT JOIN feedbacks f ON DATE(f.created_at) = dates.date_series AND f.merchant_id = $1
+        LEFT JOIN lucky_draw_results l ON DATE(l.spin_date) = dates.date_series AND l.merchant_id = $1
+        GROUP BY dates.date_series
+        ORDER BY dates.date_series ASC
+      `, [merchantId]);
+    }
 
     const totalIssued = parseInt(couponStats[0].issued) || 0;
     const totalRedeemed = parseInt(couponStats[0].redeemed) || 0;

@@ -14,7 +14,7 @@ Retrieve comprehensive analytics for a merchant including coupons, feedbacks, lu
 - `startDate` (optional): ISO date string (e.g., "2025-01-01")
 - `endDate` (optional): ISO date string (e.g., "2025-12-31")
 
-**Default Range:** Last 30 days if no dates provided
+**Default Behavior:** Shows **all-time records** when date filters are not provided. Both startDate and endDate must be provided together for date filtering.
 
 **Example Request:**
 ```bash
@@ -138,7 +138,7 @@ Retrieve comprehensive analytics for platform-wide statistics including all merc
 - `startDate` (optional): ISO date string
 - `endDate` (optional): ISO date string
 
-**Default Range:** Last 3 months if no dates provided
+**Default Behavior:** Shows **all-time records** when date filters are not provided. Both startDate and endDate must be provided together for date filtering.
 
 **Example Request:**
 ```bash

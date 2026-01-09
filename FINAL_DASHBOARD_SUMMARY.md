@@ -10,7 +10,8 @@
 **Query Parameters:**
 - `startDate` (optional): YYYY-MM-DD format
 - `endDate` (optional): YYYY-MM-DD format
-- **Default:** Last 30 days
+- **Default:** Shows **all-time records** when dates not provided
+- **Note:** Both dates must be provided together for filtering
 
 **Returns:**
 - Coupon statistics (issued, redeemed, expired, redemption rate)
@@ -35,7 +36,8 @@ Authorization: Bearer {jwt_token}
 **Query Parameters:**
 - `startDate` (optional): YYYY-MM-DD format
 - `endDate` (optional): YYYY-MM-DD format
-- **Default:** Last 3 months
+- **Default:** Shows **all-time records** when dates not provided
+- **Note:** Both dates must be provided together for filtering
 
 **Returns:**
 - Platform-wide merchant statistics (total, by type, by status)
@@ -162,9 +164,9 @@ curl -X GET "http://localhost:3000/merchants/1/dashboard?startDate=2025-01-01&en
 1. **Authentication Required**: All endpoints need valid JWT token
 2. **User Activation**: Managed via `is_active` field in User entity
 3. **Date Formats**: Use ISO format (YYYY-MM-DD)
-4. **Default Ranges**: 
-   - Merchant: Last 30 days
-   - Admin: Last 3 months
+4. **Default Behavior**: 
+   - **No date filters**: Shows all-time records
+   - **With filters**: Both startDate and endDate required
 5. **Cost Estimation**: WhatsApp costs calculated at $0.05 per message (configurable)
 6. **Performance**: All queries use database-level aggregations for optimal performance
 
