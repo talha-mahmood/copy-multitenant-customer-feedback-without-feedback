@@ -1,6 +1,9 @@
 import { HttpException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Repository, DataSource } from 'typeorm';
 import { Admin } from './entities/admin.entity';
+import { User } from '../users/entities/user.entity';
+import { Role } from '../roles-permission-management/roles/entities/role.entity';
+import { UserHasRole } from '../roles-permission-management/user-has-role/entities/user-has-role.entity';
 import { instanceToPlain } from 'class-transformer';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
@@ -18,27 +21,79 @@ export class AdminService {
   ) {}
 
   async create(createAdminDto: CreateAdminDto) {
-    const hashedPassword = await bcrypt.hash(createAdminDto.password, 10);
-    const admin = this.adminRepository.create({
-      ...createAdminDto,
-      password: hashedPassword,
-    });
-    const savedAdmin = await this.adminRepository.save(admin);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // Create admin wallet
-    await this.walletService.createAdminWallet(savedAdmin.id);
-    return {
-      message: 'Admin created successfully',
-      data: instanceToPlain(savedAdmin),
-    };
+    try {
+      // Find admin role
+      const role = await queryRunner.manager.findOne(Role, {
+        where: { name: 'admin' },
+      });
+      if (!role) {
+        throw new HttpException('Admin role not found', 404);
+      }
+
+      const hashedPassword = await bcrypt.hash(createAdminDto.password, 10);
+      
+      // Create user first if is_active is provided
+      const user = queryRunner.manager.create(User, {
+        name: createAdminDto.name,
+        email: createAdminDto.email,
+        phone: createAdminDto.phone,
+        password: hashedPassword,
+        avatar: createAdminDto.avatar || '',
+        is_active: createAdminDto.is_active !== undefined ? createAdminDto.is_active : true,
+      });
+
+      const savedUser = await queryRunner.manager.save(user);
+
+      // Assign role to user
+      const userHasRole = queryRunner.manager.create(UserHasRole, {
+        user_id: savedUser.id,
+        role_id: role.id,
+      });
+      await queryRunner.manager.save(userHasRole);
+
+      // Create admin with user_id and address
+      const admin = queryRunner.manager.create(Admin, {
+        user_id: savedUser.id,
+        address: createAdminDto.address,
+      });
+      const savedAdmin = await queryRunner.manager.save(admin);
+
+      // Create admin wallet
+      await this.walletService.createAdminWallet(savedAdmin.id);
+
+      await queryRunner.commitTransaction();
+
+      return {
+        message: 'Admin created successfully',
+        data: instanceToPlain(savedAdmin),
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(
+        error.message || 'Failed to create admin',
+        error.status || 500,
+      );
+    } finally {
+      await queryRunner.release();
+    }
   }
 
-  async findAll(page: number = 1, pageSize: number = 20, search = '') {
-    const queryBuilder = this.adminRepository.createQueryBuilder('admin');
+  async findAll(page: number = 1, pageSize: number = 20, search = '', isActive?: boolean) {
+    const queryBuilder = this.adminRepository
+      .createQueryBuilder('admin')
+      .leftJoinAndSelect('admin.user', 'user');
+
+    if (isActive !== undefined) {
+      queryBuilder.where('user.is_active = :isActive', { isActive });
+    }
 
     if (search) {
       queryBuilder.andWhere(
-        '(admin.name ILIKE :search OR admin.email ILIKE :search OR admin.phone ILIKE :search)',
+        '(user.name ILIKE :search OR user.email ILIKE :search OR user.phone ILIKE :search)',
         { search: `%${search}%` },
       );
     }
@@ -74,22 +129,63 @@ export class AdminService {
   }
 
   async update(id: number, updateAdminDto: UpdateAdminDto) {
-    const admin = await this.adminRepository.findOne({ where: { id } });
+    const admin = await this.adminRepository.findOne({ 
+      where: { id },
+      relations: ['user'],
+    });
     if (!admin) {
       throw new HttpException('Admin not found', 404);
     }
 
-    if (updateAdminDto.password) {
-      updateAdminDto.password = await bcrypt.hash(updateAdminDto.password, 10);
-    }
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    await this.adminRepository.update(id, updateAdminDto);
-    const updatedAdmin = await this.adminRepository.findOne({ where: { id } });
+    try {
+      // Update user fields if provided
+      const userUpdateData: any = {};
+      if (updateAdminDto.name !== undefined) userUpdateData.name = updateAdminDto.name;
+      if (updateAdminDto.email !== undefined) userUpdateData.email = updateAdminDto.email;
+      if (updateAdminDto.phone !== undefined) userUpdateData.phone = updateAdminDto.phone;
+      if (updateAdminDto.avatar !== undefined) userUpdateData.avatar = updateAdminDto.avatar;
+      if (updateAdminDto.is_active !== undefined) userUpdateData.is_active = updateAdminDto.is_active;
+      
+      if (updateAdminDto.password) {
+        userUpdateData.password = await bcrypt.hash(updateAdminDto.password, 10);
+      }
+
+      if (Object.keys(userUpdateData).length > 0 && admin.user_id) {
+        await queryRunner.manager.update(User, admin.user_id, userUpdateData);
+      }
+
+      // Update admin-specific fields (address)
+      const adminUpdateData: any = {};
+      if (updateAdminDto.address !== undefined) adminUpdateData.address = updateAdminDto.address;
+      
+      if (Object.keys(adminUpdateData).length > 0) {
+        await queryRunner.manager.update(Admin, id, adminUpdateData);
+      }
+
+      await queryRunner.commitTransaction();
+      
+      const updatedAdmin = await this.adminRepository.findOne({ 
+        where: { id },
+        relations: ['user'],
+      });
     
-    return {
-      message: 'Admin updated successfully',
-      data: instanceToPlain(updatedAdmin),
-    };
+      return {
+        message: 'Admin updated successfully',
+        data: instanceToPlain(updatedAdmin),
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(
+        error.message || 'Failed to update admin',
+        error.status || 500,
+      );
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async remove(id: number) {

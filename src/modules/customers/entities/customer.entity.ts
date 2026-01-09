@@ -27,4 +27,7 @@ export class Customer extends BaseEntity {
   @Column({ name: 'reward', default: false })
   reward: boolean;
 
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  is_active: boolean;
+
 }

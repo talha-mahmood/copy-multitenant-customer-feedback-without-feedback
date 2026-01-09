@@ -66,4 +66,8 @@ export class CreateMerchantDto {
   @IsOptional()
   @IsString()
   placement?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  is_active?: boolean;
 }

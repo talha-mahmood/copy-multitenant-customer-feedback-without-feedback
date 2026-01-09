@@ -39,11 +39,17 @@ export class CreateCustomersTable1747400000002 implements MigrationInterface {
             isNullable: true,
           },
           {
+            name: 'is_active',
+            type: 'boolean',
+            default: true,
+          },
+          {
             name: 'gender',
             type: 'varchar',
             length: '20',
             isNullable: true,
           },
+
           {
             name: 'created_at',
             type: 'timestamp',

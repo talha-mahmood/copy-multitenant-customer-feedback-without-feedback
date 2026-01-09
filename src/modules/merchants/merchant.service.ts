@@ -63,7 +63,7 @@ export class MerchantService {
         password: hashedPassword,
         phone: '', // Optional, can be added to DTO if needed
         avatar: '',
-        is_active: true,
+        is_active: createMerchantDto.is_active !== undefined ? createMerchantDto.is_active : true,
       });
       const savedUser = await queryRunner.manager.save(user);
 
@@ -189,10 +189,14 @@ export class MerchantService {
     }
   }
 
-  async findAll(page: number = 1, pageSize: number = 20, search = '') {
+  async findAll(page: number = 1, pageSize: number = 20, search = '', isActive?: boolean) {
     const queryBuilder = this.merchantRepository
       .createQueryBuilder('merchant')
       .leftJoinAndSelect('merchant.user', 'user');
+
+    if (isActive !== undefined) {
+      queryBuilder.where('user.is_active = :isActive', { isActive });
+    }
 
     if (search) {
       queryBuilder.andWhere(
@@ -235,12 +239,25 @@ export class MerchantService {
   }
 
   async update(id: number, updateMerchantDto: UpdateMerchantDto) {
-    const merchant = await this.merchantRepository.findOne({ where: { id } });
+    const merchant = await this.merchantRepository.findOne({ 
+      where: { id },
+      relations: ['user'],
+    });
     if (!merchant) {
       throw new HttpException('Merchant not found', 404);
     }
 
-    await this.merchantRepository.update(id, updateMerchantDto);
+    // If is_active is being updated, update the user's is_active field
+    if (updateMerchantDto.is_active !== undefined && merchant.user) {
+      await this.userRepository.update(merchant.user_id, {
+        is_active: updateMerchantDto.is_active,
+      });
+    }
+
+    // Remove is_active from merchant update since it belongs to user
+    const { is_active, ...merchantUpdateData } = updateMerchantDto as any;
+
+    await this.merchantRepository.update(id, merchantUpdateData);
     const updatedMerchant = await this.merchantRepository.findOne({
       where: { id },
       relations: ['user'],

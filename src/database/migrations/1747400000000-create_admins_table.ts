@@ -16,36 +16,12 @@ export class CreateAdminsTable1747400000000 implements MigrationInterface {
           {
             name: 'user_id',
             type: 'int',
+            isNullable: false,
+          },
+          {
+            name: 'address',
+            type: 'text',
             isNullable: true,
-          },
-          {
-            name: 'name',
-            type: 'varchar',
-            length: '100',
-          },
-          {
-            name: 'email',
-            type: 'varchar',
-            isUnique: true,
-          },
-          {
-            name: 'phone',
-            type: 'varchar',
-            isUnique: true,
-          },
-          {
-            name: 'avatar',
-            type: 'varchar',
-            isNullable: true,
-          },
-          {
-            name: 'password',
-            type: 'varchar',
-          },
-          {
-            name: 'is_active',
-            type: 'boolean',
-            default: true,
           },
           {
             name: 'created_at',

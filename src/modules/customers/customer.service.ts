@@ -21,8 +21,13 @@ export class CustomerService {
     };
   }
 
-  async findAll(page: number = 1, pageSize: number = 20, search = '', user?: { role: string; merchantId?: number | null }) {
-    const queryBuilder = this.customerRepository.createQueryBuilder('customer');
+  async findAll(page: number = 1, pageSize: number = 20, search = '', user?: { role: string; merchantId?: number | null }, isActive?: boolean) {
+    const queryBuilder = this.customerRepository
+      .createQueryBuilder('customer');
+
+    if (isActive !== undefined) {
+      queryBuilder.where('customer.is_active = :isActive', { isActive });
+    }
 
     if (search) {
       queryBuilder.andWhere(
