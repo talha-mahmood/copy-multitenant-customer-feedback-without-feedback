@@ -38,7 +38,7 @@ export class QRCodeHelper {
     secret: string,
   ): string {
     const hash = this.generateHash(merchantId, batchId, secret);
-    return `${baseUrl}/review?mid=${merchantId}&bid=${batchId}&hash=${hash}`;
+    return `${baseUrl}/review?mid=${merchantId}&bid=${batchId}`;
   }
 
   /**
