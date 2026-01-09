@@ -87,6 +87,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         avatar: user.avatar,
+        is_active: user.is_active,
         role: roleName, // use string role name
         merchantId,
         adminId,
