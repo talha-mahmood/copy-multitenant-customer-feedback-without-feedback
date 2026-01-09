@@ -14,6 +14,7 @@ import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { ShowAdminDto } from './dto/show-admin.dto';
+import { AdminDashboardQueryDto } from './dto/admin-dashboard.dto';
 
 @Controller('admins')
 export class AdminController {
@@ -34,6 +35,14 @@ export class AdminController {
       throw new Error('Page size cannot be greater than 500');
     }
     return this.adminService.findAll(page, pageSize, search);
+  }
+
+  @Get(':id/dashboard')
+  getDashboard(
+    @Param('id', ParseIntPipe) id: number,
+    @Query() query: AdminDashboardQueryDto,
+  ) {
+    return this.adminService.getDashboardAnalytics(id, query.startDate, query.endDate);
   }
 
   @Get(':id')

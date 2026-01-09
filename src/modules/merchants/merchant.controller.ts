@@ -14,6 +14,7 @@ import { MerchantService } from './merchant.service';
 import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { UpdateMerchantDto } from './dto/update-merchant.dto';
 import { ShowMerchantDto } from './dto/show-merchant.dto';
+import { MerchantDashboardQueryDto } from './dto/merchant-dashboard.dto';
 
 @Controller('merchants')
 export class MerchantController {
@@ -34,6 +35,14 @@ export class MerchantController {
       throw new Error('Page size cannot be greater than 500');
     }
     return this.merchantService.findAll(page, pageSize, search);
+  }
+
+  @Get(':id/dashboard')
+  getDashboard(
+    @Param('id', ParseIntPipe) id: number,
+    @Query() query: MerchantDashboardQueryDto,
+  ) {
+    return this.merchantService.getDashboardAnalytics(id, query.startDate, query.endDate);
   }
 
   @Get(':id')
