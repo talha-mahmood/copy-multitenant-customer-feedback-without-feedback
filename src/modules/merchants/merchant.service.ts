@@ -100,7 +100,7 @@ export class MerchantService {
         .digest('hex')
         .substring(0, 16);
       
-      const qrCodeUrl = `${baseUrl}/feedback?mid=${savedMerchant.id}&hash=${hash}`;
+      const qrCodeUrl = `${baseUrl}/customer/review?mid=${savedMerchant.id}`;
       const qrCodeImage = await QRCodeHelper.generateQRCodeImage(qrCodeUrl);
       
       // Update merchant with QR code info
@@ -310,7 +310,7 @@ export class MerchantService {
       .digest('hex')
       .substring(0, 16);
     
-    const qrCodeUrl = `${baseUrl}/feedback?mid=${id}&hash=${hash}`;
+    const qrCodeUrl = `${baseUrl}/customer/review?mid=${id}`;
     
     // Generate base64 QR code image
     const qrCodeImage = await QRCodeHelper.generateQRCodeImage(qrCodeUrl);
