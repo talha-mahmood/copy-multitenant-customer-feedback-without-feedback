@@ -7,9 +7,10 @@ import { NestjsFormDataModule } from 'nestjs-form-data';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { DataSource } from 'typeorm';
 import { merchantProviders } from '../merchants/merchant.provider';
+import { WalletModule } from '../wallets/wallet.module';
 
 @Module({
-  imports: [DatabaseModule, NestjsFormDataModule],
+  imports: [DatabaseModule, NestjsFormDataModule, WalletModule],
   controllers: [MerchantSettingController],
   providers: [
     MerchantSettingService,

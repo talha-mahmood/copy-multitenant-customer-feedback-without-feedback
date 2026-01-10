@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { MerchantSetting } from './entities/merchant-setting.entity';
 import { CreateMerchantSettingDto } from './dto/create-merchant-setting.dto';
@@ -6,6 +6,7 @@ import { UpdateMerchantSettingDto } from './dto/update-merchant-setting.dto';
 import { uploadFile } from 'src/common/helpers/file-upload.helper';
 import { FileUploadStorageType } from 'src/common/enums/file-upload-storage-type.enum';
 import { Merchant } from '../merchants/entities/merchant.entity';
+import { WalletService } from '../wallets/wallet.service';
 
 @Injectable()
 export class MerchantSettingService {
@@ -14,6 +15,7 @@ export class MerchantSettingService {
     private merchantSettingRepository: Repository<MerchantSetting>,
     @Inject('MERCHANT_REPOSITORY')
     private merchantRepository: Repository<Merchant>,
+    private walletService: WalletService,
   ) { }
 
   async create(createMerchantSettingDto: CreateMerchantSettingDto) {
@@ -73,6 +75,25 @@ export class MerchantSettingService {
 
     if (!setting) {
       throw new NotFoundException(`Settings for merchant ID ${merchantId} not found`);
+    }
+
+    // Check if paid_ads is being turned on (from false to true)
+    if (updateMerchantSettingDto.paid_ads === true && setting.paid_ads === false) {
+      // Check if merchant has paid ad credits
+      const { hasCredits, availableCredits } = await this.walletService.checkMerchantCredits(
+        merchantId,
+        'paid ads',
+        1,
+      );
+
+      if (!hasCredits) {
+        throw new BadRequestException(
+          `Insufficient paid ad credits. You need at least 1 paid ad credit to enable paid ads. Available: ${availableCredits}`,
+        );
+      }
+
+      // Deduct the paid ad credit
+      await this.walletService.deductPaidAdCredit(merchantId);
     }
 
     Object.assign(setting, {
