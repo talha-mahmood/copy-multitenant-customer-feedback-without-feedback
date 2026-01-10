@@ -98,7 +98,7 @@ export class WalletService {
   async getAdminWallet(adminId: number): Promise<AdminWallet> {
     const wallet = await this.adminWalletRepository.findOne({
       where: { admin_id: adminId },
-      relations: ['admin'],
+      relations: ['admin', 'admin.user'],
     });
 
     if (!wallet) {
