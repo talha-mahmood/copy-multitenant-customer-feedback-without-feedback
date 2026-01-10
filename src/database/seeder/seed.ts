@@ -4,7 +4,6 @@ import { seedUser } from './user/user.seeder';
 import { rolesPermissionsSeeder } from './roles-permissions/roles-permissions.seeder';
 import seedCouponTemplates from './seed-coupon-templates';
 import { seedPresetReviews } from './seed-preset-reviews';
-import { seedMerchantSettings } from './seed-merchant-settings';
 
 async function runSeeders() {
   await dbConfig.initialize();
@@ -17,9 +16,6 @@ async function runSeeders() {
   
   // Preset Reviews
   await seedPresetReviews(dbConfig);
-
-  // Merchant Settings (for existing merchants)
-  await seedMerchantSettings(dbConfig);
 
   await dbConfig.destroy();
 }
