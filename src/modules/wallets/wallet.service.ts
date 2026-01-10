@@ -78,9 +78,9 @@ export class WalletService {
 
     const wallet = this.merchantWalletRepository.create({
       merchant_id: merchantId,
-      message_credits: 0,
-      marketing_credits: 0,
-      utility_credits: 0,
+      whatsapp_message_credits: 0,
+      paid_ad_credits: 0,
+      coupon_credits: 0,
       total_credits_purchased: 0,
       total_credits_used: 0,
       subscription_type: subscriptionType,
@@ -249,7 +249,7 @@ export class WalletService {
   async addMerchantCredits(
     merchantId: number,
     credits: number,
-    creditType: 'marketing' | 'utility' | 'general',
+    creditType: string, // e.g., "whatsapp message", "paid ads", "coupon"
     amount: number,
     adminId: number,
     description: string,
@@ -285,16 +285,20 @@ export class WalletService {
       const adminCommission = amount * commissionRate;
       const platformAmount = amount - adminCommission;
 
-      // Update merchant credit balance
+      // Update merchant credit balance based on credit type
       const updates: any = {
-        message_credits: wallet.message_credits + credits,
         total_credits_purchased: wallet.total_credits_purchased + credits,
       };
 
-      if (creditType === 'marketing') {
-        updates.marketing_credits = wallet.marketing_credits + credits;
-      } else if (creditType === 'utility') {
-        updates.utility_credits = wallet.utility_credits + credits;
+      if (creditType === 'whatsapp message') {
+        updates.whatsapp_message_credits = wallet.whatsapp_message_credits + credits;
+      } else if (creditType === 'paid ads') {
+        updates.paid_ad_credits = wallet.paid_ad_credits + credits;
+      } else if (creditType === 'coupon') {
+        updates.coupon_credits = wallet.coupon_credits + credits;
+      } else {
+        // Default to message credits if type is not recognized
+        updates.whatsapp_message_credits = wallet.whatsapp_message_credits + credits;
       }
 
       await queryRunner.manager.update(MerchantWallet, wallet.id, updates);
@@ -373,7 +377,7 @@ export class WalletService {
   async deductMerchantCredits(
     merchantId: number,
     credits: number,
-    creditType: 'marketing' | 'utility' | 'general',
+    creditType: 'paid ads' | 'coupon' | 'whatsapp message',
     description: string,
     metadata?: any,
   ): Promise<WalletTransaction> {
@@ -391,28 +395,28 @@ export class WalletService {
       }
 
       // Check if sufficient credits
-      if (creditType === 'marketing' && wallet.marketing_credits < credits) {
-        throw new BadRequestException('Insufficient marketing credits');
+      if (creditType === 'paid ads' && wallet.paid_ad_credits < credits) {
+        throw new BadRequestException('Insufficient paid ad credits');
       }
 
-      if (creditType === 'utility' && wallet.utility_credits < credits) {
-        throw new BadRequestException('Insufficient utility credits');
+      if (creditType === 'coupon' && wallet.coupon_credits < credits) {
+        throw new BadRequestException('Insufficient coupon credits');
       }
 
-      if (creditType === 'general' && wallet.message_credits < credits) {
-        throw new BadRequestException('Insufficient credits');
+      if (creditType === 'whatsapp message' && wallet.whatsapp_message_credits < credits) {
+        throw new BadRequestException('Insufficient WhatsApp message credits');
       }
 
       // Update appropriate credit balance
       const updates: any = {
-        message_credits: wallet.message_credits - credits,
+        whatsapp_message_credits: wallet.whatsapp_message_credits - credits,
         total_credits_used: wallet.total_credits_used + credits,
       };
 
-      if (creditType === 'marketing') {
-        updates.marketing_credits = wallet.marketing_credits - credits;
-      } else if (creditType === 'utility') {
-        updates.utility_credits = wallet.utility_credits - credits;
+      if (creditType === 'paid ads') {
+        updates.paid_ad_credits = wallet.paid_ad_credits - credits;
+      } else if (creditType === 'coupon') {
+        updates.coupon_credits = wallet.coupon_credits - credits;
       }
 
       await queryRunner.manager.update(MerchantWallet, wallet.id, updates);
@@ -685,5 +689,197 @@ export class WalletService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  /**
+   * Deduct WhatsApp message credits from merchant wallet
+   */
+  async deductWhatsAppCredit(merchantId: number, messageCount: number = 1): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const wallet = await queryRunner.manager.findOne(MerchantWallet, {
+        where: { merchant_id: merchantId },
+      });
+
+      if (!wallet) {
+        throw new NotFoundException('Merchant wallet not found');
+      }
+
+      if (wallet.whatsapp_message_credits < messageCount) {
+        throw new BadRequestException('Insufficient WhatsApp message credits');
+      }
+
+      // Deduct credits
+      await queryRunner.manager.update(MerchantWallet, wallet.id, {
+        whatsapp_message_credits: wallet.whatsapp_message_credits - messageCount,
+        total_credits_used: wallet.total_credits_used + messageCount,
+      });
+
+      // Create transaction record
+      await queryRunner.manager.save(WalletTransaction, {
+        merchant_wallet_id: wallet.id,
+        type: 'credit_usage',
+        amount: 0, // No monetary amount, just credit usage
+        status: 'completed',
+        description: `WhatsApp message sent (${messageCount} credit${messageCount > 1 ? 's' : ''} used)`,
+        metadata: JSON.stringify({
+          credit_type: 'whatsapp message',
+          credits_used: messageCount,
+          credits_remaining: wallet.whatsapp_message_credits - messageCount,
+        }),
+        completed_at: new Date(),
+      });
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
+   * Deduct paid ads credits from merchant wallet
+   */
+  async deductPaidAdCredit(merchantId: number): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const wallet = await queryRunner.manager.findOne(MerchantWallet, {
+        where: { merchant_id: merchantId },
+      });
+
+      if (!wallet) {
+        throw new NotFoundException('Merchant wallet not found');
+      }
+
+      if (wallet.paid_ad_credits < 1) {
+        throw new BadRequestException('Insufficient paid ads credits');
+      }
+
+      // Deduct 1 credit for paid ad
+      await queryRunner.manager.update(MerchantWallet, wallet.id, {
+        paid_ad_credits: wallet.paid_ad_credits - 1,
+        total_credits_used: wallet.total_credits_used + 1,
+      });
+
+      // Create transaction record
+      await queryRunner.manager.save(WalletTransaction, {
+        merchant_wallet_id: wallet.id,
+        type: 'credit_usage',
+        amount: 0,
+        status: 'completed',
+        description: 'Paid ad credit used',
+        metadata: JSON.stringify({
+          credit_type: 'paid ads',
+          credits_used: 1,
+          credits_remaining: wallet.paid_ad_credits - 1,
+        }),
+        completed_at: new Date(),
+      });
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
+   * Deduct coupon credits from merchant wallet
+   */
+  async deductCouponCredits(merchantId: number, couponCount: number): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const wallet = await queryRunner.manager.findOne(MerchantWallet, {
+        where: { merchant_id: merchantId },
+      });
+
+      if (!wallet) {
+        throw new NotFoundException('Merchant wallet not found');
+      }
+
+      if (wallet.coupon_credits < couponCount) {
+        throw new BadRequestException(
+          `Insufficient coupon credits. Required: ${couponCount}, Available: ${wallet.coupon_credits}`,
+        );
+      }
+
+      // Deduct credits
+      await queryRunner.manager.update(MerchantWallet, wallet.id, {
+        coupon_credits: wallet.coupon_credits - couponCount,
+        total_credits_used: wallet.total_credits_used + couponCount,
+      });
+
+      // Create transaction record
+      await queryRunner.manager.save(WalletTransaction, {
+        merchant_wallet_id: wallet.id,
+        type: 'credit_usage',
+        amount: 0,
+        status: 'completed',
+        description: `Coupon batch created (${couponCount} credit${couponCount > 1 ? 's' : ''} used)`,
+        metadata: JSON.stringify({
+          credit_type: 'coupon',
+          credits_used: couponCount,
+          credits_remaining: wallet.coupon_credits - couponCount,
+        }),
+        completed_at: new Date(),
+      });
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
+   * Check if merchant has sufficient credits
+   */
+  async checkMerchantCredits(
+    merchantId: number,
+    creditType: 'whatsapp message' | 'paid ads' | 'coupon',
+    requiredCredits: number = 1,
+  ): Promise<{ hasCredits: boolean; availableCredits: number }> {
+    const wallet = await this.merchantWalletRepository.findOne({
+      where: { merchant_id: merchantId },
+    });
+
+    if (!wallet) {
+      return { hasCredits: false, availableCredits: 0 };
+    }
+
+    let availableCredits = 0;
+    let hasCredits = false;
+
+    switch (creditType) {
+      case 'whatsapp message':
+        availableCredits = wallet.whatsapp_message_credits;
+        hasCredits = wallet.whatsapp_message_credits >= requiredCredits;
+        break;
+      case 'paid ads':
+        availableCredits = wallet.paid_ad_credits;
+        hasCredits = wallet.paid_ad_credits >= requiredCredits;
+        break;
+      case 'coupon':
+        availableCredits = wallet.coupon_credits;
+        hasCredits = wallet.coupon_credits >= requiredCredits;
+        break;
+    }
+
+    return { hasCredits, availableCredits };
   }
 }

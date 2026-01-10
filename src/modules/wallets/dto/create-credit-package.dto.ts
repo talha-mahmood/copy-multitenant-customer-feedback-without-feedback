@@ -13,7 +13,7 @@ export class CreateCreditPackageDto {
   credits: number;
 
   @IsString()
-  @IsIn(['marketing', 'utility', 'general'])
+  @IsIn(['whatsapp message', 'paid ads', 'coupon'])
   credit_type: string;
 
   @IsNumber()

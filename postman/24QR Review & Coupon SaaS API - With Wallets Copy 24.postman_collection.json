@@ -1,7 +1,7 @@
 {
 	"info": {
-		"_postman_id": "f888261d-4b7e-4192-aa8f-da02eb3ec0b1",
-		"name": "21QR Review & Coupon SaaS API - With Wallets Copy 21",
+		"_postman_id": "f73cd736-bc08-49bf-8790-0e98532943c7",
+		"name": "24QR Review & Coupon SaaS API - With Wallets Copy 24",
 		"description": "Complete API collection including wallet system for admins and merchants",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "22622973"
@@ -39,7 +39,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"admin@must.services\",\n  \"password\": \"Pakistan@123\"\n}\n// {\n//   \"email\": \"merchant3@example.com\",\n//   \"password\": \"password123\"\n// }"
+							"raw": "{\n  \"email\": \"admin@must.services\",\n  \"password\": \"Pakistan@123\"\n}\n// {\n//   \"email\": \"merchant3@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// {\n//   \"email\": \"test2@gmail.com\",\n//   \"password\": \"Pakistan@123\"\n// }"
 						},
 						"url": {
 							"raw": "{{base_url}}/auth/login",
@@ -106,7 +106,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/admins?page=1&pageSize=20",
+							"raw": "{{base_url}}/admins?page=1&pageSize=20&isActive=false",
 							"host": [
 								"{{base_url}}"
 							],
@@ -121,6 +121,10 @@
 								{
 									"key": "pageSize",
 									"value": "20"
+								},
+								{
+									"key": "isActive",
+									"value": "false"
 								}
 							]
 						}
@@ -157,7 +161,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"department\": \"HR\"\n}"
+							"raw": "// {\n//   \"department\": \"HR\"\n// }\n\n{\n    \"is_active\":true\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/admins/1",
@@ -256,7 +260,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"admin_id\": 1,\n  \"name\": \"John's Restaurant23\",\n  \"email\": \"restaurant23@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"merchant\",\n  \"business_name\": \"John's Fine Dining\",\n  \"business_type\": \"Restaurant\",\n  \"merchant_type\": \"temporary\",\n  \"address\": \"123 Main St\", \n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"map_link\": \"https://maps.google.com/?q=3.139,101.687\",\n  \"latitude\": 3.139003,\n  \"longitude\": 101.686855,\n  \"tax_id\": \"TX123456\"\n}"
+							"raw": "{\n  \"admin_id\": 1,\n  \"name\": \"John's Restaurant23\",\n  \"email\": \"restaurant23@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"merchant\",\n  \"business_name\": \"John's Fine Dining\",\n  \"business_type\": \"Restaurant\",\n  \"merchant_type\": \"temporary\",\n  \"address\": \"123 Main St\", \n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"map_link\": \"https://maps.google.com/?q=3.139,101.687\",\n  \"latitude\": 3.139003,\n  \"longitude\": 101.686855,\n  \"tax_id\": \"TX123456\",\n  \"is_active\":false\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/merchants",
@@ -276,7 +280,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/merchants?page=1&pageSize=20",
+							"raw": "{{base_url}}/merchants?page=1&pageSize=20&isActive=false",
 							"host": [
 								"{{base_url}}"
 							],
@@ -291,6 +295,10 @@
 								{
 									"key": "pageSize",
 									"value": "20"
+								},
+								{
+									"key": "isActive",
+									"value": "false"
 								}
 							]
 						}
@@ -346,7 +354,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"businessName\": \"Updated Business Name\",\n  \"merchantType\": \"temporary\"\n}"
+							"raw": "// {\n//   \"businessName\": \"Updated Business Name\",\n//   \"merchantType\": \"temporary\"\n// }\n\n{\n    \"is_active\": false\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/merchants/1",
@@ -385,7 +393,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/merchants/{{merchant_id}}/dashboard?startDate=2025-12-01&endDate=2026-01-31",
+							"raw": "{{base_url}}/merchants/{{merchant_id}}/dashboard",
 							"host": [
 								"{{base_url}}"
 							],
@@ -393,18 +401,6 @@
 								"merchants",
 								"{{merchant_id}}",
 								"dashboard"
-							],
-							"query": [
-								{
-									"key": "startDate",
-									"value": "2025-12-01",
-									"description": "Start date (YYYY-MM-DD) - Optional, defaults to 30 days ago"
-								},
-								{
-									"key": "endDate",
-									"value": "2026-01-31",
-									"description": "End date (YYYY-MM-DD) - Optional, defaults to today"
-								}
 							]
 						},
 						"description": "Get comprehensive merchant dashboard analytics including:\n- Coupon statistics (issued, redeemed, expired, redemption rate)\n- Coupon breakdown by batch\n- Feedback/review statistics by platform (Google, Facebook, Instagram, XiaoHongShu)\n- Lucky draw participation and prize distribution\n- Customer statistics (total, new, returning, top 10 customers)\n- WhatsApp message tracking and cost estimation\n- Daily timeline trends for all metrics\n\nDefault: Last 30 days"
@@ -538,7 +534,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "// {\n//   \"credits\": 1000,\n//   \"credit_type\": \"marketing\",\n//   \"amount\": 400.00,\n//   \"admin_id\": {{admin_id}},\n//   \"description\": \"Professional Package purchase\",\n//   \"metadata\": {\n//     \"package_id\": 3,\n//     \"package_name\": \"Professional Package\"\n//   }\n// }\n\n{\n  \"credits\": 0,\n  \"credit_type\": \"coupon\",\n  \"amount\": 50.00,\n  \"admin_id\": {{admin_id}},\n  \"description\": \"1 batch + 100 coupon credits (temporary)\",\n  \"metadata\": {\n    \"package_id\": 14,\n    \"package_name\": \"Temp Coupon Credits Large\",\n     \"coupon_batches\": 1,\n    \"coupon_credits\": 100\n\n  }\n}\n\n\n"
+									"raw": "// {\n//   \"credits\": 1000,\n//   \"credit_type\": \"whatsapp message\",\n//   \"amount\": 400.00,\n//   \"admin_id\": {{admin_id}},\n//   \"description\": \"Professional Package purchase\",\n//   \"metadata\": {\n//     \"package_id\": 3,\n//     \"package_name\": \"Professional Package\"\n//   }\n// }\n\n{\n  \"credits\": 0,\n  \"credit_type\": \"coupon\",\n  \"amount\": 50.00,\n  \"admin_id\": {{admin_id}},\n  \"description\": \"1 batch + 100 coupon credits (temporary)\",\n  \"metadata\": {\n    \"package_id\": 14,\n    \"package_name\": \"Temp Coupon Credits Large\",\n     \"coupon_batches\": 1,\n    \"coupon_credits\": 100\n\n  }\n}\n\n\n"
 								},
 								"url": {
 									"raw": "{{base_url}}/wallets/merchant/{{merchant_id}}/add-credits",
@@ -552,7 +548,7 @@
 										"add-credits"
 									]
 								},
-								"description": "Add credits to merchant wallet. Automatically credits admin with commission (20% for temporary, 10% for annual). credit_type: 'marketing' | 'utility' | 'general'"
+								"description": "Add credits to merchant wallet. Automatically credits admin with commission (20% for temporary, 2% for annual). credit_type: 'whatsapp message' | 'paid ads' | 'coupon'"
 							},
 							"response": []
 						},
@@ -718,7 +714,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"name\": \"Starter Package\",\n  \"description\": \"Perfect for small businesses\",\n  \"credits\": 100,\n  \"credit_type\": \"marketing\",\n  \"price\": 50.00,\n  \"price_per_credit\": 0.50,\n  \"currency\": \"USD\",\n  \"merchant_type\": \"temporary\",\n  \"admin_id\": {{admin_id}},\n  \"is_active\": true,\n  \"sort_order\": 1,\n  \"bonus_credits\": 10\n}"
+									"raw": "{\n  \"name\": \"Starter Package\",\n  \"description\": \"Perfect for small businesses\",\n  \"credits\": 100,\n  \"credit_type\": \"whatsapp message\",\n  \"price\": 50.00,\n  \"price_per_credit\": 0.50,\n  \"currency\": \"USD\",\n  \"merchant_type\": \"temporary\",\n  \"admin_id\": {{admin_id}},\n  \"is_active\": true,\n  \"sort_order\": 1,\n  \"bonus_credits\": 10\n}"
 								},
 								"url": {
 									"raw": "{{base_url}}/wallets/credit-packages",
@@ -880,7 +876,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/customers?page=1&pageSize=20",
+							"raw": "{{base_url}}/customers?page=1&pageSize=20&isActive=true",
 							"host": [
 								"{{base_url}}"
 							],
@@ -895,6 +891,10 @@
 								{
 									"key": "pageSize",
 									"value": "20"
+								},
+								{
+									"key": "isActive",
+									"value": "true"
 								}
 							]
 						}
@@ -1122,6 +1122,14 @@
 								"2"
 							]
 						}
+					},
+					"response": []
+				},
+				{
+					"name": "New Request",
+					"request": {
+						"method": "GET",
+						"header": []
 					},
 					"response": []
 				}
@@ -2244,7 +2252,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"merchantId\": {{merchant_id}},\n  \"email\": \"talhamahmood1261445@gmail.com\",\n//   \"password\": \"password123\",\n  \"name\": \"Talha Mahmood\",\n  \"phoneNumber\": \"+923351968117\",\n  \"date_of_birth\": \"21-10-2001\",\n  \"address\": \"123 Main St\",\n  \"gender\": \"male\",\n  \"rating\": 5,\n  \"reviewType\": \"preset\",\n  \"presetReviewId\": 3,\n  \"selectedPlatform\": \"google\",\n  \"redirectCompleted\": false,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n\n//old feedback\n// {\n//   \"merchantId\": 1,\n//   \"email\": \"newuser@must.services\",\n//   \"password\": \"Password@123\",\n//    \"name\":\"John Doe\",\n//   \"phoneNumber\": \"9876543210\",\n//   \"address\": \"456 Customer St\",\n//   \"date_of_birth\": \"21-10-2001\",\n//   \"gender\": \"male\",\n//   \"rating\": 5,\n//   \"comment\": \"Great service!\"\n// }"
+							"raw": "{\n  \"merchantId\": {{merchant_id}},\n  \"email\": \"talhamahmood1261@gmail.com\",\n//   \"password\": \"password123\",\n  \"name\": \"Talha Mahmood\",\n  \"phoneNumber\": \"+923351968117\",\n  \"date_of_birth\": \"21-10-2001\",\n  \"address\": \"123 Main St\",\n  \"gender\": \"male\",\n  \"rating\": 5,\n  \"reviewType\": \"preset\",\n  \"presetReviewId\": 3,\n  \"selectedPlatform\": \"google\",\n  \"redirectCompleted\": false,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n\n//old feedback\n// {\n//   \"merchantId\": 1,\n//   \"email\": \"newuser@must.services\",\n//   \"password\": \"Password@123\",\n//    \"name\":\"John Doe\",\n//   \"phoneNumber\": \"9876543210\",\n//   \"address\": \"456 Customer St\",\n//   \"date_of_birth\": \"21-10-2001\",\n//   \"gender\": \"male\",\n//   \"rating\": 5,\n//   \"comment\": \"Great service!\"\n// }"
 						},
 						"url": {
 							"raw": "{{base_url}}/feedbacks",

@@ -8,9 +8,10 @@ import { customerProviders } from '../customers/customer.provider';
 import { merchantProviders } from '../merchants/merchant.provider';
 import { couponProvider } from '../coupons/coupon.provider';
 import { couponBatchProvider } from '../coupon-batches/coupon-batch.provider';
+import { WalletModule } from '../wallets/wallet.module';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, WalletModule],
   controllers: [LuckyDrawController],
   providers: [
     ...luckyDrawProviders,

@@ -11,6 +11,7 @@ import { UpdateLuckyDrawPrizeDto } from './dto/update-lucky-draw-prize.dto';
 import { SpinWheelDto } from './dto/spin-wheel.dto';
 import { LUCKY_DRAW_PRIZE_REPOSITORY, LUCKY_DRAW_RESULT_REPOSITORY } from './lucky-draw.provider';
 import { WhatsAppService } from 'src/common/services/whatsapp.service';
+import { WalletService } from '../wallets/wallet.service';
 
 @Injectable()
 export class LuckyDrawService {
@@ -28,6 +29,7 @@ export class LuckyDrawService {
     @Inject('COUPON_BATCH_REPOSITORY')
     private couponBatchRepository: Repository<CouponBatch>,
     private whatsappService: WhatsAppService,
+    private walletService: WalletService,
   ) { }
 
   async createPrize(createDto: CreateLuckyDrawPrizeDto) {
@@ -348,33 +350,37 @@ export class LuckyDrawService {
 
           // Send coupon via WhatsApp
           if (customer.phone) {
-            const expiryDate = new Date(batch.end_date).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            });
-
-
-            // const whatsappResult = await this.whatsappService.sendCouponDelivery(
-            //   customer.phone,
-            //   customer.name,
-            //   merchant.business_name,
-            //   coupon.coupon_code,
-            //   expiryDate,
-            //   merchant.address || 'Visit merchant location',
-            // );
-
-            const message = `Hello ${customer.name}, congratulations on winning a coupon from ${merchant.business_name}! With coupon code ${coupon.coupon_code} valid until ${expiryDate}. Please visit ${merchant.address || 'the merchant location'} to redeem your coupon.`;
-
-            const whatsappResult = await this.whatsappService.sendGeneralMessage(
-              customer.phone,
-              message,
+            // Check if merchant has WhatsApp credits before sending
+            const creditCheck = await this.walletService.checkMerchantCredits(
+              merchant.id,
+              'whatsapp message',
+              1,
             );
 
+            if (creditCheck.hasCredits) {
+              const expiryDate = new Date(batch.end_date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              });
 
-            if (whatsappResult.success) {
-              whatsappSent = true;
-              coupon.whatsapp_sent = true;
+              const message = `Hello ${customer.name}, congratulations on winning a coupon from ${merchant.business_name}! With coupon code ${coupon.coupon_code} valid until ${expiryDate}. Please visit ${merchant.address || 'the merchant location'} to redeem your coupon.`;
+
+              const whatsappResult = await this.whatsappService.sendGeneralMessage(
+                customer.phone,
+                message,
+              );
+
+              if (whatsappResult.success) {
+                whatsappSent = true;
+                coupon.whatsapp_sent = true;
+                
+                // Deduct WhatsApp credit after successful send
+                await this.walletService.deductWhatsAppCredit(merchant.id, 1);
+              }
+            } else {
+              // Log warning but don't block the lucky draw
+              console.warn(`Merchant ${merchant.id} has insufficient WhatsApp credits. Available: ${creditCheck.availableCredits}`);
             }
           }
 
