@@ -63,9 +63,17 @@ export class FeedbackService {
       };
 
       if (createFeedbackDto.date_of_birth) {
-        // Parse DD-MM-YYYY format to YYYY-MM-DD
-        const [day, month, year] = createFeedbackDto.date_of_birth.split('-');
-        customerData.date_of_birth = `${year}-${month}-${day}`;
+        // Parse DD-MM-YYYY format to YYYY-MM-DD for PostgreSQL
+        const dateStr = createFeedbackDto.date_of_birth.trim();
+        const [day, month, year] = dateStr.split('-');
+        
+        // Validate date parts
+        if (day && month && year) {
+          // Ensure proper padding
+          const paddedDay = day.padStart(2, '0');
+          const paddedMonth = month.padStart(2, '0');
+          customerData.date_of_birth = `${year}-${paddedMonth}-${paddedDay}`;
+        }
       }
 
       const customer = queryRunner.manager.create(Customer, customerData);
