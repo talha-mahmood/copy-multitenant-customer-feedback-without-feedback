@@ -127,7 +127,10 @@ export class AdminService {
   }
 
   async findOne(id: number) {
-    const admin = await this.adminRepository.findOne({ where: { id } });
+    const admin = await this.adminRepository.findOne({ 
+      where: { id },
+      relations: ['user'],
+    });
     if (!admin) {
       throw new HttpException('Admin not found', 404);
     }
