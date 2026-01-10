@@ -33,14 +33,6 @@ export async function seedUser(dataSource: DataSource) {
     });
 
     users.push({
-      name: 'Merchant User',
-      email: 'merchant@must.services',
-      password: hashedPassword,
-      role: 'merchant',
-      phone: '03001234568',
-    });
-
-    users.push({
       name: 'Customer User',
       email: 'customer@must.services',
       password: hashedPassword,
@@ -79,43 +71,6 @@ export async function seedUser(dataSource: DataSource) {
         total_earnings: 0,
         total_spent: 0,
         pending_amount: 0,
-        currency: 'USD',
-        is_active: true,
-      });
-    }
-
-    const merchant = await userRepo.findOne({
-      where: { email: 'merchant@must.services' },
-    });
-
-    if (merchant) {
-      await userHasRoleRepo.insert({
-        role_id: 2,
-        user_id: Number(merchant?.id ?? 1),
-      });
-
-      // Create merchant record
-      const merchantRepo = dataSource.getRepository(Merchant);
-      const savedMerchant = await merchantRepo.save({
-        user_id: merchant.id,
-        business_name: 'Demo Business',
-        business_type: 'Retail',
-        merchant_type: 'annual',
-        address: '123 Business St',
-        tax_id: 'TAX123456',
-      });
-
-      // Create merchant wallet
-      const merchantWalletRepo = dataSource.getRepository(MerchantWallet);
-      await merchantWalletRepo.insert({
-        merchant_id: savedMerchant.id,
-        whatsapp_message_credits: 0,
-        paid_ad_credits: 0,
-        coupon_credits: 0,
-        total_credits_purchased: 0,
-        total_credits_used: 0,
-        subscription_type: 'annual',
-        annual_fee_paid: false,
         currency: 'USD',
         is_active: true,
       });
