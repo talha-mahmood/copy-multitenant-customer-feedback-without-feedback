@@ -109,9 +109,9 @@ export async function seedUser(dataSource: DataSource) {
       const merchantWalletRepo = dataSource.getRepository(MerchantWallet);
       await merchantWalletRepo.insert({
         merchant_id: savedMerchant.id,
-        message_credits: 0,
-        marketing_credits: 0,
-        utility_credits: 0,
+        whatsapp_message_credits: 0,
+        paid_ad_credits: 0,
+        coupon_credits: 0,
         total_credits_purchased: 0,
         total_credits_used: 0,
         subscription_type: 'annual',

@@ -11,9 +11,10 @@ import { merchantSettingProviders } from '../merchant-settings/merchant-setting.
 import { couponProvider } from '../coupons/coupon.provider';
 import { couponBatchProvider } from '../coupon-batches/coupon-batch.provider';
 import { WhatsAppService } from 'src/common/services/whatsapp.service';
+import { WalletModule } from '../wallets/wallet.module';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, WalletModule],
   controllers: [FeedbackController, PresetReviewController],
   providers: [
     FeedbackService,

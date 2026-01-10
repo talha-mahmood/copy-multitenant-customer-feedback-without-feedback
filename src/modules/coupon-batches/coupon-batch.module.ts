@@ -5,9 +5,10 @@ import { couponBatchProvider } from './coupon-batch.provider';
 import { DatabaseModule } from 'src/database/database.module';
 import { merchantProviders } from '../merchants/merchant.provider';
 import { ConfigModule } from '@nestjs/config';
+import { WalletModule } from '../wallets/wallet.module';
 
 @Module({
-  imports: [DatabaseModule, ConfigModule],
+  imports: [DatabaseModule, ConfigModule, WalletModule],
   controllers: [CouponBatchController],
   providers: [CouponBatchService, ...couponBatchProvider, ...merchantProviders],
   exports: [CouponBatchService],
