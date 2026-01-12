@@ -37,7 +37,7 @@ export class MerchantService {
     await queryRunner.startTransaction();
 
     try {
-      // Check if user already exists
+      // Check if user already exists 
       const existingUser = await this.userRepository.findOne({
         where: { email: createMerchantDto.email },
       });
@@ -306,11 +306,22 @@ export class MerchantService {
   }
 
   async remove(id: number) {
-    const merchant = await this.merchantRepository.findOne({ where: { id } });
+    const merchant = await this.merchantRepository.findOne({ 
+      where: { id },
+      relations: ['user'],
+    });
     if (!merchant) {
       throw new HttpException('Merchant not found', 404);
     }
+    
+    // Soft delete merchant
     await this.merchantRepository.softDelete(id);
+    
+    // Also soft delete the associated user
+    if (merchant.user_id) {
+      await this.userRepository.softDelete(merchant.user_id);
+    }
+    
     return {
       message: 'Merchant deleted successfully',
     };
