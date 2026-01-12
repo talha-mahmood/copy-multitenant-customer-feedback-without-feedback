@@ -16,7 +16,6 @@ export class CreateMerchantSettingsTable1747650000000 implements MigrationInterf
           {
             name: 'merchant_id',
             type: 'int',
-            isUnique: true,
           },
           {
             name: 'enable_preset_reviews',

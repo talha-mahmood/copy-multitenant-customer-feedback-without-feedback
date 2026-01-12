@@ -40,7 +40,16 @@ export async function seedUser(dataSource: DataSource) {
       phone: '03001234569',
     });
 
-    await userRepo.upsert(users, ['email']);
+    // Insert users only if they don't exist
+    for (const user of users) {
+      const existingUser = await userRepo.findOne({
+        where: { email: user.email },
+      });
+
+      if (!existingUser) {
+        await userRepo.save(userRepo.create(user));
+      }
+    }
 
     const admin = await userRepo.findOne({
       where: { email: 'admin@must.services' },
