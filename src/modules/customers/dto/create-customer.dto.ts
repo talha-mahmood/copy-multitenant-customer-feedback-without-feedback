@@ -5,7 +5,7 @@ export class CreateCustomerDto {
   @IsString()
   name: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsEmail()
   email: string;
 

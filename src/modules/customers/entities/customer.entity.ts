@@ -5,8 +5,8 @@ import { BaseEntity } from 'src/common/entities/base.entity';
 export class Customer extends BaseEntity {
   @Column({ length: 100 })
   name: string;
-
-  @Column({ length: 100 })
+ 
+  @Column({ length: 100, nullable: true })
   email: string;
 
   @Column({ length: 20 })

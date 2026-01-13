@@ -38,6 +38,17 @@ export class FeedbackController {
     return this.feedbackService.findAll(page, pageSize, merchantId, customerId);
   }
 
+  @Public()
+  @Get('check-customer-by-phone')
+  checkCustomerByPhone(@Query('phone') phone: string) {
+    return this.feedbackService.checkCustomerByPhone(phone);
+  }
+
+  @Get('analytics/:merchantId')
+  getReviewAnalytics(@Param('merchantId', ParseIntPipe) merchantId: number) {
+    return this.feedbackService.getReviewAnalytics(merchantId);
+  }
+
   @Get(':id')
   findOne(@Param() showFeedbackDto: ShowFeedbackDto) {
     return this.feedbackService.findOne(showFeedbackDto.id);
@@ -58,9 +69,4 @@ export class FeedbackController {
   markRedirectCompleted(@Param('id', ParseIntPipe) id: number) {
     return this.feedbackService.markRedirectCompleted(id);
   }
-
-  @Get('analytics/:merchantId')
-  getReviewAnalytics(@Param('merchantId', ParseIntPipe) merchantId: number) {
-    return this.feedbackService.getReviewAnalytics(merchantId);
-  } 
 }
