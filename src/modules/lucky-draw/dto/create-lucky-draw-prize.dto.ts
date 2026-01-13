@@ -1,9 +1,14 @@
 import { IsString, IsInt, IsNumber, IsOptional, IsIn, Min, Max, IsBoolean } from 'class-validator';
+import { Exists } from 'src/common/decorators/exists.decorator';
+import { Merchant } from 'src/modules/merchants/entities/merchant.entity';
+import { CouponBatch } from 'src/modules/coupon-batches/entities/coupon-batch.entity';
 
 export class CreateLuckyDrawPrizeDto {
+  @Exists(() => Merchant, 'id', { message: 'Merchant must exist' })
   @IsInt()
   merchant_id: number;
 
+  @Exists(() => CouponBatch, 'id', { message: 'Coupon Batch must exist' })
   @IsInt()
   @IsOptional()
   batch_id?: number;

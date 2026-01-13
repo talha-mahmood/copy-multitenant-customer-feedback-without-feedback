@@ -1,4 +1,6 @@
 import { IsString, IsInt, IsNumber, IsOptional, IsIn, Min, IsBoolean } from 'class-validator';
+import { Exists } from 'src/common/decorators/exists.decorator';
+import { Admin } from 'src/modules/admins/entities/admin.entity';
 
 export class CreateCreditPackageDto {
   @IsString()
@@ -33,6 +35,7 @@ export class CreateCreditPackageDto {
   @IsIn(['annual', 'temporary', 'all'])
   merchant_type?: string;
 
+  @Exists(() => Admin, 'id', { message: 'Admin must exist' })
   @IsInt()
   admin_id: number;
 

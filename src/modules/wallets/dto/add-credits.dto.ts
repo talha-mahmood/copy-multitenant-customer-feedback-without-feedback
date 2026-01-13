@@ -1,4 +1,6 @@
 import { IsNumber, IsString, IsOptional, IsIn, Min } from 'class-validator';
+import { Exists } from 'src/common/decorators/exists.decorator';
+import { Admin } from 'src/modules/admins/entities/admin.entity';
 
 export class AddCreditsDto {
   @IsNumber()
@@ -12,6 +14,7 @@ export class AddCreditsDto {
   @Min(0)
   amount: number;
 
+  @Exists(() => Admin, 'id', { message: 'Admin must exist' })
   @IsNumber()
   admin_id: number;
 

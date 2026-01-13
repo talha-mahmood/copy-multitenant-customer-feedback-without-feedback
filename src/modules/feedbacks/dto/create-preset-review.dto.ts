@@ -1,7 +1,10 @@
 import { IsNotEmpty, IsString, IsOptional, IsBoolean, IsNumber, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { Exists } from 'src/common/decorators/exists.decorator';
+import { Merchant } from 'src/modules/merchants/entities/merchant.entity';
 
 export class CreatePresetReviewDto {
+  @Exists(() => Merchant, 'id', { message: 'Merchant must exist' })
   @IsOptional()
   @IsNumber()
   merchant_id?: number; // null for system defaults

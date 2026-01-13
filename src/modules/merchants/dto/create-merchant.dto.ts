@@ -1,4 +1,6 @@
 import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength, IsBoolean, IsUrl, IsNumber } from 'class-validator';
+import { Exists } from 'src/common/decorators/exists.decorator';
+import { Admin } from 'src/modules/admins/entities/admin.entity';
 
 export class CreateMerchantDto {
   // User fields
@@ -60,6 +62,7 @@ export class CreateMerchantDto {
   @IsString()
   tax_id?: string;
 
+  @Exists(() => Admin, 'id', { message: 'Admin must exist' })
   @IsOptional()
   admin_id?: number; // Required for annual merchants to credit commission
 
