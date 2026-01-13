@@ -233,6 +233,7 @@ export class FeedbackService {
               } else {
                 // Log warning but don't block the feedback creation
                 console.warn(`Merchant ${merchant.id} has insufficient WhatsApp credits. Available: ${creditCheck.availableCredits}`);
+                throw new HttpException(`Merchant ${merchant.id} has insufficient WhatsApp credits. Available: ${creditCheck.availableCredits}`, 500);
               }
             }
 

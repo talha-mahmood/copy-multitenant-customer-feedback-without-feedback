@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, BadRequestException, HttpException } from '@nestjs/common';
 import { Repository, MoreThan } from 'typeorm';
 import { LuckyDrawPrize } from './entities/lucky-draw-prize.entity';
 import { LuckyDrawResult } from './entities/lucky-draw-result.entity';
@@ -381,6 +381,8 @@ export class LuckyDrawService {
             } else {
               // Log warning but don't block the lucky draw
               console.warn(`Merchant ${merchant.id} has insufficient WhatsApp credits. Available: ${creditCheck.availableCredits}`);
+              throw new HttpException(`Merchant ${merchant.id} has insufficient WhatsApp credits. Available: ${creditCheck.availableCredits}`, 500);
+              
             }
           }
 
