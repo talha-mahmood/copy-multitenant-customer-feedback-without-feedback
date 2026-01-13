@@ -65,11 +65,7 @@ export async function seedUser(dataSource: DataSource) {
       const adminRepo = dataSource.getRepository(Admin);
       const savedAdmin = await adminRepo.save({
         user_id: admin.id,
-        name: admin.name,
-        email: admin.email,
-        phone: admin.phone,
-        password: admin.password,
-        isActive: true,
+        address: '123 Admin St',
       });
 
       // Create admin wallet
