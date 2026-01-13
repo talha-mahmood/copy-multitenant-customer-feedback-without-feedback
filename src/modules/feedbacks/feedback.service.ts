@@ -68,11 +68,13 @@ export class FeedbackService {
           const [day, month, year] = dateStr.split('-');
           
           // Validate date parts
-          if (day && month && year) {
+          if (day && month && year && year.length === 4) {
             // Ensure proper padding
             const paddedDay = day.padStart(2, '0');
             const paddedMonth = month.padStart(2, '0');
             customerData.date_of_birth = `${year}-${paddedMonth}-${paddedDay}`;
+          } else {
+            throw new HttpException('Invalid date format. Expected DD-MM-YYYY', 400);
           }
         }
 
