@@ -11,7 +11,7 @@ export class CreateFeedbackDto {
   merchantId: number;
 
   // Customer fields
-  @IsNotEmpty()
+  @IsOptional()
   @IsEmail()
   email: string;
 

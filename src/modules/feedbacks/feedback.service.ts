@@ -43,41 +43,42 @@ export class FeedbackService {
 
     try {
       // 1. Check if customer already exists
-      const existingCustomer = await this.customerRepository.findOne({
-        where: { email: createFeedbackDto.email },
+      let savedCustomer = await this.customerRepository.findOne({
+        where: { phone: createFeedbackDto.phoneNumber },
       });
 
-      if (existingCustomer) {
-        throw new HttpException('Customer with this email already exists', 400);
-      }
+      let isNewCustomer = false;
 
-      // 2. Create Customer
-      const customerData: any = {
-        name: createFeedbackDto.name,
-        email: createFeedbackDto.email,
-        phone: createFeedbackDto.phoneNumber,
-        address: createFeedbackDto.address,
-        gender: createFeedbackDto.gender,
-        merchant_id: createFeedbackDto.merchantId,
-        reward: createFeedbackDto.redirectCompleted || false,
-      };
+      if (!savedCustomer) {
+        isNewCustomer = true;
+        // 2. Create Customer if doesn't exist
+        const customerData: any = {
+          name: createFeedbackDto.name,
+          email: createFeedbackDto.email,
+          phone: createFeedbackDto.phoneNumber,
+          address: createFeedbackDto.address,
+          gender: createFeedbackDto.gender,
+          merchant_id: createFeedbackDto.merchantId,
+          reward: createFeedbackDto.redirectCompleted || false,
+        };
 
-      if (createFeedbackDto.date_of_birth) {
-        // Parse DD-MM-YYYY format to YYYY-MM-DD for PostgreSQL
-        const dateStr = createFeedbackDto.date_of_birth.trim();
-        const [day, month, year] = dateStr.split('-');
-        
-        // Validate date parts
-        if (day && month && year) {
-          // Ensure proper padding
-          const paddedDay = day.padStart(2, '0');
-          const paddedMonth = month.padStart(2, '0');
-          customerData.date_of_birth = `${year}-${paddedMonth}-${paddedDay}`;
+        if (createFeedbackDto.date_of_birth) {
+          // Parse DD-MM-YYYY format to YYYY-MM-DD for PostgreSQL
+          const dateStr = createFeedbackDto.date_of_birth.trim();
+          const [day, month, year] = dateStr.split('-');
+          
+          // Validate date parts
+          if (day && month && year) {
+            // Ensure proper padding
+            const paddedDay = day.padStart(2, '0');
+            const paddedMonth = month.padStart(2, '0');
+            customerData.date_of_birth = `${year}-${paddedMonth}-${paddedDay}`;
+          }
         }
-      }
 
-      const customer = queryRunner.manager.create(Customer, customerData);
-      const savedCustomer = await queryRunner.manager.save(customer);
+        const customer = queryRunner.manager.create(Customer, customerData);
+        savedCustomer = await queryRunner.manager.save(customer);
+      }
 
       // 3. Validate merchant and platform availability
       const merchant = await this.merchantRepository.findOne({
@@ -258,10 +259,13 @@ export class FeedbackService {
       const redirectUrl = this.getRedirectUrl(merchantSettings, createFeedbackDto.selectedPlatform);
 
       return {
-        message: 'Feedback created successfully. Customer account has been created.',
+        message: isNewCustomer 
+          ? 'Feedback created successfully. Customer account has been created.' 
+          : 'Feedback created successfully. Using existing customer account.',
         data: {
           ...feedbackWithRelations,
           redirectUrl,
+          customer: savedCustomer,
           coupon: coupon ? {
             id: coupon.id,
             coupon_code: coupon.coupon_code,
@@ -269,6 +273,7 @@ export class FeedbackService {
             whatsapp_sent: coupon.whatsapp_sent,
           } : null,
           luckydraw_enabled: merchantSettings.luckydraw_enabled,
+          isNewCustomer,
         },
       };
     } catch (error) {
@@ -425,6 +430,45 @@ export class FeedbackService {
         completedRedirects,
         redirectCompletionRate: totalReviews > 0 ? (completedRedirects / totalReviews) * 100 : 0,
         platformStats,
+      },
+    };
+  }
+
+  async checkCustomerByPhone(phone: string) {
+    if (!phone) {
+      throw new HttpException('Phone number is required', 400);
+    }
+
+    const customer = await this.customerRepository.findOne({
+      where: { phone },
+    });
+
+    if (!customer) {
+      return {
+        message: 'Customer not found',
+        data: null,
+      };
+    }
+
+    // Format date_of_birth to DD-MM-YYYY for frontend
+    let formattedDateOfBirth: string | null = null;
+    if (customer.date_of_birth) {
+      const date = new Date(customer.date_of_birth);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      formattedDateOfBirth = `${day}-${month}-${year}`;
+    }
+
+    return {
+      message: 'Customer found',
+      data: {
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+        address: customer.address,
+        gender: customer.gender,
+        date_of_birth: formattedDateOfBirth,
       },
     };
   }
