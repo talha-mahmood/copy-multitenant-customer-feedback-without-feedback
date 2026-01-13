@@ -95,8 +95,8 @@ export class AdminService {
     const queryBuilder = this.adminRepository
       .createQueryBuilder('admin')
       .leftJoinAndSelect('admin.user', 'user');
-
-    if (isActive !== undefined) {
+      
+      if (isActive !== undefined) {
       queryBuilder.where('user.is_active = :isActive', { isActive });
     }
 
@@ -201,11 +201,23 @@ export class AdminService {
   }
 
   async remove(id: number) {
-    const admin = await this.adminRepository.findOne({ where: { id } });
+    const admin = await this.adminRepository.findOne({ 
+      where: { id },
+      relations: ['user'],
+    });
     if (!admin) {
       throw new HttpException('Admin not found', 404);
     }
+    
+    // Soft delete admin
     await this.adminRepository.softDelete(id);
+    
+    // Also soft delete the associated user
+    if (admin.user_id) {
+      const userRepo = this.dataSource.getRepository(User);
+      await userRepo.softDelete(admin.user_id);
+    }
+    
     return {
       message: 'Admin deleted successfully',
     };

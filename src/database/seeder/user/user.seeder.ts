@@ -40,7 +40,16 @@ export async function seedUser(dataSource: DataSource) {
       phone: '03001234569',
     });
 
-    await userRepo.upsert(users, ['email']);
+    // Insert users only if they don't exist
+    for (const user of users) {
+      const existingUser = await userRepo.findOne({
+        where: { email: user.email },
+      });
+
+      if (!existingUser) {
+        await userRepo.save(userRepo.create(user));
+      }
+    }
 
     const admin = await userRepo.findOne({
       where: { email: 'admin@must.services' },
@@ -56,11 +65,7 @@ export async function seedUser(dataSource: DataSource) {
       const adminRepo = dataSource.getRepository(Admin);
       const savedAdmin = await adminRepo.save({
         user_id: admin.id,
-        name: admin.name,
-        email: admin.email,
-        phone: admin.phone,
-        password: admin.password,
-        isActive: true,
+        address: '123 Admin St',
       });
 
       // Create admin wallet

@@ -1,6 +1,11 @@
 import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, Min, Max, IsIn, IsBoolean } from 'class-validator';
+import { Exists } from 'src/common/decorators/exists.decorator';
+import { Merchant } from 'src/modules/merchants/entities/merchant.entity';
+import { PresetReview } from 'src/modules/feedbacks/entities/preset-review.entity';
+import { CouponBatch } from 'src/modules/coupon-batches/entities/coupon-batch.entity';
 
 export class CreateFeedbackDto {
+  @Exists(() => Merchant, 'id', { message: 'Merchant must exist' })
   @IsNotEmpty()
   @IsNumber()
   merchantId: number;
@@ -48,6 +53,7 @@ export class CreateFeedbackDto {
   @IsIn(['preset', 'custom'])
   reviewType: string; // 'preset' or 'custom'
 
+  @Exists(() => PresetReview, 'id', { message: 'Preset Review must exist' })
   @IsOptional()
   @IsNumber()
   presetReviewId?: number; // Required if reviewType is 'preset'
@@ -65,6 +71,7 @@ export class CreateFeedbackDto {
   @IsBoolean()
   redirectCompleted?: boolean;
 
+  @Exists(() => CouponBatch, 'id', { message: 'Coupon Batch must exist' })
   @IsOptional()
   @IsNumber()
   coupon_batch_id?: number;

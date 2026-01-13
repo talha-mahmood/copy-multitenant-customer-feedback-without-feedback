@@ -32,7 +32,6 @@ export class CreateCouponsTable1747500000001 implements MigrationInterface {
             name: 'coupon_code',
             type: 'varchar',
             length: '50',
-            isUnique: true,
             isNullable: false,
           },
           {

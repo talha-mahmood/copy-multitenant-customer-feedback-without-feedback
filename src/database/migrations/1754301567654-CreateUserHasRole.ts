@@ -16,11 +16,6 @@ export class CreateUserHasRole1754301567654 implements MigrationInterface {
             })
         );
 
-        await queryRunner.query(`
-            ALTER TABLE "user_has_role"
-            ADD CONSTRAINT "UQ_user_role" UNIQUE ("user_id", "role_id")
-        `);
-
         await queryRunner.createForeignKey(
             'user_has_role',
             new TableForeignKey({

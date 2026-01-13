@@ -16,7 +16,6 @@ export class CreateAdminWalletsTable1747600000001 implements MigrationInterface 
           {
             name: 'admin_id',
             type: 'int',
-            isUnique: true,
           },
           {
             name: 'balance',

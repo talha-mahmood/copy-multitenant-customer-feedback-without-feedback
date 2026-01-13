@@ -1,7 +1,11 @@
 import { IsString, IsInt, IsDate, IsBoolean, IsIn, Min, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
+import { Exists } from 'src/common/decorators/exists.decorator';
+import { Merchant } from 'src/modules/merchants/entities/merchant.entity';
+import { CouponTemplate } from 'src/modules/coupons/entities/coupon-template.entity';
 
 export class CreateCouponBatchDto {
+  @Exists(() => Merchant, 'id', { message: 'Merchant must exist' })
   @IsInt()
   merchant_id: number;
 
@@ -28,7 +32,7 @@ export class CreateCouponBatchDto {
   @IsOptional()
   is_active?: boolean;
 
-
+  @Exists(() => CouponTemplate, 'id', { message: 'Coupon Template must exist' })
   @IsInt()
   @IsOptional()
   template_id?: number;
