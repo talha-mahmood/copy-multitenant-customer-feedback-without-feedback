@@ -47,6 +47,10 @@ export class WalletService {
       return existingWallet;
     }
 
+    // Set subscription expiration to one year from now
+    const oneYearFromNow = new Date();
+    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
     const wallet = this.adminWalletRepository.create({
       admin_id: adminId,
       balance: 0,
@@ -54,6 +58,8 @@ export class WalletService {
       total_spent: 0,
       pending_amount: 0,
       currency,
+      subscription_type: 'annual',
+      subscription_expires_at: oneYearFromNow,
       is_active: true,
     });
 

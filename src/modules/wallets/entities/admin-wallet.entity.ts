@@ -27,6 +27,12 @@ export class AdminWallet extends BaseEntity {
   @Column({ type: 'varchar', length: 10, default: 'MYR' })
   currency: string;
 
+  @Column({ name: 'subscription_type', type: 'varchar', length: 20, default: 'annual' })
+  subscription_type: string; // 'annual' by default for admins
+
+  @Column({ name: 'subscription_expires_at', type: 'timestamp', nullable: true })
+  subscription_expires_at: Date;
+
   @Column({ name: 'is_active', type: 'boolean', default: true })
   is_active: boolean;
 

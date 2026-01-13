@@ -68,7 +68,10 @@ export async function seedUser(dataSource: DataSource) {
         address: '123 Admin St',
       });
 
-      // Create admin wallet
+      // Create admin wallet with subscription fields
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
       const adminWalletRepo = dataSource.getRepository(AdminWallet);
       await adminWalletRepo.insert({
         admin_id: savedAdmin.id,
@@ -77,6 +80,8 @@ export async function seedUser(dataSource: DataSource) {
         total_spent: 0,
         pending_amount: 0,
         currency: 'USD',
+        subscription_type: 'annual',
+        subscription_expires_at: oneYearFromNow,
         is_active: true,
       });
     }
