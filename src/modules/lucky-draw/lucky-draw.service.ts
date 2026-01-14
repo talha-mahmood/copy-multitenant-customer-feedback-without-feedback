@@ -10,7 +10,7 @@ import { CreateLuckyDrawPrizeDto } from './dto/create-lucky-draw-prize.dto';
 import { UpdateLuckyDrawPrizeDto } from './dto/update-lucky-draw-prize.dto';
 import { SpinWheelDto } from './dto/spin-wheel.dto';
 import { LUCKY_DRAW_PRIZE_REPOSITORY, LUCKY_DRAW_RESULT_REPOSITORY } from './lucky-draw.provider';
-import { WhatsAppService } from 'src/common/services/whatsapp.service';
+import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { WalletService } from '../wallets/wallet.service';
 
 @Injectable()

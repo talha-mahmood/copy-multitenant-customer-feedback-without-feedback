@@ -1,5 +1,5 @@
 import { Module, Global } from '@nestjs/common';
-import { WhatsAppService } from '../../common/services/whatsapp.service';
+import { WhatsAppService } from './whatsapp.service';
 import { WhatsAppController } from './whatsapp.controller';
 
 @Global()

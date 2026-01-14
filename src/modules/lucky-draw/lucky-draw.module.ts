@@ -3,7 +3,7 @@ import { DatabaseModule } from 'src/database/database.module';
 import { LuckyDrawController } from './lucky-draw.controller';
 import { LuckyDrawService } from './lucky-draw.service';
 import { luckyDrawProviders } from './lucky-draw.provider';
-import { WhatsAppService } from 'src/common/services/whatsapp.service';
+import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { customerProviders } from '../customers/customer.provider';
 import { merchantProviders } from '../merchants/merchant.provider';
 import { couponProvider } from '../coupons/coupon.provider';

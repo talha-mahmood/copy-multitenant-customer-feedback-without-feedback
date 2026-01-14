@@ -6,7 +6,7 @@ import { MerchantSetting } from '../merchant-settings/entities/merchant-setting.
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { Coupon } from '../coupons/entities/coupon.entity';
 import { CouponBatch } from '../coupon-batches/entities/coupon-batch.entity';
-import { WhatsAppService } from 'src/common/services/whatsapp.service';
+import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { WalletService } from '../wallets/wallet.service';
 
 @Injectable()
