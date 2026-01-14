@@ -3,6 +3,7 @@ import { BaseEntity } from 'src/common/entities/base.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { CouponBatch } from 'src/modules/coupon-batches/entities/coupon-batch.entity';
 import { MerchantSetting } from 'src/modules/merchant-settings/entities/merchant-setting.entity';
+import { Admin } from 'src/modules/admins/entities/admin.entity';
 
 @Entity('merchants')
 export class Merchant extends BaseEntity {
@@ -12,6 +13,13 @@ export class Merchant extends BaseEntity {
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
+
+  @Column({ name: 'admin_id', nullable: true })
+  admin_id: number;
+
+  @ManyToOne(() => Admin, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'admin_id' })
+  admin: Admin;
 
   @Column({ type: 'text', nullable: true })
   address: string;

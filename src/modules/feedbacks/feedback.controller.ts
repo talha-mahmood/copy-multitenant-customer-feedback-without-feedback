@@ -10,6 +10,7 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
 } from '@nestjs/common';
+import { CurrentUser, User } from 'src/common/decorators/current-user';
 import { FeedbackService } from './feedback.service';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { UpdateFeedbackDto } from './dto/update-feedback.dto';
@@ -27,6 +28,7 @@ export class FeedbackController {
 
   @Get()
   findAll(
+    @CurrentUser() user: User,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
     @Query('merchantId') merchantId?: number,
@@ -35,7 +37,7 @@ export class FeedbackController {
     if (pageSize > 500) {
       throw new Error('Page size cannot be greater than 500');
     }
-    return this.feedbackService.findAll(page, pageSize, merchantId, customerId);
+    return this.feedbackService.findAll(page, pageSize, merchantId, customerId, user);
   }
 
   @Public()
@@ -50,8 +52,8 @@ export class FeedbackController {
   }
 
   @Get(':id')
-  findOne(@Param() showFeedbackDto: ShowFeedbackDto) {
-    return this.feedbackService.findOne(showFeedbackDto.id);
+  findOne(@CurrentUser() user: User, @Param() showFeedbackDto: ShowFeedbackDto) {
+    return this.feedbackService.findOne(showFeedbackDto.id, user);
   }
 
   @Patch(':id')

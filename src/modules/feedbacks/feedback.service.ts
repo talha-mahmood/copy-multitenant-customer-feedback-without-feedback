@@ -287,7 +287,7 @@ export class FeedbackService {
     }
   }
 
-  async findAll(page: number = 1, pageSize: number = 20, merchantId?: number, customerId?: number) {
+  async findAll(page: number = 1, pageSize: number = 20, merchantId?: number, customerId?: number, user?: { role: string; adminId?: number | null; merchantId?: number | null }) {
     const queryBuilder = this.feedbackRepository
       .createQueryBuilder('feedback')
       .leftJoinAndSelect('feedback.merchant', 'merchant')
@@ -295,6 +295,16 @@ export class FeedbackService {
 
     if (merchantId) {
       queryBuilder.andWhere('feedback.merchant_id = :merchantId', { merchantId });
+    }
+
+    // If admin, filter by admin's merchants
+    if (user && user.role === 'admin' && user.adminId) {
+      queryBuilder.andWhere('merchant.admin_id = :adminId', { adminId: user.adminId });
+    }
+
+    // If merchant, filter by merchant's feedbacks
+    if (user && user.role === 'merchant' && user.merchantId) {
+      queryBuilder.andWhere('feedback.merchant_id = :userMerchantId', { userMerchantId: user.merchantId });
     }
 
     if (customerId) {
@@ -320,7 +330,7 @@ export class FeedbackService {
     };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, user?: { role: string; adminId?: number | null; merchantId?: number | null }) {
     const feedback = await this.feedbackRepository.findOne({
       where: { id },
       relations: ['merchant', 'customer'],
@@ -328,6 +338,17 @@ export class FeedbackService {
     if (!feedback) {
       throw new HttpException('Feedback not found', 404);
     }
+
+    // If admin, check if merchant belongs to admin
+    if (user && user.role === 'admin' && user.adminId && feedback.merchant.admin_id !== user.adminId) {
+      throw new HttpException('Feedback not found', 404);
+    }
+
+    // If merchant, check if feedback belongs to merchant
+    if (user && user.role === 'merchant' && user.merchantId && feedback.merchant_id !== user.merchantId) {
+      throw new HttpException('Feedback not found', 404);
+    }
+
     return {
       message: 'Success fetching feedback',
       data: feedback,
