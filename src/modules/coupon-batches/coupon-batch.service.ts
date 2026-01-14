@@ -154,7 +154,7 @@ export class CouponBatchService {
 
   async findAll(page: number = 1, pageSize: number = 20, filters?: {
     merchantId?: number;
-  }) {
+  }, user?: { role: string; adminId?: number | null }) {
     if (pageSize > 500) {
       pageSize = 500;
     }
@@ -165,6 +165,11 @@ export class CouponBatchService {
 
     if (filters?.merchantId) {
       queryBuilder.andWhere('couponBatch.merchant_id = :merchantId', { merchantId : filters?.merchantId });
+    }
+
+    // If admin, filter by admin's merchants
+    if (user && user.role === 'admin' && user.adminId) {
+      queryBuilder.andWhere('merchant.admin_id = :adminId', { adminId: user.adminId });
     }
 
     const [results, total] = await queryBuilder
@@ -184,7 +189,7 @@ export class CouponBatchService {
     };
   }
 
-  async findOne(id: number, user: { id: number; role: number | string; merchantId?: number | null }) {
+  async findOne(id: number, user: { id: number; role: number | string; merchantId?: number | null; adminId?: number | null }) {
     const couponBatch = await this.couponBatchRepository.findOne({
       where: { id },
       relations: ['merchant'],
@@ -194,9 +199,13 @@ export class CouponBatchService {
       throw new NotFoundException(`Coupon batch with ID ${id} not found`);
     }
 
-    // Allow admin or merchant who owns the batch
-    const isAdmin = user.role === 'admin';
-    if (!isAdmin && couponBatch.merchant_id !== user.merchantId) {
+    // If admin, check if merchant belongs to admin
+    if (user.role === 'admin' && user.adminId && couponBatch.merchant.admin_id !== user.adminId) {
+      throw new NotFoundException('Coupon batch not found');
+    }
+
+    // If merchant, check if batch belongs to merchant
+    if (user.role === 'merchant' && couponBatch.merchant_id !== user.merchantId) {
       throw new NotFoundException('Coupon batch not found');
     }
 

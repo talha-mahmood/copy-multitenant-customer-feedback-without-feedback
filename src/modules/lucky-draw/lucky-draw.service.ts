@@ -112,10 +112,23 @@ export class LuckyDrawService {
     };
   }
 
-  async getPrize(id: number) {
-    const prize = await this.prizeRepository.findOne({ where: { id } });
+  async getPrize(id: number, user?: { role: string; adminId?: number | null; merchantId?: number | null }) {
+    const prize = await this.prizeRepository.findOne({ 
+      where: { id },
+      relations: ['merchant'],
+    });
 
     if (!prize) {
+      throw new NotFoundException('Prize not found');
+    }
+
+    // If admin, check if merchant belongs to admin
+    if (user && user.role === 'admin' && user.adminId && prize.merchant.admin_id !== user.adminId) {
+      throw new NotFoundException('Prize not found');
+    }
+
+    // If merchant, check if prize belongs to merchant
+    if (user && user.role === 'merchant' && user.merchantId && prize.merchant_id !== user.merchantId) {
       throw new NotFoundException('Prize not found');
     }
 
@@ -125,29 +138,41 @@ export class LuckyDrawService {
     };
   }
 
-  async getAllPrizes(merchantId?: number, batchId?: number, isActive?: boolean, page: number = 1, pageSize: number = 20) {
-    const where: any = {};
+  async getAllPrizes(merchantId?: number, batchId?: number, isActive?: boolean, page: number = 1, pageSize: number = 20, user?: { role: string; adminId?: number | null; merchantId?: number | null }) {
+    const queryBuilder = this.prizeRepository
+      .createQueryBuilder('prize')
+      .leftJoin('prize.merchant', 'merchant');
 
     if (merchantId !== undefined) {
-      where.merchant_id = merchantId;
+      queryBuilder.andWhere('prize.merchant_id = :merchantId', { merchantId });
     }
 
     if (batchId !== undefined) {
-      where.batch_id = batchId;
+      queryBuilder.andWhere('prize.batch_id = :batchId', { batchId });
     }
 
     if (isActive !== undefined) {
-      where.is_active = Boolean(isActive);
+      queryBuilder.andWhere('prize.is_active = :isActive', { isActive: Boolean(isActive) });
+    }
+
+    // If admin, filter by admin's merchants
+    if (user && user.role === 'admin' && user.adminId) {
+      queryBuilder.andWhere('merchant.admin_id = :adminId', { adminId: user.adminId });
+    }
+
+    // If merchant, filter by merchant's prizes
+    if (user && user.role === 'merchant' && user.merchantId) {
+      queryBuilder.andWhere('prize.merchant_id = :userMerchantId', { userMerchantId: user.merchantId });
     }
 
     const skip = (page - 1) * pageSize;
 
-    const [prizes, total] = await this.prizeRepository.findAndCount({
-      where,
-      order: { sort_order: 'ASC', created_at: 'DESC' },
-      skip,
-      take: pageSize,
-    });
+    const [prizes, total] = await queryBuilder
+      .orderBy('prize.sort_order', 'ASC')
+      .addOrderBy('prize.created_at', 'DESC')
+      .skip(skip)
+      .take(pageSize)
+      .getManyAndCount();
 
     const totalPages = Math.ceil(total / pageSize);
 
