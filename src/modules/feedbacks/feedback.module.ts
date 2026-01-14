@@ -11,7 +11,7 @@ import { merchantProviders } from '../merchants/merchant.provider';
 import { merchantSettingProviders } from '../merchant-settings/merchant-setting.provider';
 import { couponProvider } from '../coupons/coupon.provider';
 import { couponBatchProvider } from '../coupon-batches/coupon-batch.provider';
-import { WhatsAppService } from 'src/common/services/whatsapp.service';
+import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { WalletModule } from '../wallets/wallet.module';
 
 @Module({

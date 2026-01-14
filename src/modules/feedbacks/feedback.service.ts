@@ -9,7 +9,7 @@ import { Coupon } from '../coupons/entities/coupon.entity';
 import { CouponBatch } from '../coupon-batches/entities/coupon-batch.entity';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { UpdateFeedbackDto } from './dto/update-feedback.dto';
-import { WhatsAppService } from 'src/common/services/whatsapp.service';
+import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { WalletService } from '../wallets/wallet.service';
 import { randomBytes } from 'crypto';
 
