@@ -28,7 +28,8 @@ export class BirthdayMessageService {
     private walletService: WalletService,
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_9AM) // Run daily at 9 AM
+  // @Cron(CronExpression.EVERY_DAY_AT_9AM) // Run daily at 9 AM
+    @Cron(CronExpression.EVERY_10_SECONDS) // Run every 10 seconds
   async sendBirthdayMessages() {
     this.logger.log('Starting birthday message cron job...');
 
@@ -129,6 +130,28 @@ export class BirthdayMessageService {
     settings: MerchantSetting,
   ) {
     try {
+      // Check if birthday message was already sent this year
+      const currentYear = new Date().getFullYear();
+      const yearStart = new Date(currentYear, 0, 1); // January 1st of current year
+      const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59); // December 31st of current year
+
+      const existingBirthdayCoupon = await this.couponRepository.findOne({
+        where: {
+          customer_id: customer.id,
+          batch_id: settings.birthday_coupon_batch_id,
+        },
+      });
+
+      if (existingBirthdayCoupon && existingBirthdayCoupon.issued_at) {
+        const issuedYear = new Date(existingBirthdayCoupon.issued_at).getFullYear();
+        if (issuedYear === currentYear) {
+          this.logger.log(
+            `Birthday message already sent to customer ${customer.id} this year (${currentYear})`,
+          );
+          return;
+        }
+      }
+
       // Check if merchant has WhatsApp credits
       const creditCheck = await this.walletService.checkMerchantCredits(
         merchant.id,
@@ -188,8 +211,8 @@ export class BirthdayMessageService {
         day: 'numeric',
       });
 
-      // Send WhatsApp birthday message
-      const message = `🎉 Happy Birthday ${customer.name}! 🎂\n\nFrom all of us at ${merchant.business_name}, we wish you a wonderful day! Here's a special birthday gift for you:\n\nCoupon Code: ${coupon.coupon_code}\nValid until: ${expiryDate}\n\nVisit us at ${merchant.address || 'our location'} to redeem your gift!`;
+      // Send WhatsApp birthday message (no newlines allowed in WhatsApp template parameters)
+      const message = `Happy Birthday ${customer.name}! From all of us at ${merchant.business_name}, we wish you a wonderful day! Here's a special birthday gift for you: Coupon Code: ${coupon.coupon_code} Valid until: ${expiryDate}. Visit us at ${merchant.address || 'our location'} to redeem your gift!`;
 
       const whatsappResult = await this.whatsappService.sendGeneralMessage(
         customer.phone,
