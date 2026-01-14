@@ -5,6 +5,9 @@ export { AuthModule } from './auth/auth.module';
 // User management
 export { UserModule } from './users/user.module';
 
+// Super Admin management
+export { SuperAdminModule } from './super-admins/super-admin.module';
+
 // Admin management
 export { AdminModule } from './admins/admin.module';
 

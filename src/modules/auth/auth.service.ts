@@ -14,6 +14,7 @@ import { UploadFileDto } from './dtos/upload-file.dto';
 import { uploadFile } from 'src/common/helpers/file-upload.helper';
 import { UserHasRoleService } from '../roles-permission-management/user-has-role/user-has-role.service';
 import { EncryptionHelper } from 'src/common/helpers/encryption-helper';
+import { SuperAdmin } from '../super-admins/entities/super-admin.entity';
 import { Admin } from '../admins/entities/admin.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { Customer } from '../customers/entities/customer.entity';
@@ -22,6 +23,7 @@ import { Customer } from '../customers/entities/customer.entity';
 export class AuthService {
   constructor(
     @Inject('USER_REPOSITORY') private userRepository: Repository<User>,
+    @Inject('SUPER_ADMIN_REPOSITORY') private superAdminRepository: Repository<SuperAdmin>,
     @Inject('ADMIN_REPOSITORY') private adminRepository: Repository<Admin>,
     @Inject('MERCHANT_REPOSITORY') private merchantRepository: Repository<Merchant>,
     @Inject('CUSTOMER_REPOSITORY') private customerRepository: Repository<Customer>,
@@ -58,6 +60,7 @@ export class AuthService {
 
     let merchantId: number | null = null;
     let adminId: number | null = null;
+    let superAdminId: number | null = null;
     let customerId: number | null = null;
     const roleName = userHasRole.role.name;
     if (roleName === 'merchant') {
@@ -70,12 +73,18 @@ export class AuthService {
       if (admin) {
         adminId = admin.id;
       }
+    } else if (roleName === 'super_admin') {
+      const superAdmin = await this.superAdminRepository.findOne({ where: { user_id: Number(user.id) } });
+      if (superAdmin) {
+        superAdminId = superAdmin.id;
+      }
     }
     // Note: Customers don't have user accounts anymore
     const payload = {
       sub: user.id,
       email: user.email,
       role: roleName, // use string role name
+      superAdminId,
       merchantId,
       adminId,
       customerId,
@@ -89,6 +98,7 @@ export class AuthService {
         avatar: user.avatar,
         is_active: user.is_active,
         role: roleName, // use string role name
+        superAdminId,
         merchantId,
         adminId,
         customerId,
@@ -96,7 +106,14 @@ export class AuthService {
     };
 
     // Fetch and include role-specific object
-    if (roleName === 'admin') {
+    if (roleName === 'super_admin') {
+      const superAdmin = await this.superAdminRepository.findOne({
+        where: { user_id: Number(user.id) },
+      });
+      if (superAdmin) {
+        response.superAdmin = superAdmin;
+      }
+    } else if (roleName === 'admin') {
       const admin = await this.adminRepository.findOne({
         where: { user_id: Number(user.id) },
       });
