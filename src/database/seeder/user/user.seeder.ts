@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
 import { User } from '../../../modules/users/entities/user.entity';
 import { Admin } from '../../../modules/admins/entities/admin.entity';
+import { SuperAdmin } from '../../../modules/super-admins/entities/super-admin.entity';
 import { Merchant } from '../../../modules/merchants/entities/merchant.entity';
 import { Customer } from '../../../modules/customers/entities/customer.entity';
 import { AdminWallet } from '../../../modules/wallets/entities/admin-wallet.entity';
@@ -23,6 +24,14 @@ export async function seedUser(dataSource: DataSource) {
       role: 'customer',
       phone: '03' + faker.string.numeric(9),
     }));
+
+    users.push({
+      name: 'Super Administrator',
+      email: 'superadmin@must.services',
+      password: hashedPassword,
+      role: 'super_admin',
+      phone: '03001234566',
+    });
 
     users.push({
       name: 'Administrator',
@@ -51,13 +60,32 @@ export async function seedUser(dataSource: DataSource) {
       }
     }
 
+    // Create super admin
+    const superAdmin = await userRepo.findOne({
+      where: { email: 'superadmin@must.services' },
+    });
+
+    if (superAdmin) {
+      await userHasRoleRepo.insert({
+        role_id: 1, // super_admin role
+        user_id: Number(superAdmin?.id ?? 1),
+      });
+
+      // Create super admin record
+      const superAdminRepo = dataSource.getRepository(SuperAdmin);
+      await superAdminRepo.save({
+        user_id: superAdmin.id,
+        address: '1 Super Admin HQ',
+      });
+    }
+
     const admin = await userRepo.findOne({
       where: { email: 'admin@must.services' },
     });
 
     if (admin) {
       await userHasRoleRepo.insert({
-        role_id: 1,
+        role_id: 2, // admin role
         user_id: Number(admin?.id ?? 1),
       });
 
