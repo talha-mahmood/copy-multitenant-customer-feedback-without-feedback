@@ -42,8 +42,9 @@ export class CouponController {
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
     @Query('businessType') businessType?: string,
     @Query('placement') placement?: string,
+    @Query('adminId', ParseIntPipe) adminId?: number,
   ) {
-    return this.couponService.findAllPublic(page, pageSize, businessType, placement);
+    return this.couponService.findAllPublic(page, pageSize, businessType, placement, adminId);
   }
   /**
    * List coupon templates for annual merchants

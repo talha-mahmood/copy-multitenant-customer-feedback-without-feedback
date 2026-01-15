@@ -103,7 +103,7 @@ export class CouponService {
     };
   }
 
-  async findAllPublic(page: number = 1, pageSize: number = 20, businessType?: string, placement?: string) {
+  async findAllPublic(page: number = 1, pageSize: number = 20, businessType?: string, placement?: string, adminId?: number) {
     if (pageSize > 500) {
       pageSize = 500;
     }
@@ -121,6 +121,10 @@ export class CouponService {
 
     if (placement) {
       queryBuilder.andWhere('merchant.placement = :placement', { placement });
+    }
+
+    if (adminId) {
+      queryBuilder.andWhere('merchant.admin_id = :adminId', { adminId });
     }
 
     const [results, total] = await queryBuilder
