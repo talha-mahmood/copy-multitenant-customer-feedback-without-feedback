@@ -57,6 +57,10 @@ export class CreateMerchantSettingDto {
   @IsBoolean()
   luckydraw_enabled?: boolean;
 
+  @IsOptional()
+  @IsString()
+  paid_ad_placement?: string;
+
   @Exists(() => CouponBatch, 'id', { message: 'Coupon Batch must exist' })
   @IsOptional()
   @IsInt()

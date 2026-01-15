@@ -33,7 +33,7 @@ export class WalletService {
     private creditPackageRepository: Repository<CreditPackage>,
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
-  ) {}
+  ) { }
 
   /**
    * Create admin wallet when admin is created
