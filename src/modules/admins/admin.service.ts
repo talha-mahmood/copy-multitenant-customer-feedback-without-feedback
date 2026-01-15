@@ -18,7 +18,7 @@ export class AdminService {
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
     private walletService: WalletService,
-  ) {}
+  ) { }
 
   async create(createAdminDto: CreateAdminDto) {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -35,7 +35,7 @@ export class AdminService {
       }
 
       const hashedPassword = await bcrypt.hash(createAdminDto.password, 10);
-      
+
       // Create user first if is_active is provided
       const user = queryRunner.manager.create(User, {
         name: createAdminDto.name,
@@ -95,8 +95,8 @@ export class AdminService {
     const queryBuilder = this.adminRepository
       .createQueryBuilder('admin')
       .leftJoinAndSelect('admin.user', 'user');
-      
-      if (isActive !== undefined) {
+
+    if (isActive !== undefined) {
       queryBuilder.where('user.is_active = :isActive', { isActive });
     }
 
@@ -127,7 +127,7 @@ export class AdminService {
   }
 
   async findOne(id: number) {
-    const admin = await this.adminRepository.findOne({ 
+    const admin = await this.adminRepository.findOne({
       where: { id },
       relations: ['user'],
     });
@@ -141,7 +141,7 @@ export class AdminService {
   }
 
   async update(id: number, updateAdminDto: UpdateAdminDto) {
-    const admin = await this.adminRepository.findOne({ 
+    const admin = await this.adminRepository.findOne({
       where: { id },
       relations: ['user'],
     });
@@ -161,7 +161,7 @@ export class AdminService {
       if (updateAdminDto.phone !== undefined) userUpdateData.phone = updateAdminDto.phone;
       if (updateAdminDto.avatar !== undefined) userUpdateData.avatar = updateAdminDto.avatar;
       if (updateAdminDto.is_active !== undefined) userUpdateData.is_active = updateAdminDto.is_active;
-      
+
       if (updateAdminDto.password) {
         userUpdateData.password = await bcrypt.hash(updateAdminDto.password, 10);
       }
@@ -173,18 +173,18 @@ export class AdminService {
       // Update admin-specific fields (address)
       const adminUpdateData: any = {};
       if (updateAdminDto.address !== undefined) adminUpdateData.address = updateAdminDto.address;
-      
+
       if (Object.keys(adminUpdateData).length > 0) {
         await queryRunner.manager.update(Admin, id, adminUpdateData);
       }
 
       await queryRunner.commitTransaction();
-      
-      const updatedAdmin = await this.adminRepository.findOne({ 
+
+      const updatedAdmin = await this.adminRepository.findOne({
         where: { id },
         relations: ['user'],
       });
-    
+
       return {
         message: 'Admin updated successfully',
         data: instanceToPlain(updatedAdmin),
@@ -201,23 +201,23 @@ export class AdminService {
   }
 
   async remove(id: number) {
-    const admin = await this.adminRepository.findOne({ 
+    const admin = await this.adminRepository.findOne({
       where: { id },
       relations: ['user'],
     });
     if (!admin) {
       throw new HttpException('Admin not found', 404);
     }
-    
+
     // Soft delete admin
     await this.adminRepository.softDelete(id);
-    
+
     // Also soft delete the associated user
     if (admin.user_id) {
       const userRepo = this.dataSource.getRepository(User);
       await userRepo.softDelete(admin.user_id);
     }
-    
+
     return {
       message: 'Admin deleted successfully',
     };
@@ -429,7 +429,7 @@ export class AdminService {
     const monthlyData = platformGrowth.map(mg => {
       const customerMonth = customerGrowth.find(cg => cg.month === mg.month);
       const revenueMonth = monthlyRevenue.find(mr => mr.month === mg.month);
-      
+
       return {
         month: mg.month,
         newMerchants: parseInt(mg.new_merchants) || 0,
@@ -545,6 +545,28 @@ export class AdminService {
           timeline: monthlyData,
         },
       },
+    };
+  }
+
+  async getPaidAdImage(merchantId: number) {
+    const merchantSetting = await this.dataSource.query(`
+      SELECT paid_ad_image, paid_ad_placement 
+      FROM merchant_settings 
+      WHERE merchant_id = $1
+      ORDER BY updated_at DESC
+      LIMIT 1
+    `, [merchantId]);
+
+    if (!merchantSetting || merchantSetting.length === 0) {
+      throw new NotFoundException(`Settings for merchant ID ${merchantId} not found`);
+    }
+
+    return {
+      message: 'Paid ad image retrieved successfully',
+      data: {
+        paid_ad_image: merchantSetting[0].paid_ad_image,
+        paid_ad_placement: merchantSetting[0].paid_ad_placement
+      }
     };
   }
 }

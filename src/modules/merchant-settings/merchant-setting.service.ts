@@ -107,6 +107,7 @@ export class MerchantSettingService {
       instagram_url: updateMerchantSettingDto.instagram_url ?? setting.instagram_url,
       xiaohongshu_url: updateMerchantSettingDto.xiaohongshu_url ?? setting.xiaohongshu_url,
       paid_ads: updateMerchantSettingDto.paid_ads ?? setting.paid_ads,
+      paid_ad_placement: updateMerchantSettingDto.paid_ad_placement ?? setting.paid_ad_placement,
       placement: updateMerchantSettingDto.placement ?? setting.placement,
       luckydraw_enabled: updateMerchantSettingDto.luckydraw_enabled ?? setting.luckydraw_enabled,
       whatsapp_enabled_for_batch_id: updateMerchantSettingDto.whatsapp_enabled_for_batch_id ?? setting.whatsapp_enabled_for_batch_id,
@@ -135,7 +136,7 @@ export class MerchantSettingService {
     };
   }
 
-  async uploadPaidAdImage(merchantId: number, paidAdImage: any) {
+  async uploadPaidAdImage(merchantId: number, paidAdImage: any, paidAdPlacement?: string) {
     const setting = await this.merchantSettingRepository.findOne({
       where: { merchant_id: merchantId },
     });
@@ -144,19 +145,25 @@ export class MerchantSettingService {
       throw new NotFoundException(`Settings for merchant ID ${merchantId} not found`);
     }
 
+    const timestamp = Date.now();
     const uploadResult = await uploadFile(
       paidAdImage,
-      'merchant-ads',
+      `merchant-ads/${merchantId}/${timestamp}`,
       FileUploadStorageType.LOCAL_STORAGE,
     );
 
     setting.paid_ad_image = uploadResult.relativePath;
+    if (paidAdPlacement) {
+      setting.paid_ad_placement = paidAdPlacement;
+    }
+
     const updated = await this.merchantSettingRepository.save(setting);
 
     return {
       message: 'Paid ad image uploaded successfully',
       data: {
         paid_ad_image: updated.paid_ad_image,
+        paid_ad_placement: updated.paid_ad_placement,
       },
     };
   }
