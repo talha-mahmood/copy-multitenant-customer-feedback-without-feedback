@@ -459,41 +459,57 @@ export class FeedbackService {
   }
 
   async checkCustomerByPhone(phone: string) {
-    if (!phone) {
-      throw new HttpException('Phone number is required', 400);
-    }
+  if (!phone?.trim()) {
+    throw new HttpException('Phone number is required', 400);
+  }
 
-    const customer = await this.customerRepository.findOne({
-      where: { phone },
-    });
+  const normalizedPhone = this.normalizePhone(phone);
 
-    if (!customer) {
-      return {
-        message: 'Customer not found',
-        data: null,
-      };
-    }
+  const customer = await this.customerRepository
+    .createQueryBuilder('customer')
+    .where(
+      `
+        REGEXP_REPLACE(customer.phone, '[^0-9]', '', 'g')
+        LIKE :phone
+      `,
+      { phone: `%${normalizedPhone}%` },
+    )
+    .getOne();
 
-    // Format date_of_birth to DD-MM-YYYY for frontend
-    let formattedDateOfBirth: string | null = null;
-    if (customer.date_of_birth) {
-      const date = new Date(customer.date_of_birth);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      formattedDateOfBirth = `${day}-${month}-${year}`;
-    }
-
+  if (!customer) {
     return {
-      message: 'Customer found',
-      data: {
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone,
-        address: customer.address,
-        gender: customer.gender,
-        date_of_birth: formattedDateOfBirth,
-      },
+      message: 'Customer not found',
+      data: null,
     };
   }
+
+  return {
+    message: 'Customer found',
+    data: {
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+      address: customer.address,
+      gender: customer.gender,
+      date_of_birth: this.formatDate(customer.date_of_birth),
+    },
+  };
+}
+
+
+
+private normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, '');
+}
+
+private formatDate(date: Date | null): string | null {
+  if (!date) return null;
+
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(date));
+}
+
 }
