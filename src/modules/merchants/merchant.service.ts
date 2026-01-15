@@ -77,6 +77,7 @@ export class MerchantService {
       // Create merchant
       const merchant = queryRunner.manager.create(Merchant, {
         user_id: savedUser.id,
+        admin_id: createMerchantDto.admin_id,
         address: createMerchantDto.address,
         city: createMerchantDto.city,
         country: createMerchantDto.country,
@@ -189,13 +190,20 @@ export class MerchantService {
     }
   }
 
-  async findAll(page: number = 1, pageSize: number = 20, search = '', isActive?: boolean) {
+  async findAll(page: number = 1, pageSize: number = 20, search = '', isActive?: boolean, user?: { role: string; adminId?: number | null }) {
     const queryBuilder = this.merchantRepository
       .createQueryBuilder('merchant')
-      .leftJoinAndSelect('merchant.user', 'user');
+      .leftJoinAndSelect('merchant.user', 'user')
+      .leftJoinAndSelect('merchant.admin', 'admin');
 
     if (isActive !== undefined) {
       queryBuilder.where('user.is_active = :isActive', { isActive });
+    }
+
+    // If admin, filter by adminId
+    if (user && user.role === 'admin' && user.adminId) {
+      console.log('Filtering merchants for admin ID:', user);
+      queryBuilder.andWhere('merchant.admin_id = :adminId', { adminId: user.adminId });
     }
 
     if (search) {
@@ -224,12 +232,16 @@ export class MerchantService {
     };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, user?: { role: string; adminId?: number | null }) {
     const merchant = await this.merchantRepository.findOne({
       where: { id },
-      relations: ['user'],
+      relations: ['user', 'admin'],
     });
     if (!merchant) {
+      throw new HttpException('Merchant not found', 404);
+    }
+    // If admin, restrict to own merchants
+    if (user && user.role === 'admin' && user.adminId && merchant.admin_id !== user.adminId) {
       throw new HttpException('Merchant not found', 404);
     }
     return {
@@ -268,6 +280,7 @@ export class MerchantService {
 
       // Update merchant-specific fields
       const merchantUpdateData: any = {};
+      if (updateMerchantDto.admin_id !== undefined) merchantUpdateData.admin_id = updateMerchantDto.admin_id;
       if (updateMerchantDto.address !== undefined) merchantUpdateData.address = updateMerchantDto.address;
       if (updateMerchantDto.city !== undefined) merchantUpdateData.city = updateMerchantDto.city;
       if (updateMerchantDto.country !== undefined) merchantUpdateData.country = updateMerchantDto.country;
@@ -287,7 +300,7 @@ export class MerchantService {
       
       const updatedMerchant = await this.merchantRepository.findOne({
         where: { id },
-        relations: ['user'],
+        relations: ['user', 'admin'],
       });
       
       return {
@@ -308,7 +321,7 @@ export class MerchantService {
   async remove(id: number) {
     const merchant = await this.merchantRepository.findOne({ 
       where: { id },
-      relations: ['user'],
+      relations: ['user', 'admin'],
     });
     if (!merchant) {
       throw new HttpException('Merchant not found', 404);
@@ -330,7 +343,7 @@ export class MerchantService {
   async getQRCode(id: number) {
     const merchant = await this.merchantRepository.findOne({
       where: { id },
-      relations: ['user'],
+      relations: ['user', 'admin'],
     });
     
     if (!merchant) {
@@ -357,7 +370,7 @@ export class MerchantService {
   async generateQRCode(id: number) {
     const merchant = await this.merchantRepository.findOne({
       where: { id },
-      relations: ['user'],
+      relations: ['user', 'admin'],
     });
     
     if (!merchant) {
@@ -401,7 +414,7 @@ export class MerchantService {
   async getDashboardAnalytics(merchantId: number, startDate?: string, endDate?: string) {
     const merchant = await this.merchantRepository.findOne({
       where: { id: merchantId },
-      relations: ['user'],
+      relations: ['user', 'admin'],
     });
 
     if (!merchant) {

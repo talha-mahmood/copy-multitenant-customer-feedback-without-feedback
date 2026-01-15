@@ -10,6 +10,7 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
 } from '@nestjs/common';
+import { CurrentUser, User } from 'src/common/decorators/current-user';
 import { MerchantService } from './merchant.service';
 import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { UpdateMerchantDto } from './dto/update-merchant.dto';
@@ -28,6 +29,7 @@ export class MerchantController {
 
   @Get()
   findAll(
+    @CurrentUser() user: User,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
     @Query('search') search?: string,
@@ -36,7 +38,7 @@ export class MerchantController {
     if (pageSize > 500) {
       throw new Error('Page size cannot be greater than 500');
     }
-    return this.merchantService.findAll(page, pageSize, search, isActive);
+    return this.merchantService.findAll(page, pageSize, search, isActive, user);
   }
 
   @Get(':id/dashboard')
@@ -48,8 +50,11 @@ export class MerchantController {
   }
 
   @Get(':id')
-  findOne(@Param() showMerchantDto: ShowMerchantDto) {
-    return this.merchantService.findOne(showMerchantDto.id);
+  findOne(
+    @CurrentUser() user: User,
+    @Param() showMerchantDto: ShowMerchantDto,
+  ) {
+    return this.merchantService.findOne(showMerchantDto.id, user);
   }
 
   @Patch(':id')

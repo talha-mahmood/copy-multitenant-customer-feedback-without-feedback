@@ -65,4 +65,21 @@ export class CreateMerchantSettingDto {
   @IsOptional()
   @IsInt()
   whatsapp_enabled_for_batch_id?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  birthday_message_enabled?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  days_before_birthday?: number;
+
+  @IsOptional()
+  @IsInt()
+  days_after_birthday?: number;
+
+  @Exists(() => CouponBatch, 'id', { message: 'Coupon Batch must exist' })
+  @IsOptional()
+  @IsInt()
+  birthday_coupon_batch_id?: number;
 }

@@ -17,6 +17,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       id: payload.sub,
       email: payload.email,
       role: payload.role, // now always string
+      superAdminId: payload.superAdminId,
       merchantId: payload.merchantId,
       adminId: payload.adminId,
       // Note: customerId removed - customers don't have user accounts anymore

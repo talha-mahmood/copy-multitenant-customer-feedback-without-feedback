@@ -111,6 +111,10 @@ export class MerchantSettingService {
       placement: updateMerchantSettingDto.placement ?? setting.placement,
       luckydraw_enabled: updateMerchantSettingDto.luckydraw_enabled ?? setting.luckydraw_enabled,
       whatsapp_enabled_for_batch_id: updateMerchantSettingDto.whatsapp_enabled_for_batch_id ?? setting.whatsapp_enabled_for_batch_id,
+      birthday_message_enabled: updateMerchantSettingDto.birthday_message_enabled ?? setting.birthday_message_enabled,
+      days_before_birthday: updateMerchantSettingDto.days_before_birthday ?? setting.days_before_birthday,
+      days_after_birthday: updateMerchantSettingDto.days_after_birthday ?? setting.days_after_birthday,
+      birthday_coupon_batch_id: updateMerchantSettingDto.birthday_coupon_batch_id ?? setting.birthday_coupon_batch_id,
     });
 
     const updated = await this.merchantSettingRepository.save(setting);

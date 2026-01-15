@@ -21,9 +21,10 @@ export class CustomerService {
     };
   }
 
-  async findAll(page: number = 1, pageSize: number = 20, search = '', user?: { role: string; merchantId?: number | null }, isActive?: boolean) {
+  async findAll(page: number = 1, pageSize: number = 20, search = '', user?: { role: string; merchantId?: number | null; adminId?: number | null }, isActive?: boolean) {
     const queryBuilder = this.customerRepository
-      .createQueryBuilder('customer');
+      .createQueryBuilder('customer')
+      .leftJoin('customer.merchant', 'merchant');
 
     if (isActive !== undefined) {
       queryBuilder.where('customer.is_active = :isActive', { isActive });
@@ -34,6 +35,11 @@ export class CustomerService {
         '(customer.name ILIKE :search OR customer.email ILIKE :search OR customer.phone ILIKE :search)',
         { search: `%${search}%` },
       );
+    }
+
+    // If admin, filter by admin's merchants
+    if (user && user.role === 'admin' && user.adminId) {
+      queryBuilder.andWhere('merchant.admin_id = :adminId', { adminId: user.adminId });
     }
 
     // If merchant, filter by merchantId
@@ -60,9 +66,16 @@ export class CustomerService {
     };
   }
 
-  async findOne(id: number, user?: { role: string; merchantId?: number | null }) {
-    const customer = await this.customerRepository.findOne({ where: { id } });
+  async findOne(id: number, user?: { role: string; merchantId?: number | null; adminId?: number | null }) {
+    const customer = await this.customerRepository.findOne({ 
+      where: { id },
+      relations: ['merchant'],
+    });
     if (!customer) {
+      throw new HttpException('Customer not found', 404);
+    }
+    // If admin, check if customer's merchant belongs to admin
+    if (user && user.role === 'admin' && user.adminId && customer.merchant && customer.merchant.admin_id !== user.adminId) {
       throw new HttpException('Customer not found', 404);
     }
     // If merchant, restrict to own customers

@@ -42,8 +42,22 @@ export class CouponController {
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
     @Query('businessType') businessType?: string,
     @Query('placement') placement?: string,
+    @Query('adminId') adminId?: number,
   ) {
-    return this.couponService.findAllPublic(page, pageSize, businessType, placement);
+    return this.couponService.findAllPublic(page, pageSize, businessType, placement, adminId);
+  }
+
+  /**
+   * Get super admin feed - shows all agents with their merchants and coupons.
+   * This endpoint is public and returns a hierarchical structure.
+   */
+  @Public()
+  @Get('super-admin-feed')
+  getSuperAdminFeed(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
+  ) {
+    return this.couponService.findAllForSuperAdmin(page, pageSize);
   }
   /**
    * List coupon templates for annual merchants
@@ -78,15 +92,13 @@ export class CouponController {
     @Query('batchId') batchId?: number,
     @Query('status') status?: string,
   ) {
-    const isAdmin = user.role === 'admin';
-    // Ensure merchantId is number or undefined, not null
-    const effectiveMerchantId = isAdmin ? merchantId : (typeof user.merchantId === 'number' ? user.merchantId : undefined);
+    const effectiveMerchantId = user.role === 'merchant' && typeof user.merchantId === 'number' ? user.merchantId : merchantId;
     return this.couponService.findAll(page, pageSize, {
       merchantId: effectiveMerchantId,
       customerId,
       batchId,
       status,
-    });
+    }, user);
   }
 
   @Get('by-code/:code')

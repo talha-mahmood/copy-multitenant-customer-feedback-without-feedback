@@ -52,6 +52,18 @@ export class MerchantSetting extends BaseEntity {
   @Column({ name: 'whatsapp_enabled_for_batch_id', type: 'int', nullable: true })
   whatsapp_enabled_for_batch_id: number;
 
+  @Column({ name: 'birthday_message_enabled', type: 'boolean', default: false })
+  birthday_message_enabled: boolean;
+
+  @Column({ name: 'days_before_birthday', type: 'int', default: 0 })
+  days_before_birthday: number;
+
+  @Column({ name: 'days_after_birthday', type: 'int', default: 0 })
+  days_after_birthday: number;
+
+  @Column({ name: 'birthday_coupon_batch_id', type: 'int', nullable: true })
+  birthday_coupon_batch_id: number;
+
   @OneToOne(() => Merchant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'merchant_id' })
   merchant: Merchant;

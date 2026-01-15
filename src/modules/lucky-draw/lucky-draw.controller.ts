@@ -10,6 +10,7 @@ import {
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
+import { CurrentUser, User } from 'src/common/decorators/current-user';
 import { LuckyDrawService } from './lucky-draw.service';
 import { CreateLuckyDrawPrizeDto } from './dto/create-lucky-draw-prize.dto';
 import { UpdateLuckyDrawPrizeDto } from './dto/update-lucky-draw-prize.dto';
@@ -39,18 +40,19 @@ export class LuckyDrawController {
 
   @Get('prizes')
   getAllPrizes(
+    @CurrentUser() user: User,
     @Query('merchantId') merchantId?: number,
     @Query('batchId') batchId?: number,
     @Query('isActive') isActive?: boolean,
     @Query('page') page: number = 1,
     @Query('pageSize') pageSize: number = 20,
   ) {
-    return this.luckyDrawService.getAllPrizes(merchantId, batchId, isActive, Number(page), Number(pageSize));
+    return this.luckyDrawService.getAllPrizes(merchantId, batchId, isActive, Number(page), Number(pageSize), user);
   }
 
   @Get('prizes/:id')
-  getPrize(@Param('id', ParseIntPipe) id: number) {
-    return this.luckyDrawService.getPrize(id);
+  getPrize(@CurrentUser() user: User, @Param('id', ParseIntPipe) id: number) {
+    return this.luckyDrawService.getPrize(id, user);
   }
 
   @Get('prizes/merchant/:merchantId')

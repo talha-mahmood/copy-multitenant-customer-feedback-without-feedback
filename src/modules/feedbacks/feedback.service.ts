@@ -9,7 +9,7 @@ import { Coupon } from '../coupons/entities/coupon.entity';
 import { CouponBatch } from '../coupon-batches/entities/coupon-batch.entity';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { UpdateFeedbackDto } from './dto/update-feedback.dto';
-import { WhatsAppService } from 'src/common/services/whatsapp.service';
+import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { WalletService } from '../wallets/wallet.service';
 import { randomBytes } from 'crypto';
 
@@ -287,7 +287,7 @@ export class FeedbackService {
     }
   }
 
-  async findAll(page: number = 1, pageSize: number = 20, merchantId?: number, customerId?: number) {
+  async findAll(page: number = 1, pageSize: number = 20, merchantId?: number, customerId?: number, user?: { role: string; adminId?: number | null; merchantId?: number | null }) {
     const queryBuilder = this.feedbackRepository
       .createQueryBuilder('feedback')
       .leftJoinAndSelect('feedback.merchant', 'merchant')
@@ -295,6 +295,16 @@ export class FeedbackService {
 
     if (merchantId) {
       queryBuilder.andWhere('feedback.merchant_id = :merchantId', { merchantId });
+    }
+
+    // If admin, filter by admin's merchants
+    if (user && user.role === 'admin' && user.adminId) {
+      queryBuilder.andWhere('merchant.admin_id = :adminId', { adminId: user.adminId });
+    }
+
+    // If merchant, filter by merchant's feedbacks
+    if (user && user.role === 'merchant' && user.merchantId) {
+      queryBuilder.andWhere('feedback.merchant_id = :userMerchantId', { userMerchantId: user.merchantId });
     }
 
     if (customerId) {
@@ -320,7 +330,7 @@ export class FeedbackService {
     };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, user?: { role: string; adminId?: number | null; merchantId?: number | null }) {
     const feedback = await this.feedbackRepository.findOne({
       where: { id },
       relations: ['merchant', 'customer'],
@@ -328,6 +338,17 @@ export class FeedbackService {
     if (!feedback) {
       throw new HttpException('Feedback not found', 404);
     }
+
+    // If admin, check if merchant belongs to admin
+    if (user && user.role === 'admin' && user.adminId && feedback.merchant.admin_id !== user.adminId) {
+      throw new HttpException('Feedback not found', 404);
+    }
+
+    // If merchant, check if feedback belongs to merchant
+    if (user && user.role === 'merchant' && user.merchantId && feedback.merchant_id !== user.merchantId) {
+      throw new HttpException('Feedback not found', 404);
+    }
+
     return {
       message: 'Success fetching feedback',
       data: feedback,
@@ -438,41 +459,57 @@ export class FeedbackService {
   }
 
   async checkCustomerByPhone(phone: string) {
-    if (!phone) {
-      throw new HttpException('Phone number is required', 400);
-    }
+  if (!phone?.trim()) {
+    throw new HttpException('Phone number is required', 400);
+  }
 
-    const customer = await this.customerRepository.findOne({
-      where: { phone },
-    });
+  const normalizedPhone = this.normalizePhone(phone);
 
-    if (!customer) {
-      return {
-        message: 'Customer not found',
-        data: null,
-      };
-    }
+  const customer = await this.customerRepository
+    .createQueryBuilder('customer')
+    .where(
+      `
+        REGEXP_REPLACE(customer.phone, '[^0-9]', '', 'g')
+        LIKE :phone
+      `,
+      { phone: `%${normalizedPhone}%` },
+    )
+    .getOne();
 
-    // Format date_of_birth to DD-MM-YYYY for frontend
-    let formattedDateOfBirth: string | null = null;
-    if (customer.date_of_birth) {
-      const date = new Date(customer.date_of_birth);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      formattedDateOfBirth = `${day}-${month}-${year}`;
-    }
-
+  if (!customer) {
     return {
-      message: 'Customer found',
-      data: {
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone,
-        address: customer.address,
-        gender: customer.gender,
-        date_of_birth: formattedDateOfBirth,
-      },
+      message: 'Customer not found',
+      data: null,
     };
   }
+
+  return {
+    message: 'Customer found',
+    data: {
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+      address: customer.address,
+      gender: customer.gender,
+      date_of_birth: this.formatDate(customer.date_of_birth),
+    },
+  };
+}
+
+
+
+private normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, '');
+}
+
+private formatDate(date: Date | null): string | null {
+  if (!date) return null;
+
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(date));
+}
+
 }

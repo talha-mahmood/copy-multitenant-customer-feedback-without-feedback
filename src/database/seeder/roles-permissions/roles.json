@@ -1,5 +1,9 @@
 [
   {
+    "name": "super_admin",
+    "display_name": "Super Administrator"
+  },
+  {
     "name": "admin",
     "display_name": "Administrator"
   },

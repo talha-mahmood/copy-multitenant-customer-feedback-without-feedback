@@ -1,7 +1,7 @@
 {
 	"info": {
-		"_postman_id": "f73cd736-bc08-49bf-8790-0e98532943c7",
-		"name": "24QR Review & Coupon SaaS API - With Wallets Copy 24",
+		"_postman_id": "9cdf40a2-7b9d-4d8f-a76f-a92959be3939",
+		"name": "26QR Review & Coupon SaaS API - With Wallets Copy 26",
 		"description": "Complete API collection including wallet system for admins and merchants",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "22622973"
@@ -39,7 +39,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"admin@must.services\",\n  \"password\": \"Pakistan@123\"\n}\n// {\n//   \"email\": \"merchant3@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// {\n//   \"email\": \"test2@gmail.com\",\n//   \"password\": \"Pakistan@123\"\n// }"
+							"raw": "// {\n//   \"email\": \"admin@must.services\",\n//   \"password\": \"Pakistan@123\"\n// }\n// {\n//   \"email\": \"merchant3@example.com\",\n//   \"password\": \"password123\"\n// }\n\n{\n  \"email\": \"restaurant234@example.com\",\n  \"password\": \"password123\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/auth/login",
@@ -534,7 +534,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "// {\n//   \"credits\": 1000,\n//   \"credit_type\": \"whatsapp message\",\n//   \"amount\": 400.00,\n//   \"admin_id\": {{admin_id}},\n//   \"description\": \"Professional Package purchase\",\n//   \"metadata\": {\n//     \"package_id\": 3,\n//     \"package_name\": \"Professional Package\"\n//   }\n// }\n\n{\n  \"credits\": 0,\n  \"credit_type\": \"coupon\",\n  \"amount\": 50.00,\n  \"admin_id\": {{admin_id}},\n  \"description\": \"1 batch + 100 coupon credits (temporary)\",\n  \"metadata\": {\n    \"package_id\": 14,\n    \"package_name\": \"Temp Coupon Credits Large\",\n     \"coupon_batches\": 1,\n    \"coupon_credits\": 100\n\n  }\n}\n\n\n"
+									"raw": "\n// {\n//   \"credits\": 100,\n//   \"credit_type\": \"whatsapp message\",\n//   \"amount\": 50,\n//   \"admin_id\": {{admin_id}},\n//   \"description\": \"Perfect for small businesses\",\n//   \"metadata\": {\n//     \"package_id\": 11,\n//     \"package_name\": \"Starter Packag\"\n\n//   }\n// }\n\n{\n  \"credits\": 200,\n  \"credit_type\": \"coupon\",\n  \"amount\": 100,\n  \"admin_id\": {{admin_id}},\n  \"description\": \"Coupon Package\",\n  \"metadata\": {\n    \"package_id\": 12,\n    \"package_name\": \"Coupon Package\"\n\n  }\n}\n\n\n// {\n//   \"credits\": 100,\n//   \"credit_type\": \"whatsapp message\",\n//   \"amount\": 50,\n//   \"admin_id\": {{admin_id}},\n//   \"description\": \"Perfect for small businesses\",\n//   \"metadata\": {\n//     \"package_id\": 11,\n//     \"package_name\": \"Starter Packag\"\n\n//   }\n// }\n\n\n\n\n\n"
 								},
 								"url": {
 									"raw": "{{base_url}}/wallets/merchant/{{merchant_id}}/add-credits",
@@ -593,13 +593,19 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/wallets/credit-packages",
+									"raw": "{{base_url}}/wallets/credit-packages?admin_id=1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"wallets",
 										"credit-packages"
+									],
+									"query": [
+										{
+											"key": "admin_id",
+											"value": "1"
+										}
 									]
 								},
 								"description": "Get all available credit packages"
@@ -714,7 +720,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"name\": \"Starter Package\",\n  \"description\": \"Perfect for small businesses\",\n  \"credits\": 100,\n  \"credit_type\": \"whatsapp message\",\n  \"price\": 50.00,\n  \"price_per_credit\": 0.50,\n  \"currency\": \"USD\",\n  \"merchant_type\": \"temporary\",\n  \"admin_id\": {{admin_id}},\n  \"is_active\": true,\n  \"sort_order\": 1,\n  \"bonus_credits\": 10\n}"
+									"raw": "    // {\n    // \"name\": \"Starter Package\",\n    // \"description\": \"Perfect for small businesses\",\n    // \"credits\": 100,\n    // \"credit_type\": \"whatsapp message\",\n    // \"price\": 50.00,\n    // \"price_per_credit\": 0.50,\n    // \"currency\": \"USD\",\n    // \"merchant_type\": \"temporary\",\n    // \"admin_id\": {{admin_id}},\n    // \"is_active\": true,\n    // \"sort_order\": 1,\n    // \"bonus_credits\": 0\n    // }\n\n\n    // {\n    // \"name\": \"Coupon Package\",\n    // \"description\": \"Coupon Package\",\n    // \"credits\": 200,\n    // \"credit_type\": \"coupon\",\n    // \"price\": 100.00,\n    // \"price_per_credit\": 0.50,\n    // \"currency\": \"USD\",\n    // \"merchant_type\": \"temporary\",\n    // \"admin_id\": {{admin_id}},\n    // \"is_active\": true,\n    // \"sort_order\": 1,\n    // \"bonus_credits\": 0\n    // }\n\n\n\n\n\n    {\n    \"name\": \"Paid ad Package\",\n    \"description\": \"Paid ad Package\",\n    \"credits\": 1,\n    \"credit_type\": \"paid ads\",\n    \"price\": 100.00,\n    \"price_per_credit\": 0.50,\n    \"currency\": \"USD\",\n    \"merchant_type\": \"temporary\",\n    \"admin_id\": {{admin_id}},\n    \"is_active\": true,\n    \"sort_order\": 1,\n    \"bonus_credits\": 0\n    }"
 								},
 								"url": {
 									"raw": "{{base_url}}/wallets/credit-packages",
@@ -1129,7 +1135,10 @@
 					"name": "New Request",
 					"request": {
 						"method": "GET",
-						"header": []
+						"header": [],
+						"url": {
+							"raw": ""
+						}
 					},
 					"response": []
 				}
@@ -2042,7 +2051,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Alice Customer\",\n    \"email\": \"alice@example.com\",\n    \"phone\": \"+1234567890\",\n    \"password\": \"customer123\",\n    \"isActive\": true\n}"
+							"raw": "{\n    \"name\": \"Alice Customer\",\n    // \"email\": \"alice@example.com\",\n    \"phone\": \"+1234567890\"\n    // \"password\": \"customer123\",\n    // \"isActive\": true\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/customers",
@@ -2107,6 +2116,42 @@
 								{
 									"key": "id",
 									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Customer By Phone",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"merchantId\": {{merchant_id}},\n//   \"email\": \"talhamahmood1261@gmail.com\",\n//   \"password\": \"password123\",\n  \"name\": \"Talha Mahmood\",\n  \"phoneNumber\": \"+923351968117\",\n  \"date_of_birth\": \"21-10-2001\",\n  \"address\": \"123 Main St\",\n  \"gender\": \"male\",\n  \"rating\": 5,\n  \"reviewType\": \"preset\",\n  \"presetReviewId\": 3,\n  \"selectedPlatform\": \"google\",\n  \"redirectCompleted\": false,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n\n//old feedback\n// {\n//   \"merchantId\": 1,\n//   \"email\": \"newuser@must.services\",\n//   \"password\": \"Password@123\",\n//    \"name\":\"John Doe\",\n//   \"phoneNumber\": \"9876543210\",\n//   \"address\": \"456 Customer St\",\n//   \"date_of_birth\": \"21-10-2001\",\n//   \"gender\": \"male\",\n//   \"rating\": 5,\n//   \"comment\": \"Great service!\"\n// }"
+						},
+						"url": {
+							"raw": "{{base_url}}/feedbacks/check-customer-by-phone?phone=+1234567890",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"feedbacks",
+								"check-customer-by-phone"
+							],
+							"query": [
+								{
+									"key": "phone",
+									"value": "+1234567890"
 								}
 							]
 						}
@@ -2252,7 +2297,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"merchantId\": {{merchant_id}},\n  \"email\": \"talhamahmood1261@gmail.com\",\n//   \"password\": \"password123\",\n  \"name\": \"Talha Mahmood\",\n  \"phoneNumber\": \"+923351968117\",\n  \"date_of_birth\": \"21-10-2001\",\n  \"address\": \"123 Main St\",\n  \"gender\": \"male\",\n  \"rating\": 5,\n  \"reviewType\": \"preset\",\n  \"presetReviewId\": 3,\n  \"selectedPlatform\": \"google\",\n  \"redirectCompleted\": false,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n\n//old feedback\n// {\n//   \"merchantId\": 1,\n//   \"email\": \"newuser@must.services\",\n//   \"password\": \"Password@123\",\n//    \"name\":\"John Doe\",\n//   \"phoneNumber\": \"9876543210\",\n//   \"address\": \"456 Customer St\",\n//   \"date_of_birth\": \"21-10-2001\",\n//   \"gender\": \"male\",\n//   \"rating\": 5,\n//   \"comment\": \"Great service!\"\n// }"
+							"raw": "{\n  \"merchantId\": {{merchant_id}},\n//   \"email\": \"talhamahmood1261@gmail.com\",\n//   \"password\": \"password123\",\n  \"name\": \"Talha Mahmood\",\n  \"phoneNumber\": \"+923351968117\",\n  \"date_of_birth\": \"01-10-1990\",\n  \"address\": \"123 Main St\",\n  \"gender\": \"male\",\n  \"rating\": 5,\n  \"reviewType\": \"preset\",\n  \"presetReviewId\": 3,\n  \"selectedPlatform\": \"google\",\n  \"redirectCompleted\": false,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n\n//old feedback\n// {\n//   \"merchantId\": 1,\n//   \"email\": \"newuser@must.services\",\n//   \"password\": \"Password@123\",\n//    \"name\":\"John Doe\",\n//   \"phoneNumber\": \"9876543210\",\n//   \"address\": \"456 Customer St\",\n//   \"date_of_birth\": \"21-10-2001\",\n//   \"gender\": \"male\",\n//   \"rating\": 5,\n//   \"comment\": \"Great service!\"\n// }"
 						},
 						"url": {
 							"raw": "{{base_url}}/feedbacks",
@@ -2464,7 +2509,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"merchantId\": {{merchant_id}},\n  \"enablePresetReviews\": false,\n  \"enableGoogleReviews\": true,\n  \"enableFacebookReviews\": false,\n  \"enableInstagramReviews\": false,\n  \"enableXiaohongshuReviews\": false,\n  \"googleReviewUrl\": \"https://g.page/r/CdWC9gKqRRFdEBM/review\",\n  \"facebookPageUrl\": \"https://facebook.com/yourpage\",\n  \"instagramUrl\": \"https://instagram.com/yourprofile\",\n  \"xiaohongshuUrl\": \"https://xiaohongshu.com/yourprofile\"\n}"
+							"raw": "{\n  \"merchantId\": {{merchant_id}},\n  \"enablePresetReviews\": false,\n  \"enableGoogleReviews\": true,\n  \"enableFacebookReviews\": false,\n  \"enableInstagramReviews\": false,\n  \"enableXiaohongshuReviews\": false,\n  \"googleReviewUrl\": \"https://g.page/r/CdWC9gKqRRFdEBM/review\",\n  \"facebookPageUrl\": \"https://facebook.com/yourpage\",\n  \"instagramUrl\": \"https://instagram.com/yourprofile\",\n  \"xiaohongshuUrl\": \"https://xiaohongshu.com/yourprofile\",\n  \"birthday_message_enabled\": true,\n  \"days_before_birthday\": 3,\n  \"days_after_birthday\": 0,\n  \"birthday_coupon_batch_id\": 1\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/merchant-settings",
@@ -2518,7 +2563,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "// {\n//   \"enableGoogleReviews\": true,\n//   \"enableFacebookReviews\": true,\n//   \"googleReviewUrl\": \"https://g.page/r/updated-url\",\n//   \"facebookPageUrl\": \"https://facebook.com/updated-page\"\n// }\n\n{\n    \"whatsapp_enabled_for_batch_id\": 1,\n    \"luckydraw_enabled\": false\n}"
+							"raw": "// {\n//   \"enableGoogleReviews\": true,\n//   \"enableFacebookReviews\": true,\n//   \"googleReviewUrl\": \"https://g.page/r/updated-url\",\n//   \"facebookPageUrl\": \"https://facebook.com/updated-page\"\n// }\n\n{\n    \"whatsapp_enabled_for_batch_id\": 1,\n    \"luckydraw_enabled\": false,\n    \"birthday_message_enabled\": true,\n    \"days_before_birthday\": 3,\n    \"days_after_birthday\": 0,\n    \"birthday_coupon_batch_id\": 1\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
