@@ -59,6 +59,8 @@ export class AdminService {
       const admin = queryRunner.manager.create(Admin, {
         user_id: savedUser.id,
         address: createAdminDto.address,
+        city: createAdminDto.city,
+        country: createAdminDto.country,
       });
       const savedAdmin = await queryRunner.manager.save(admin);
 
@@ -76,9 +78,15 @@ export class AdminService {
 
       await queryRunner.commitTransaction();
 
+      // Load the admin with user relation
+      const adminWithUser = await this.adminRepository.findOne({
+        where: { id: savedAdmin.id },
+        relations: ['user'],
+      });
+
       return {
         message: 'Admin created successfully',
-        data: instanceToPlain(savedAdmin),
+        data: instanceToPlain(adminWithUser),
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -91,13 +99,18 @@ export class AdminService {
     }
   }
 
-  async findAll(page: number = 1, pageSize: number = 20, search = '', isActive?: boolean) {
+  async findAll(page: number = 1, pageSize: number = 20, search = '', isActive?: boolean, user?: { role: string; adminId?: number | null }) {
     const queryBuilder = this.adminRepository
       .createQueryBuilder('admin')
       .leftJoinAndSelect('admin.user', 'user');
       
-      if (isActive !== undefined) {
+    if (isActive !== undefined) {
       queryBuilder.where('user.is_active = :isActive', { isActive });
+    }
+
+    // If admin role, only show their own profile
+    if (user && user.role === 'admin' && user.adminId) {
+      queryBuilder.andWhere('admin.id = :adminId', { adminId: user.adminId });
     }
 
     if (search) {
@@ -126,12 +139,16 @@ export class AdminService {
     };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, user?: { role: string; adminId?: number | null }) {
     const admin = await this.adminRepository.findOne({ 
       where: { id },
       relations: ['user'],
     });
     if (!admin) {
+      throw new HttpException('Admin not found', 404);
+    }
+    // If admin role, only allow access to their own profile
+    if (user && user.role === 'admin' && user.adminId && admin.id !== user.adminId) {
       throw new HttpException('Admin not found', 404);
     }
     return {
@@ -173,6 +190,8 @@ export class AdminService {
       // Update admin-specific fields (address)
       const adminUpdateData: any = {};
       if (updateAdminDto.address !== undefined) adminUpdateData.address = updateAdminDto.address;
+      if (updateAdminDto.city !== undefined) adminUpdateData.city = updateAdminDto.city;
+      if (updateAdminDto.country !== undefined) adminUpdateData.country = updateAdminDto.country;
       
       if (Object.keys(adminUpdateData).length > 0) {
         await queryRunner.manager.update(Admin, id, adminUpdateData);

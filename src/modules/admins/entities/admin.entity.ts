@@ -14,4 +14,10 @@ export class Admin extends BaseEntity {
 
   @Column({ type: 'text', nullable: true })
   address: string;
+
+  @Column({ length: 100, nullable: true })
+  city: string;
+
+  @Column({ length: 100, nullable: true })
+  country: string;
 }
