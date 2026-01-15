@@ -5,6 +5,8 @@ import { Merchant } from '../merchants/entities/merchant.entity';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { UpdateCouponDto } from './dto/update-coupon.dto';
 import { instanceToPlain } from 'class-transformer';
+import { SystemLogService } from '../system-logs/system-log.service';
+import { SystemLogAction } from 'src/common/enums/system-log.enum';
 
 @Injectable()
 export class CouponService {
@@ -13,6 +15,7 @@ export class CouponService {
     private couponRepository: Repository<Coupon>,
     @Inject('MERCHANT_REPOSITORY')
     private merchantRepository: Repository<Merchant>,
+    private systemLogService: SystemLogService,
   ) { }
 
   /**
@@ -30,6 +33,20 @@ export class CouponService {
     coupon.status = 'redeemed';
     coupon.redeemed_at = new Date();
     await this.couponRepository.save(coupon);
+
+    // Log coupon redemption
+    await this.systemLogService.logCoupon(
+      SystemLogAction.REDEEM,
+      coupon.id,
+      `Coupon ${couponCode} redeemed`,
+      {
+        coupon_code: couponCode,
+        merchant_id: coupon.merchant_id,
+        customer_id: coupon.customer_id,
+        batch_id: coupon.batch_id,
+      },
+    );
+
     return { message: 'Coupon redeemed successfully', data: instanceToPlain(coupon) };
   }
 
@@ -43,6 +60,21 @@ export class CouponService {
       description: createCouponDto.description,
     });
     const savedCoupon = await this.couponRepository.save(coupon);
+
+    // Log coupon issuance
+    await this.systemLogService.logCoupon(
+      SystemLogAction.ISSUE,
+      savedCoupon.id,
+      `Coupon created and issued: ${savedCoupon.coupon_code}`,
+      {
+        coupon_code: savedCoupon.coupon_code,
+        coupon_id: savedCoupon.id,
+        merchant_id: savedCoupon.merchant_id,
+        batch_id: savedCoupon.batch_id,
+        status: savedCoupon.status,
+      },
+    );
+
     return {
       message: 'Coupon created successfully',
       data: instanceToPlain(savedCoupon),

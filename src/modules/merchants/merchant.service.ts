@@ -13,6 +13,8 @@ import { WalletService } from '../wallets/wallet.service';
 import { AdminWallet } from '../wallets/entities/admin-wallet.entity';
 import { WalletTransaction } from '../wallets/entities/wallet-transaction.entity';
 import { MerchantSettingService } from '../merchant-settings/merchant-setting.service';
+import { SystemLogService } from '../system-logs/system-log.service';
+import { SystemLogAction } from 'src/common/enums/system-log.enum';
 
 @Injectable()
 export class MerchantService {
@@ -29,6 +31,7 @@ export class MerchantService {
     private dataSource: DataSource,
     private walletService: WalletService,
     private merchantSettingService: MerchantSettingService,
+    private systemLogService: SystemLogService,
   ) {}
 
   async create(createMerchantDto: CreateMerchantDto) {
@@ -175,6 +178,21 @@ export class MerchantService {
         relations: ['user'],
       });
 
+      // Log merchant creation
+      await this.systemLogService.logMerchant(
+        SystemLogAction.CREATE,
+        savedMerchant.id,
+        `Merchant ${createMerchantDto.business_name} created successfully`,
+        savedUser.id,
+        {
+          merchant_id: savedMerchant.id,
+          business_name: createMerchantDto.business_name,
+          merchant_type: createMerchantDto.merchant_type,
+          admin_id: createMerchantDto.admin_id,
+          annual_fee_paid: merchantType === 'annual',
+        },
+      );
+
       return {
         message: 'Merchant created successfully',
         data: instanceToPlain(merchantWithUser),
@@ -302,6 +320,20 @@ export class MerchantService {
         where: { id },
         relations: ['user', 'admin'],
       });
+
+      // Log merchant update
+      if (updatedMerchant) {
+        await this.systemLogService.logMerchant(
+          SystemLogAction.UPDATE,
+          id,
+          `Merchant ${updatedMerchant.business_name} updated`,
+          merchant.user_id,
+          {
+            merchant_id: id,
+            updated_fields: Object.keys({...userUpdateData, ...merchantUpdateData}),
+          },
+        );
+      }
       
       return {
         message: 'Merchant updated successfully',

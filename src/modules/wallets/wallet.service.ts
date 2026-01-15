@@ -19,6 +19,8 @@ import { CreditPackage } from './entities/credit-package.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { CreateCreditPackageDto } from './dto/create-credit-package.dto';
 import { UpdateCreditPackageDto } from './dto/update-credit-package.dto';
+import { SystemLogService } from '../system-logs/system-log.service';
+import { SystemLogAction } from 'src/common/enums/system-log.enum';
 
 @Injectable()
 export class WalletService {
@@ -33,6 +35,7 @@ export class WalletService {
     private creditPackageRepository: Repository<CreditPackage>,
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
+    private systemLogService: SystemLogService,
   ) {}
 
   /**
@@ -364,6 +367,24 @@ export class WalletService {
 
       await queryRunner.commitTransaction();
 
+      // Log wallet credit addition
+      await this.systemLogService.logWallet(
+        SystemLogAction.CREDIT_ADD,
+        `Added ${credits} ${creditType} credits to merchant wallet`,
+        merchantId,
+        'merchant',
+        amount,
+        {
+          merchant_id: merchantId,
+          credits,
+          credit_type: creditType,
+          amount,
+          admin_id: adminId,
+          commission: adminCommission,
+          commission_rate: commissionRate,
+        },
+      );
+
       return {
         merchantTransaction: savedMerchantTransaction,
         adminTransaction: savedAdminTransaction,
@@ -442,6 +463,21 @@ export class WalletService {
       const savedTransaction = await queryRunner.manager.save(transaction);
 
       await queryRunner.commitTransaction();
+
+      // Log wallet credit deduction
+      await this.systemLogService.logWallet(
+        SystemLogAction.CREDIT_DEDUCT,
+        `Deducted ${credits} ${creditType} credits from merchant wallet`,
+        merchantId,
+        'merchant',
+        0,
+        {
+          merchant_id: merchantId,
+          credits,
+          credit_type: creditType,
+          description,
+        },
+      );
 
       return savedTransaction;
     } catch (error) {

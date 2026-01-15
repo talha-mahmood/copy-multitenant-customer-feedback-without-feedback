@@ -12,6 +12,8 @@ import { UpdateFeedbackDto } from './dto/update-feedback.dto';
 import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { WalletService } from '../wallets/wallet.service';
 import { randomBytes } from 'crypto';
+import { SystemLogService } from '../system-logs/system-log.service';
+import { SystemLogAction, SystemLogLevel, SystemLogCategory } from 'src/common/enums/system-log.enum';
 
 @Injectable()
 export class FeedbackService {
@@ -34,6 +36,7 @@ export class FeedbackService {
     private dataSource: DataSource,
     private whatsappService: WhatsAppService,
     private walletService: WalletService,
+    private systemLogService: SystemLogService,
   ) {}
 
   async create(createFeedbackDto: CreateFeedbackDto) {
@@ -229,6 +232,34 @@ export class FeedbackService {
                   
                   // Deduct WhatsApp credit after successful send
                   await this.walletService.deductWhatsAppCredit(merchant.id, 1);
+
+                  // Log successful WhatsApp message
+                  await this.systemLogService.logWhatsApp(
+                    SystemLogAction.MESSAGE_SENT,
+                    `Coupon sent via WhatsApp to ${savedCustomer.name}`,
+                    savedCustomer.id,
+                    {
+                      customer_id: savedCustomer.id,
+                      merchant_id: merchant.id,
+                      coupon_code: coupon.coupon_code,
+                      phone: savedCustomer.phone,
+                      context: 'feedback_submission',
+                    },
+                  );
+                } else {
+                  // Log failed WhatsApp message
+                  await this.systemLogService.logWhatsApp(
+                    SystemLogAction.MESSAGE_FAILED,
+                    `Failed to send coupon via WhatsApp to ${savedCustomer.name}`,
+                    savedCustomer.id,
+                    {
+                      customer_id: savedCustomer.id,
+                      merchant_id: merchant.id,
+                      phone: savedCustomer.phone,
+                      error: whatsappResult.error,
+                      context: 'feedback_submission',
+                    },
+                  );
                 }
               } else {
                 // Log warning but don't block the feedback creation
@@ -256,6 +287,28 @@ export class FeedbackService {
       const feedbackWithRelations = await this.feedbackRepository.findOne({
         where: { id: savedFeedback.id },
         relations: ['merchant', 'customer', 'presetReview'],
+      });
+
+      // Log customer feedback submission
+      await this.systemLogService.log({
+        category: SystemLogCategory.CUSTOMER,
+        action: SystemLogAction.CREATE,
+        level: SystemLogLevel.INFO,
+        message: `Customer ${savedCustomer.name} submitted feedback for ${merchant.business_name}`,
+        userId: savedCustomer.id,
+        userType: 'customer',
+        entityType: 'feedback',
+        entityId: savedFeedback.id,
+        metadata: {
+          merchant_id: createFeedbackDto.merchantId,
+          customer_id: savedCustomer.id,
+          is_new_customer: isNewCustomer,
+          review_type: createFeedbackDto.reviewType,
+          selected_platform: createFeedbackDto.selectedPlatform,
+          redirect_completed: createFeedbackDto.redirectCompleted,
+          coupon_sent: whatsappSent,
+          coupon_code: coupon?.coupon_code,
+        },
       });
 
       // Get redirect URL based on platform

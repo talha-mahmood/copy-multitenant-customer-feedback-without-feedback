@@ -46,3 +46,6 @@ export { LuckyDrawModule } from './lucky-draw/lucky-draw.module';
 
 // WhatsApp
 export { WhatsAppModule } from './whatsapp/whatsapp.module';
+
+// System Logs
+export { SystemLogModule } from './system-logs/system-log.module';
