@@ -11,14 +11,17 @@ import {
 } from '@nestjs/common';
 import { WalletService } from './wallet.service';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
 import { AddCreditsDto } from './dto/add-credits.dto';
 import { UpgradeToAnnualDto } from './dto/upgrade-to-annual.dto';
 import { CreateCreditPackageDto } from './dto/create-credit-package.dto';
 import { UpdateCreditPackageDto } from './dto/update-credit-package.dto';
 import { SkipSubscription } from 'src/common/decorators/skip-subscription.decorator';
+import { UserRole } from 'src/common/enums/user-role.enum';
 
 @Controller('wallets')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class WalletController {
   constructor(private readonly walletService: WalletService) { }
 
@@ -107,16 +110,17 @@ export class WalletController {
   @Get('credit-packages')
   async getCreditPackages(
     @Query('merchant_type') merchantType?: string,
-    @Query('admin_id') adminId?: number,
   ) {
-    return await this.walletService.getCreditPackages(merchantType, adminId);
+    return await this.walletService.getCreditPackages(merchantType);
   }
 
+  @Roles(UserRole.SUPER_ADMIN)
   @Post('credit-packages')
   async createCreditPackage(@Body() createDto: CreateCreditPackageDto) {
     return await this.walletService.createCreditPackage(createDto);
   }
 
+  @Roles(UserRole.SUPER_ADMIN)
   @Patch('credit-packages/:id')
   async updateCreditPackage(
     @Param('id') id: number,
@@ -125,11 +129,11 @@ export class WalletController {
     return await this.walletService.updateCreditPackage(id, updateDto);
   }
 
+  @Roles(UserRole.SUPER_ADMIN)
   @Delete('credit-packages/:id')
   async deleteCreditPackage(
     @Param('id') id: number,
-    @Query('admin_id') adminId: number,
   ) {
-    return await this.walletService.deleteCreditPackage(id, adminId);
+    return await this.walletService.deleteCreditPackage(id);
   }
 }

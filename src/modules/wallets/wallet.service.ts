@@ -537,17 +537,13 @@ export class WalletService {
   }
 
   /**
-   * Get all credit packages
+   * Get all credit packages (managed by super admin)
    */
-  async getCreditPackages(merchantType?: string, adminId?: number) {
+  async getCreditPackages(merchantType?: string) {
     const query: any = { is_active: true };
 
     if (merchantType) {
       query.merchant_type = merchantType;
-    }
-
-    if (adminId) {
-      query.admin_id = adminId;
     }
 
     return await this.creditPackageRepository.find({
@@ -557,7 +553,7 @@ export class WalletService {
   }
 
   /**
-   * Create a new credit package (admin only)
+   * Create a new credit package (super admin only)
    */
   async createCreditPackage(createDto: CreateCreditPackageDto) {
     const creditPackage = this.creditPackageRepository.create({
@@ -569,7 +565,6 @@ export class WalletService {
       price_per_credit: createDto.price_per_credit,
       currency: createDto.currency || 'USD',
       merchant_type: createDto.merchant_type,
-      admin_id: createDto.admin_id,
       is_active: createDto.is_active ?? true,
       sort_order: createDto.sort_order ?? 0,
       bonus_credits: createDto.bonus_credits ?? 0,
@@ -602,7 +597,7 @@ export class WalletService {
   }
 
   /**
-   * Update a credit package (only by the admin who created it)
+   * Update a credit package (super admin only)
    */
   async updateCreditPackage(id: number, updateDto: UpdateCreditPackageDto) {
     const creditPackage = await this.creditPackageRepository.findOne({
@@ -611,11 +606,6 @@ export class WalletService {
 
     if (!creditPackage) {
       throw new NotFoundException('Credit package not found');
-    }
-
-    // Verify that the admin trying to update is the one who created it
-    if (creditPackage.admin_id !== updateDto.admin_id) {
-      throw new ForbiddenException('You can only edit credit packages you created');
     }
 
     // Update fields
@@ -640,20 +630,15 @@ export class WalletService {
   }
 
   /**
-   * Delete a credit package (only by the admin who created it)
+   * Delete a credit package (super admin only)
    */
-  async deleteCreditPackage(id: number, adminId: number) {
+  async deleteCreditPackage(id: number) {
     const creditPackage = await this.creditPackageRepository.findOne({
       where: { id },
     });
 
     if (!creditPackage) {
       throw new NotFoundException('Credit package not found');
-    }
-
-    // Verify that the admin trying to delete is the one who created it
-    if (creditPackage.admin_id !== adminId) {
-      throw new ForbiddenException('You can only delete credit packages you created');
     }
 
     await this.creditPackageRepository.softDelete(id);
