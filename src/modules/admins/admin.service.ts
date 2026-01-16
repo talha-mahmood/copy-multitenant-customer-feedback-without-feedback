@@ -9,6 +9,8 @@ import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import * as bcrypt from 'bcrypt';
 import { WalletService } from '../wallets/wallet.service';
+import { SystemLogService } from '../system-logs/system-log.service';
+import { SystemLogAction, SystemLogCategory, SystemLogLevel } from 'src/common/enums/system-log.enum';
 
 @Injectable()
 export class AdminService {
@@ -18,7 +20,8 @@ export class AdminService {
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
     private walletService: WalletService,
-  ) { }
+    private systemLogService: SystemLogService,
+  ) {}
 
   async create(createAdminDto: CreateAdminDto) {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -82,6 +85,25 @@ export class AdminService {
       const adminWithUser = await this.adminRepository.findOne({
         where: { id: savedAdmin.id },
         relations: ['user'],
+      });
+
+      // Log agent (admin) creation
+      await this.systemLogService.log({
+        category: SystemLogCategory.ADMIN,
+        action: SystemLogAction.CREATE,
+        level: SystemLogLevel.INFO,
+        message: `Agent ${createAdminDto.name} created successfully`,
+        userId: savedUser.id,
+        userType: 'admin',
+        entityType: 'admin',
+        entityId: savedAdmin.id,
+        metadata: {
+          admin_id: savedAdmin.id,
+          agent_name: createAdminDto.name,
+          email: createAdminDto.email,
+          city: createAdminDto.city,
+          country: createAdminDto.country,
+        },
       });
 
       return {
@@ -204,6 +226,27 @@ export class AdminService {
         relations: ['user'],
       });
 
+      if (!updatedAdmin) {
+        throw new HttpException('Admin not found after update', 404);
+      }
+
+      // Log agent (admin) update
+      await this.systemLogService.log({
+        category: SystemLogCategory.ADMIN,
+        action: SystemLogAction.UPDATE,
+        level: SystemLogLevel.INFO,
+        message: `Agent ${updatedAdmin.user.name} updated successfully`,
+        userId: admin.user_id,
+        userType: 'admin',
+        entityType: 'admin',
+        entityId: id,
+        metadata: {
+          admin_id: id,
+          agent_name: updatedAdmin.user.name,
+          updated_fields: Object.keys({...userUpdateData, ...adminUpdateData}),
+        },
+      });
+    
       return {
         message: 'Admin updated successfully',
         data: instanceToPlain(updatedAdmin),

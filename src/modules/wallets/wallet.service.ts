@@ -19,6 +19,8 @@ import { CreditPackage } from './entities/credit-package.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { CreateCreditPackageDto } from './dto/create-credit-package.dto';
 import { UpdateCreditPackageDto } from './dto/update-credit-package.dto';
+import { SystemLogService } from '../system-logs/system-log.service';
+import { SystemLogAction } from 'src/common/enums/system-log.enum';
 
 @Injectable()
 export class WalletService {
@@ -33,7 +35,8 @@ export class WalletService {
     private creditPackageRepository: Repository<CreditPackage>,
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
-  ) { }
+    private systemLogService: SystemLogService,
+  ) {}
 
   /**
    * Create admin wallet when admin is created
@@ -358,6 +361,24 @@ export class WalletService {
 
       await queryRunner.commitTransaction();
 
+      // Log wallet credit addition
+      await this.systemLogService.logWallet(
+        SystemLogAction.CREDIT_ADD,
+        `Added ${credits} ${creditType} credits to merchant wallet`,
+        merchantId,
+        'merchant',
+        amount,
+        {
+          merchant_id: merchantId,
+          credits,
+          credit_type: creditType,
+          amount,
+          admin_id: adminId,
+          commission: adminCommission,
+          commission_rate: commissionRate,
+        },
+      );
+
       return {
         merchantTransaction: savedMerchantTransaction,
         adminTransaction: savedAdminTransaction,
@@ -437,6 +458,21 @@ export class WalletService {
 
       await queryRunner.commitTransaction();
 
+      // Log wallet credit deduction
+      await this.systemLogService.logWallet(
+        SystemLogAction.CREDIT_DEDUCT,
+        `Deducted ${credits} ${creditType} credits from merchant wallet`,
+        merchantId,
+        'merchant',
+        0,
+        {
+          merchant_id: merchantId,
+          credits,
+          credit_type: creditType,
+          description,
+        },
+      );
+
       return savedTransaction;
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -495,17 +531,13 @@ export class WalletService {
   }
 
   /**
-   * Get all credit packages
+   * Get all credit packages (managed by super admin)
    */
-  async getCreditPackages(merchantType?: string, adminId?: number) {
+  async getCreditPackages(merchantType?: string) {
     const query: any = { is_active: true };
 
     if (merchantType) {
       query.merchant_type = merchantType;
-    }
-
-    if (adminId) {
-      query.admin_id = adminId;
     }
 
     return await this.creditPackageRepository.find({
@@ -515,7 +547,7 @@ export class WalletService {
   }
 
   /**
-   * Create a new credit package (admin only)
+   * Create a new credit package (super admin only)
    */
   async createCreditPackage(createDto: CreateCreditPackageDto) {
     const creditPackage = this.creditPackageRepository.create({
@@ -527,7 +559,6 @@ export class WalletService {
       price_per_credit: createDto.price_per_credit,
       currency: createDto.currency || 'USD',
       merchant_type: createDto.merchant_type,
-      admin_id: createDto.admin_id,
       is_active: createDto.is_active ?? true,
       sort_order: createDto.sort_order ?? 0,
       bonus_credits: createDto.bonus_credits ?? 0,
@@ -560,7 +591,7 @@ export class WalletService {
   }
 
   /**
-   * Update a credit package (only by the admin who created it)
+   * Update a credit package (super admin only)
    */
   async updateCreditPackage(id: number, updateDto: UpdateCreditPackageDto) {
     const creditPackage = await this.creditPackageRepository.findOne({
@@ -569,11 +600,6 @@ export class WalletService {
 
     if (!creditPackage) {
       throw new NotFoundException('Credit package not found');
-    }
-
-    // Verify that the admin trying to update is the one who created it
-    if (creditPackage.admin_id !== updateDto.admin_id) {
-      throw new ForbiddenException('You can only edit credit packages you created');
     }
 
     // Update fields
@@ -598,20 +624,15 @@ export class WalletService {
   }
 
   /**
-   * Delete a credit package (only by the admin who created it)
+   * Delete a credit package (super admin only)
    */
-  async deleteCreditPackage(id: number, adminId: number) {
+  async deleteCreditPackage(id: number) {
     const creditPackage = await this.creditPackageRepository.findOne({
       where: { id },
     });
 
     if (!creditPackage) {
       throw new NotFoundException('Credit package not found');
-    }
-
-    // Verify that the admin trying to delete is the one who created it
-    if (creditPackage.admin_id !== adminId) {
-      throw new ForbiddenException('You can only delete credit packages you created');
     }
 
     await this.creditPackageRepository.softDelete(id);

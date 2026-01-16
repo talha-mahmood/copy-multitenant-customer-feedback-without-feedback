@@ -12,6 +12,8 @@ import { PdfExportHelper } from 'src/common/helpers/pdf-export.helper';
 import { In } from 'typeorm';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { WalletService } from '../wallets/wallet.service';
+import { SystemLogService } from '../system-logs/system-log.service';
+import { SystemLogAction } from 'src/common/enums/system-log.enum';
 
 @Injectable()
 export class CouponBatchService {
@@ -26,6 +28,7 @@ export class CouponBatchService {
     private dataSource: DataSource,
     private configService: ConfigService,
     private walletService: WalletService,
+    private systemLogService: SystemLogService,
   ) {}
 
   async create(createCouponBatchDto: CreateCouponBatchDto) {
@@ -101,6 +104,23 @@ export class CouponBatchService {
       await this.walletService.deductCouponCredits(
         createCouponBatchDto.merchant_id,
         createCouponBatchDto.total_quantity,
+      );
+
+      // Log coupon batch creation
+      await this.systemLogService.logCoupon(
+        SystemLogAction.BATCH_CREATE,
+        savedBatch.id,
+        `Coupon batch created: ${coupons.length} individual coupons generated`,
+        {
+          batch_id: savedBatch.id,
+          merchant_id: savedBatch.merchant_id,
+          total_quantity: createCouponBatchDto.total_quantity,
+          coupons_generated: coupons.length,
+          batch_type: createCouponBatchDto.batch_type,
+          credits_deducted: createCouponBatchDto.total_quantity,
+          start_date: createCouponBatchDto.start_date,
+          end_date: createCouponBatchDto.end_date,
+        },
       );
 
       await queryRunner.commitTransaction();

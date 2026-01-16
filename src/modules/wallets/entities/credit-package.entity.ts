@@ -27,9 +27,6 @@ export class CreditPackage extends BaseEntity {
   @Column({ name: 'merchant_type', type: 'varchar', length: 20, nullable: true })
   merchant_type: string; // 'annual', 'temporary', 'all'
 
-  @Column({ name: 'admin_id', type: 'int', nullable: true })
-  admin_id: number;
-
   @Column({ name: 'is_active', type: 'boolean', default: true })
   is_active: boolean;
 

@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get, Param, Query } from '@nestjs/common';
+import { Body, Controller, Post, Get, Param, Query, Req } from '@nestjs/common';
 import { LoginDto } from './dtos/login.dto';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dtos/register.dto';
@@ -8,6 +8,7 @@ import { Public } from 'src/common/decorators/public.decorator';
 import { CurrentUser, User } from 'src/common/decorators/current-user';
 import { UserService } from '../users/user.service';
 import { ResetPasswordDto } from '../users/dto/reset-password.dto';
+import { Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -15,12 +16,14 @@ export class AuthController {
     private readonly userService: UserService) { }
 
   @Public()
-  @Post('login') async login(@Body() loginDto: LoginDto) {
+  @Post('login')
+  async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
 
   @Public()
-  @Post('register') async register(@Body() registerDto: RegisterDto) {
+  @Post('register')
+  async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 

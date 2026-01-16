@@ -19,6 +19,8 @@ import { Merchant } from '../merchants/entities/merchant.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { AdminWallet } from '../wallets/entities/admin-wallet.entity';
 import { MerchantWallet } from '../wallets/entities/merchant-wallet.entity';
+import { SystemLogService } from '../system-logs/system-log.service';
+import { SystemLogAction } from 'src/common/enums/system-log.enum';
 
 @Injectable()
 export class AuthService {
@@ -32,6 +34,7 @@ export class AuthService {
     private jwtService: JwtService,
     private userHasRoleService: UserHasRoleService,
     private encryptionHelper: EncryptionHelper,
+    private systemLogService: SystemLogService,
   ) { }
 
   async login(loginDto: LoginDto) {
@@ -147,6 +150,21 @@ export class AuthService {
     }
     // Note: Customers don't have user accounts anymore
 
+    // Log successful login
+    await this.systemLogService.logAuth(
+      SystemLogAction.LOGIN,
+      user.id,
+      roleName,
+      `User ${user.email} logged in successfully`,
+      {
+        email: user.email,
+        role: roleName,
+        merchantId,
+        adminId,
+
+      },
+    );
+
     return response;
   }
 
@@ -158,6 +176,17 @@ export class AuthService {
     const newUser = await this.userRepository.save(user);
 
     const payload = { sub: newUser.id, email: newUser.email };
+
+    // Log successful registration
+    await this.systemLogService.logAuth(
+      SystemLogAction.REGISTER,
+      newUser.id,
+      'user',
+      `New user ${newUser.email} registered`,
+      {
+        email: newUser.email,
+      },
+    );
 
     return {
       access_token: await this.jwtService.signAsync(payload),
