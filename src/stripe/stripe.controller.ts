@@ -1,16 +1,17 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { StripeService } from './stripe.service';
 import { Public } from 'src/common/decorators/public.decorator';
+import { SkipSubscription } from 'src/common/decorators/skip-subscription.decorator';
 
 @Controller('stripe')
 export class StripeController {
-  constructor(private readonly stripeService: StripeService) {}
+  constructor(private readonly stripeService: StripeService) { }
 
   /**
    * Create PaymentIntent (NEW FLOW)
    * Frontend will use clientSecret with Payment Element
    */
-  @Public()
+  @SkipSubscription()
   @Post('create-payment-intent')
   async createPaymentIntent(
     @Body('amount') amount: number,
@@ -38,7 +39,7 @@ export class StripeController {
    * Create Checkout Session (LEGACY FLOW)
    * Frontend will redirect to session.url
    */
-  @Public()
+  @SkipSubscription()
   @Post('create-checkout-session')
   async createCheckoutSession(
     @Body('amount') amount: number,
