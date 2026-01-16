@@ -15,11 +15,12 @@ import { AddCreditsDto } from './dto/add-credits.dto';
 import { UpgradeToAnnualDto } from './dto/upgrade-to-annual.dto';
 import { CreateCreditPackageDto } from './dto/create-credit-package.dto';
 import { UpdateCreditPackageDto } from './dto/update-credit-package.dto';
+import { SkipSubscription } from 'src/common/decorators/skip-subscription.decorator';
 
 @Controller('wallets')
 @UseGuards(JwtAuthGuard)
 export class WalletController {
-  constructor(private readonly walletService: WalletService) {}
+  constructor(private readonly walletService: WalletService) { }
 
   @Get('admin/:adminId')
   async getAdminWallet(@Param('adminId') adminId: number) {
@@ -57,6 +58,7 @@ export class WalletController {
     );
   }
 
+  @SkipSubscription()
   @Post('merchant/:merchantId/add-credits')
   async addMerchantCredits(
     @Param('merchantId') merchantId: number,
@@ -78,6 +80,7 @@ export class WalletController {
     };
   }
 
+  @SkipSubscription()
   @Post('merchant/:merchantId/upgrade-to-annual')
   async upgradeToAnnual(
     @Param('merchantId') merchantId: number,
@@ -94,11 +97,13 @@ export class WalletController {
     };
   }
 
+  @SkipSubscription()
   @Get('credit-packages/:id')
   async getCreditPackage(@Param('id') id: number) {
     return await this.walletService.getCreditPackage(id);
   }
 
+  @SkipSubscription()
   @Get('credit-packages')
   async getCreditPackages(
     @Query('merchant_type') merchantType?: string,

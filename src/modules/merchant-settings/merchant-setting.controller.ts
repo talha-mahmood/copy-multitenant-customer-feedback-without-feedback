@@ -52,6 +52,7 @@ export class MerchantSettingController {
     return this.merchantSettingService.uploadPaidAdImage(
       merchantId,
       uploadPaidAdImageDto.paidAdImage,
+      uploadPaidAdImageDto.paidAdPlacement,
     );
   }
 

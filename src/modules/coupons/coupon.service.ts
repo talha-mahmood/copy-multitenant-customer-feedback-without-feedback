@@ -2,6 +2,7 @@ import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Coupon } from './entities/coupon.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
+import { Admin } from '../admins/entities/admin.entity';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { UpdateCouponDto } from './dto/update-coupon.dto';
 import { instanceToPlain } from 'class-transformer';
@@ -16,6 +17,8 @@ export class CouponService {
     @Inject('MERCHANT_REPOSITORY')
     private merchantRepository: Repository<Merchant>,
     private systemLogService: SystemLogService,
+    @Inject('ADMIN_REPOSITORY')
+    private adminRepository: Repository<Admin>,
   ) { }
 
   /**
@@ -135,17 +138,16 @@ export class CouponService {
     };
   }
 
-  async findAllPublic(page: number = 1, pageSize: number = 20, businessType?: string, placement?: string) {
+  async findAllPublic(page: number = 1, pageSize: number = 20, businessType?: string, placement?: string, adminId?: number) {
     if (pageSize > 500) {
       pageSize = 500;
     }
 
     const queryBuilder = this.merchantRepository
       .createQueryBuilder('merchant')
-      .leftJoinAndSelect('merchant.batches', 'batch')
+      .leftJoinAndSelect('merchant.batches', 'batch', 'batch.is_active = :isActive', { isActive: true })
       .leftJoinAndSelect('batch.template', 'template')
-      .leftJoinAndSelect('merchant.user', 'user')
-      .where('batch.is_active = :isActive', { isActive: true });
+      .leftJoinAndSelect('merchant.user', 'user');
 
     if (businessType) {
       queryBuilder.andWhere('merchant.business_type = :businessType', { businessType });
@@ -153,6 +155,10 @@ export class CouponService {
 
     if (placement) {
       queryBuilder.andWhere('merchant.placement = :placement', { placement });
+    }
+
+    if (adminId) {
+      queryBuilder.andWhere('merchant.admin_id = :adminId', { adminId });
     }
 
     const [results, total] = await queryBuilder
@@ -209,6 +215,82 @@ export class CouponService {
         page,
         pageSize,
         },
+    };
+  }
+
+  async findAllForSuperAdmin(page: number = 1, pageSize: number = 20) {
+    if (pageSize > 500) {
+      pageSize = 500;
+    }
+
+    // Get all admins with their merchants and active batches
+    const queryBuilder = this.adminRepository
+      .createQueryBuilder('admin')
+      .leftJoinAndSelect('admin.user', 'user')
+      .leftJoinAndSelect('admin.merchants', 'merchant')
+      .leftJoinAndSelect('merchant.user', 'merchantUser')
+      .leftJoinAndSelect('merchant.batches', 'batch', 'batch.is_active = :isActive', { isActive: true })
+      .leftJoinAndSelect('batch.template', 'template')
+      .orderBy('admin.created_at', 'DESC');
+
+    const [results, total] = await queryBuilder
+      .skip((page - 1) * pageSize)
+      .take(pageSize)
+      .getManyAndCount();
+
+    // Process results to structure data hierarchically and inject rendered HTML
+    const processedAgents = results.map(admin => {
+      const plainAdmin = instanceToPlain(admin);
+
+      if (plainAdmin.merchants) {
+        plainAdmin.merchants = plainAdmin.merchants.map(merchant => {
+          if (merchant.batches) {
+            merchant.batches = merchant.batches.map(batch => {
+              let renderedHtml = batch.template?.html || '';
+
+              // Use batch data directly since all coupons in a batch share the same values
+              const header = batch.header || '';
+              const title = batch.title || '';
+              const description = batch.description || '';
+
+              // Inject dynamic fields if HTML exists
+              if (renderedHtml) {
+                const replacements = {
+                  '{{header}}': header,
+                  '{{title}}': title,
+                  '{{description}}': description,
+                };
+
+                Object.entries(replacements).forEach(([placeholder, value]) => {
+                  const regex = new RegExp(placeholder.replace('{{', '{{\\s*').replace('}}', '\\s*}}'), 'gi');
+                  renderedHtml = renderedHtml.replace(regex, value);
+                });
+              }
+
+              return {
+                ...batch,
+                header,
+                title,
+                description,
+                rendered_html: renderedHtml,
+              };
+            });
+          }
+          return merchant;
+        });
+      }
+
+      return plainAdmin;
+    });
+
+    return {
+      message: 'All agents with their merchants and coupons retrieved successfully',
+      data: {
+        admins: processedAgents,
+        total,
+        page,
+        pageSize,
+      },
     };
   }
 

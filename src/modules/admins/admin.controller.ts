@@ -15,10 +15,11 @@ import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { ShowAdminDto } from './dto/show-admin.dto';
 import { AdminDashboardQueryDto } from './dto/admin-dashboard.dto';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('admins')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(private readonly adminService: AdminService) { }
 
   @Post()
   create(@Body() createAdminDto: CreateAdminDto) {
@@ -44,6 +45,11 @@ export class AdminController {
     @Query() query: AdminDashboardQueryDto,
   ) {
     return this.adminService.getDashboardAnalytics(id, query.startDate, query.endDate);
+  }
+  @Public()
+  @Get(':merchantId/paid-ad-image')
+  getPaidAdImage(@Param('merchantId', ParseIntPipe) merchantId: number) {
+    return this.adminService.getPaidAdImage(merchantId);
   }
 
   @Get(':id')

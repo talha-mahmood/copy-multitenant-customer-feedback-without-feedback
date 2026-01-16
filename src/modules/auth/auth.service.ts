@@ -13,6 +13,8 @@ import { RegisterDto } from './dtos/register.dto';
 import { UploadFileDto } from './dtos/upload-file.dto';
 import { uploadFile } from 'src/common/helpers/file-upload.helper';
 import { UserHasRoleService } from '../roles-permission-management/user-has-role/user-has-role.service';
+import { AdminWallet } from '../wallets/entities/admin-wallet.entity';
+import { MerchantWallet } from '../wallets/entities/merchant-wallet.entity';
 import { EncryptionHelper } from 'src/common/helpers/encryption-helper';
 import { SuperAdmin } from '../super-admins/entities/super-admin.entity';
 import { Admin } from '../admins/entities/admin.entity';
@@ -29,6 +31,8 @@ export class AuthService {
     @Inject('ADMIN_REPOSITORY') private adminRepository: Repository<Admin>,
     @Inject('MERCHANT_REPOSITORY') private merchantRepository: Repository<Merchant>,
     @Inject('CUSTOMER_REPOSITORY') private customerRepository: Repository<Customer>,
+    @Inject('ADMIN_WALLET_REPOSITORY') private adminWalletRepository: Repository<AdminWallet>,
+    @Inject('MERCHANT_WALLET_REPOSITORY') private merchantWalletRepository: Repository<MerchantWallet>,
     private jwtService: JwtService,
     private userHasRoleService: UserHasRoleService,
     private encryptionHelper: EncryptionHelper,
@@ -70,11 +74,42 @@ export class AuthService {
       const merchant = await this.merchantRepository.findOne({ where: { user_id: Number(user.id) } });
       if (merchant) {
         merchantId = merchant.id;
+        // Check merchant subscription expiration
+        const merchantWallet = await this.merchantWalletRepository.findOne({ where: { merchant_id: merchant.id } });
+        if (
+          merchantWallet &&
+          merchantWallet.subscription_type === 'annual' &&
+          merchantWallet.subscription_expires_at &&
+          merchantWallet.subscription_expires_at < new Date()
+        ) {
+          // Auto-downgrade to temporary
+          merchantWallet.subscription_type = 'temporary';
+          merchant.merchant_type = 'temporary';
+
+          await this.merchantWalletRepository.save(merchantWallet);
+          await this.merchantRepository.save(merchant);
+          console.log(`Merchant ${merchant.id} subscription downgraded to temporary due to expiration.`);
+        } else {
+          console.log('merchant plan is not expired');
+        }
       }
     } else if (roleName === 'admin') {
       const admin = await this.adminRepository.findOne({ where: { user_id: Number(user.id) } });
       if (admin) {
         adminId = admin.id;
+        // Check admin subscription expiration
+        const adminWallet = await this.adminWalletRepository.findOne({ where: { admin_id: admin.id } });
+        if (adminWallet && adminWallet.subscription_expires_at && adminWallet.subscription_expires_at < new Date()) {
+          throw new UnprocessableEntityException('Admin subscription has expired');
+
+        }
+        else if (
+          adminWallet &&
+          adminWallet.subscription_expires_at
+        ) {
+          console.log('Admin still has access to the subscription plan');
+        }
+
       }
     } else if (roleName === 'super_admin') {
       const superAdmin = await this.superAdminRepository.findOne({ where: { user_id: Number(user.id) } });

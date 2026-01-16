@@ -30,7 +30,7 @@ export class RegisterDto {
   @IsString() @IsNotEmpty() @MinLength(8) readonly confirmPassword: string;
 
   @IsEnum(UserRole, {
-    message: 'Role must be either agent, developer, or buyer/seller',
+    message: 'Role must be either agent, admin, developer, or buyer/seller',
   })
   readonly role: UserRole;
 
