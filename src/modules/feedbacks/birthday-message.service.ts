@@ -8,6 +8,8 @@ import { Coupon } from '../coupons/entities/coupon.entity';
 import { CouponBatch } from '../coupon-batches/entities/coupon-batch.entity';
 import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { WalletService } from '../wallets/wallet.service';
+import { SystemLogService } from '../system-logs/system-log.service';
+import { SystemLogAction, SystemLogLevel } from 'src/common/enums/system-log.enum';
 
 @Injectable()
 export class BirthdayMessageService {
@@ -26,6 +28,7 @@ export class BirthdayMessageService {
     private couponBatchRepository: Repository<CouponBatch>,
     private whatsappService: WhatsAppService,
     private walletService: WalletService,
+    private systemLogService: SystemLogService,
   ) {}
 
   // @Cron(CronExpression.EVERY_DAY_AT_9AM) // Run daily at 9 AM
@@ -230,10 +233,39 @@ export class BirthdayMessageService {
         // Deduct WhatsApp credit
         await this.walletService.deductWhatsAppCredit(merchant.id, 1);
 
+        // Log birthday campaign trigger
+        await this.systemLogService.logCampaign(
+          SystemLogAction.CAMPAIGN_TRIGGERED,
+          `Birthday campaign sent to ${customer.name}`,
+          {
+            campaign_type: 'birthday',
+            customer_id: customer.id,
+            customer_name: customer.name,
+            merchant_id: merchant.id,
+            merchant_name: merchant.business_name,
+            coupon_code: coupon.coupon_code,
+            phone: customer.phone,
+          },
+        );
+
         this.logger.log(
           `Birthday message sent to customer ${customer.id} for merchant ${merchant.id}`,
         );
       } else {
+        // Log failed WhatsApp message
+        await this.systemLogService.logWhatsApp(
+          SystemLogAction.MESSAGE_FAILED,
+          `Failed to send birthday message to ${customer.name}`,
+          customer.id,
+          {
+            campaign_type: 'birthday',
+            customer_id: customer.id,
+            merchant_id: merchant.id,
+            error: whatsappResult.error,
+            phone: customer.phone,
+          },
+        );
+
         this.logger.error(
           `Failed to send birthday message to customer ${customer.id}: ${whatsappResult.error}`,
         );

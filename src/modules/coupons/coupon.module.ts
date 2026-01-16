@@ -5,10 +5,11 @@ import { couponProvider } from './coupon.provider';
 import { DatabaseModule } from 'src/database/database.module';
 import { couponTemplateProvider } from './coupon-template.provider';
 import { merchantProviders } from '../merchants/merchant.provider';
+import { SystemLogModule } from '../system-logs/system-log.module';
 import { adminProviders } from '../admins/admin.provider';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, SystemLogModule],
   controllers: [CouponController],
   providers: [CouponService, ...couponProvider, ...couponTemplateProvider, ...merchantProviders, ...adminProviders],
   exports: [CouponService],
