@@ -15,6 +15,7 @@ import { superAdminProviders } from '../super-admins/super-admin.provider';
 import { adminProviders } from '../admins/admin.provider';
 import { merchantProviders } from '../merchants/merchant.provider';
 import { customerProviders } from '../customers/customer.provider';
+import { walletProviders } from '../wallets/wallet.provider';
 import { SystemLogModule } from '../system-logs/system-log.module';
 
 @Module({

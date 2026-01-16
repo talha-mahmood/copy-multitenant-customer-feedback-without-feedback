@@ -37,7 +37,6 @@ export class WalletService {
     private dataSource: DataSource,
     private systemLogService: SystemLogService,
   ) {}
-  ) { }
 
   /**
    * Create admin wallet when admin is created
