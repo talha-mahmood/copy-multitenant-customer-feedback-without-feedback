@@ -17,14 +17,14 @@ export class AuthController {
 
   @Public()
   @Post('login')
-  async login(@Body() loginDto: LoginDto, @Req() req: Request) {
-    return this.authService.login(loginDto, req.ip);
+  async login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
   }
 
   @Public()
   @Post('register')
-  async register(@Body() registerDto: RegisterDto, @Req() req: Request) {
-    return this.authService.register(registerDto, req.ip);
+  async register(@Body() registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
   }
 
   @Post('upload-single')

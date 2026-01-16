@@ -65,12 +65,6 @@ export class CreateSystemLogsTable1768465763000 implements MigrationInterface {
                         isNullable: true,
                     },
                     {
-                        name: 'ip_address',
-                        type: 'varchar',
-                        length: '45',
-                        isNullable: true,
-                    },
-                    {
                         name: 'user_agent',
                         type: 'text',
                         isNullable: true,

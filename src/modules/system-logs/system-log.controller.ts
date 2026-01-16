@@ -36,25 +36,27 @@ export class SystemLogController {
       throw new Error('Page size cannot be greater than 500');
     }
 
-    // Only super_admin can view all logs
-    // Admin can only view logs related to their operations
-    const filters: any = {
-      category,
-      action,
-      level,
-      userId,
-      userType,
-      entityType,
-      entityId,
-      startDate,
-      endDate,
-    };
+    // Build filters from query parameters
+    const filters: any = {};
+    
+    if (category) filters.category = category;
+    if (action) filters.action = action;
+    if (level) filters.level = level;
+    if (entityType) filters.entityType = entityType;
+    if (entityId) filters.entityId = entityId;
+    if (startDate) filters.startDate = startDate;
+    if (endDate) filters.endDate = endDate;
+    if (userId !== undefined) filters.userId = userId;
+    if (userType) filters.userType = userType;
 
-    // If admin, restrict to their own logs
+    // Access control: Admins can only see their own logs, Super admins see all
     if (user.role === 'admin' && user.adminId) {
-      filters.userId = user.adminId;
-      filters.userType = 'admin';
+      // Filter logs where either:
+      // 1. user_id matches admin's user ID and user_type is 'admin' (for auth logs)
+      // 2. metadata->adminId matches the admin's adminId (for merchant/coupon/etc logs)
+      filters.adminId = user.adminId; // Use the admin's adminId from the admins table
     }
+    // Super admin (user.role === 'super_admin') - no restrictions, sees all logs
 
     return this.systemLogService.findAll(page, pageSize, filters);
   }

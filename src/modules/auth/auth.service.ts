@@ -35,7 +35,7 @@ export class AuthService {
     private systemLogService: SystemLogService,
   ) {}
 
-  async login(loginDto: LoginDto, ipAddress?: string) {
+  async login(loginDto: LoginDto) {
     const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
     });
@@ -146,13 +146,12 @@ export class AuthService {
         adminId,
         superAdminId,
       },
-      ipAddress,
     );
 
     return response;
   }
 
-  async register(registerDto: RegisterDto, ipAddress?: string) {
+  async register(registerDto: RegisterDto) {
     const user = this.userRepository.create({
       ...registerDto,
       password: await bcrypt.hash(registerDto.password, 10),
@@ -170,7 +169,6 @@ export class AuthService {
       {
         email: newUser.email,
       },
-      ipAddress,
     );
 
     return {

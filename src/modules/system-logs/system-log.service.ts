@@ -13,7 +13,6 @@ export interface CreateSystemLogDto {
   entityType?: string;
   entityId?: number;
   metadata?: Record<string, any>;
-  ipAddress?: string;
   userAgent?: string;
 }
 
@@ -35,7 +34,6 @@ export class SystemLogService {
       entity_type: data.entityType,
       entity_id: data.entityId,
       metadata: data.metadata,
-      ip_address: data.ipAddress,
       user_agent: data.userAgent,
     });
 
@@ -55,6 +53,7 @@ export class SystemLogService {
       entityId?: number;
       startDate?: string;
       endDate?: string;
+      adminId?: number; // For filtering logs by admin
     },
   ) {
     const queryBuilder = this.systemLogRepository.createQueryBuilder('log');
@@ -77,6 +76,22 @@ export class SystemLogService {
 
     if (filters?.userType) {
       queryBuilder.andWhere('log.user_type = :userType', { userType: filters.userType });
+    }
+
+    // Filter by admin - check both metadata->admin_id/adminId OR join with merchants table for merchant_id
+    if (filters?.adminId) {
+      queryBuilder.andWhere(
+        `(
+          (log.metadata->>'admin_id')::int = :adminId 
+          OR (log.metadata->>'adminId')::int = :adminId
+          OR EXISTS (
+            SELECT 1 FROM merchants m 
+            WHERE m.id = (log.metadata->>'merchant_id')::int 
+            AND m.admin_id = :adminId
+          )
+        )`,
+        { adminId: filters.adminId }
+      );
     }
 
     if (filters?.entityType) {
@@ -131,7 +146,7 @@ export class SystemLogService {
   }
 
   // Helper methods for common log types
-  async logAuth(action: SystemLogAction, userId: number, userType: string, message: string, metadata?: Record<string, any>, ipAddress?: string) {
+  async logAuth(action: SystemLogAction, userId: number, userType: string, message: string, metadata?: Record<string, any>) {
     return this.log({
       category: SystemLogCategory.AUTH,
       action,
@@ -139,7 +154,6 @@ export class SystemLogService {
       userId,
       userType,
       metadata,
-      ipAddress,
     });
   }
 
