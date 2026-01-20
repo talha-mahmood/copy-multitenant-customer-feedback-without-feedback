@@ -6,6 +6,7 @@ import { Merchant } from '../../../modules/merchants/entities/merchant.entity';
 import { Customer } from '../../../modules/customers/entities/customer.entity';
 import { AdminWallet } from '../../../modules/wallets/entities/admin-wallet.entity';
 import { MerchantWallet } from '../../../modules/wallets/entities/merchant-wallet.entity';
+import { SuperAdminWallet } from '../../../modules/wallets/entities/super-admin-wallet.entity';
 import * as bcrypt from 'bcrypt';
 import { faker } from '@faker-js/faker';
 import { UserHasRole } from '../../../modules/roles-permission-management/user-has-role/entities/user-has-role.entity';
@@ -73,9 +74,22 @@ export async function seedUser(dataSource: DataSource) {
 
       // Create super admin record
       const superAdminRepo = dataSource.getRepository(SuperAdmin);
-      await superAdminRepo.save({
+      const savedSuperAdmin = await superAdminRepo.save({
         user_id: superAdmin.id,
         address: '1 Super Admin HQ',
+      });
+
+      // Create super admin wallet
+      const superAdminWalletRepo = dataSource.getRepository(SuperAdminWallet);
+      await superAdminWalletRepo.insert({
+        super_admin_id: savedSuperAdmin.id,
+        balance: 0,
+        total_earnings: 0,
+        total_spent: 0,
+        pending_amount: 0,
+        currency: 'USD',
+        admin_subscription_fee: 1199.00,
+        is_active: true,
       });
     }
 
