@@ -41,6 +41,19 @@ export class WalletController {
     return await this.walletService.getSuperAdminWallet();
   }
 
+  @SkipSubscription()
+  @Get('admin-subscription-fee')
+  async getAdminSubscriptionFee() {
+    const { fee, currency } = await this.walletService.getAdminSubscriptionFee();
+    return {
+      message: 'Admin subscription fee retrieved successfully',
+      data: {
+        fee,
+        currency,
+      },
+    };
+  }
+
   @Roles(UserRole.SUPER_ADMIN)
   @Patch('super-admin/subscription-fee')
   async updateAdminSubscriptionFee(@Body('fee') fee: number) {

@@ -180,6 +180,17 @@ export class WalletService {
   }
 
   /**
+   * Get admin subscription fee (public)
+   */
+  async getAdminSubscriptionFee(): Promise<{ fee: number; currency: string }> {
+    const wallet = await this.getSuperAdminWallet();
+    return {
+      fee: parseFloat(wallet.admin_subscription_fee.toString()),
+      currency: wallet.currency,
+    };
+  }
+
+  /**
    * Update admin subscription fee (super admin only)
    */
   async updateAdminSubscriptionFee(newFee: number): Promise<SuperAdminWallet> {
