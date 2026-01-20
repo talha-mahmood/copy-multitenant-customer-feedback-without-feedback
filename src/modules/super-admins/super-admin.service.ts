@@ -142,7 +142,8 @@ export class SuperAdminService {
       FROM admins a
       LEFT JOIN users u ON u.id = a.user_id
       WHERE a.deleted_at IS NULL
-    `);
+      ${hasDateFilter ? 'AND a.created_at BETWEEN $1 AND $2' : ''}
+    `, hasDateFilter ? [start, end] : []);
 
     const merchantStats = await dataSource.query(`
       SELECT 
@@ -154,11 +155,14 @@ export class SuperAdminService {
       FROM merchants m
       LEFT JOIN users u ON u.id = m.user_id
       WHERE m.deleted_at IS NULL
-    `);
+      ${hasDateFilter ? 'AND m.created_at BETWEEN $1 AND $2' : ''}
+    `, hasDateFilter ? [start, end] : []);
 
     const customerStats = await dataSource.query(`
-      SELECT COUNT(*) AS total_customers FROM customers
-    `);
+      SELECT COUNT(*) AS total_customers 
+      FROM customers
+      ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
+    `, hasDateFilter ? [start, end] : []);
 
     const feedbackStats = await dataSource.query(`
       SELECT COUNT(*) AS total_feedbacks
@@ -218,15 +222,16 @@ export class SuperAdminService {
       SELECT 
         m.id AS merchant_id,
         m.business_name,
-        COUNT(*) FILTER (WHERE c.status = 'issued') AS total_coupons_issued,
-        COUNT(*) FILTER (WHERE c.status = 'redeemed') AS total_coupons_redeemed
+        COUNT(*) FILTER (WHERE c.status = 'issued' ${hasDateFilter ? 'AND c.created_at BETWEEN $1 AND $2' : ''}) AS total_coupons_issued,
+        COUNT(*) FILTER (WHERE c.status = 'redeemed' ${hasDateFilter ? 'AND c.created_at BETWEEN $1 AND $2' : ''}) AS total_coupons_redeemed
       FROM merchants m
       LEFT JOIN coupons c ON c.merchant_id = m.id
+      ${hasDateFilter ? 'WHERE c.created_at BETWEEN $1 AND $2' : ''}
       GROUP BY m.id, m.business_name
       HAVING COUNT(c.id) > 0
       ORDER BY total_coupons_redeemed DESC
       LIMIT 10
-    `);
+    `, hasDateFilter ? [start, end] : []);
 
     return {
       message: 'Super admin dashboard analytics retrieved successfully',

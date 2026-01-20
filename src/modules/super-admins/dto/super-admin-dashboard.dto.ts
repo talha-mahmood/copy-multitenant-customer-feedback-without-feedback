@@ -1,12 +1,12 @@
-import { IsOptional, IsDateString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class SuperAdminDashboardQueryDto {
   @IsOptional()
-  @IsDateString()
+  @IsString()
   startDate?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsString()
   endDate?: string;
 }
 

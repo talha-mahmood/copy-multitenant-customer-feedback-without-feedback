@@ -20,6 +20,14 @@ import { SuperAdminDashboardQueryDto } from './dto/super-admin-dashboard.dto';
 export class SuperAdminController {
   constructor(private readonly superAdminService: SuperAdminService) {}
 
+
+  @Get('dashboard')
+  getDashboard(
+    @Query() query: SuperAdminDashboardQueryDto,
+  ) {
+    return this.superAdminService.getDashboardAnalytics(query.startDate, query.endDate);
+  }
+
   @Post()
   create(@Body() createSuperAdminDto: CreateSuperAdminDto) {
     return this.superAdminService.create(createSuperAdminDto);
@@ -38,28 +46,24 @@ export class SuperAdminController {
     return this.superAdminService.findAll(page, pageSize, search, isActive);
   }
 
-  @Get('dashboard')
-  getDashboard(
-    @Query() query: SuperAdminDashboardQueryDto,
-  ) {
-    return this.superAdminService.getDashboardAnalytics(query.startDate, query.endDate);
-  }
+ 
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id') id: number) {
     return this.superAdminService.findOne(id);
   }
 
   @Patch(':id')
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: number,
     @Body() updateSuperAdminDto: UpdateSuperAdminDto,
   ) {
     return this.superAdminService.update(id, updateSuperAdminDto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(@Param('id') id: number) {
     return this.superAdminService.remove(id);
   }
+
 }
