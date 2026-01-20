@@ -51,6 +51,10 @@ export class AdminController {
   getPaidAdImage(@Param('merchantId', ParseIntPipe) merchantId: number) {
     return this.adminService.getPaidAdImage(merchantId);
   }
+  @Get(':id/approvals')
+  getApprovals(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.getApprovalsByAgentId(id);
+  }
 
   @Get(':id')
   findOne(@Param() showAdminDto: ShowAdminDto) {

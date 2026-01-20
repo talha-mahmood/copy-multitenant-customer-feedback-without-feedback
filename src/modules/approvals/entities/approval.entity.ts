@@ -12,14 +12,20 @@ export class Approval extends BaseEntity {
     @JoinColumn({ name: 'merchant_id' })
     merchant: Merchant;
 
-    @Column({ name: 'paid_ad_placement', type: 'text', nullable: true })
-    paid_ad_placement: string;
+    @Column({ name: 'approval_type', type: 'varchar', length: 100 })
+    approval_type: string;
 
-    @Column({ name: 'paid_ad_image', type: 'text', nullable: true })
-    paid_ad_image: string;
+    @Column({ name: 'approval_owner', type: 'varchar', length: 50, default: 'agent' })
+    approval_owner: string;
 
-    @Column({ name: 'approval_status', type: 'boolean', default: false })
-    approval_status: boolean;
+    @Column({ name: 'agent_id', nullable: true })
+    agent_id: number;
+
+    @Column({ name: 'request_from', type: 'varchar', length: 50, default: 'merchant' })
+    request_from: string;
+
+    @Column({ name: 'approval_status', type: 'varchar', length: 20, default: 'pending' })
+    approval_status: string;
 
     @Column({ name: 'admin_id', nullable: true })
     admin_id: number;

@@ -8,11 +8,14 @@ import {
     Delete,
     UseGuards,
     ParseIntPipe,
+    UnauthorizedException,
 } from '@nestjs/common';
 import { ApprovalService } from './approval.service';
 import { CreateApprovalDto } from './dto/create-approval.dto';
 import { UpdateApprovalDto } from './dto/update-approval.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CurrentUser, User } from '../../common/decorators/current-user';
+import { SkipSubscription } from 'src/common/decorators/skip-subscription.decorator';
 
 @Controller('approvals')
 @UseGuards(JwtAuthGuard)
@@ -59,23 +62,34 @@ export class ApprovalController {
         @Param('id', ParseIntPipe) id: number,
         @Body() updateApprovalDto: UpdateApprovalDto,
     ) {
-        return this.approvalService.update(id, updateApprovalDto);
+        const targetId = updateApprovalDto['id'] || id;
+        return this.approvalService.update(targetId, updateApprovalDto);
     }
 
     @Patch(':id/approve')
     approve(
         @Param('id', ParseIntPipe) id: number,
-        @Body('adminId', ParseIntPipe) adminId: number,
+        @Body() body: any,
+        @CurrentUser() user: User,
     ) {
-        return this.approvalService.approve(id, adminId);
+        const targetId = body.id || id;
+        if (!user.adminId) {
+            throw new UnauthorizedException('Admin ID not found in token');
+        }
+        return this.approvalService.approve(targetId, user.adminId);
     }
 
     @Patch(':id/reject')
     reject(
         @Param('id', ParseIntPipe) id: number,
-        @Body('adminId', ParseIntPipe) adminId: number,
+        @Body() body: any,
+        @CurrentUser() user: User,
     ) {
-        return this.approvalService.reject(id, adminId);
+        const targetId = body.id || id;
+        if (!user.adminId) {
+            throw new UnauthorizedException('Admin ID not found in token');
+        }
+        return this.approvalService.reject(targetId, user.adminId);
     }
 
     @Delete(':id')

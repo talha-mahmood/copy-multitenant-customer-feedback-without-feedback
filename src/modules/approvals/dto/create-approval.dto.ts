@@ -5,17 +5,25 @@ export class CreateApprovalDto {
     @IsNumber()
     merchant_id: number;
 
-    @IsOptional()
+    @IsNotEmpty()
     @IsString()
-    paid_ad_placement?: string;
+    approval_type: string;
 
     @IsOptional()
     @IsString()
-    paid_ad_image?: string;
+    approval_owner?: string;
 
     @IsOptional()
-    @IsBoolean()
-    approval_status?: boolean;
+    @IsNumber()
+    agent_id?: number;
+
+    @IsOptional()
+    @IsString()
+    request_from?: string;
+
+    @IsOptional()
+    @IsString()
+    approval_status?: string;
 
     @IsOptional()
     @IsNumber()

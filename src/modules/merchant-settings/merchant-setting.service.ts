@@ -7,6 +7,7 @@ import { uploadFile } from 'src/common/helpers/file-upload.helper';
 import { FileUploadStorageType } from 'src/common/enums/file-upload-storage-type.enum';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { WalletService } from '../wallets/wallet.service';
+import { ApprovalService } from '../approvals/approval.service';
 
 @Injectable()
 export class MerchantSettingService {
@@ -16,6 +17,7 @@ export class MerchantSettingService {
     @Inject('MERCHANT_REPOSITORY')
     private merchantRepository: Repository<Merchant>,
     private walletService: WalletService,
+    private approvalService: ApprovalService,
   ) { }
 
   async create(createMerchantSettingDto: CreateMerchantSettingDto) {
@@ -149,6 +151,15 @@ export class MerchantSettingService {
       throw new NotFoundException(`Settings for merchant ID ${merchantId} not found`);
     }
 
+    // Get merchant to retrieve admin_id
+    const merchant = await this.merchantRepository.findOne({
+      where: { id: merchantId },
+    });
+
+    if (!merchant) {
+      throw new NotFoundException(`Merchant with ID ${merchantId} not found`);
+    }
+
     const timestamp = Date.now();
     const uploadResult = await uploadFile(
       paidAdImage,
@@ -163,11 +174,22 @@ export class MerchantSettingService {
 
     const updated = await this.merchantSettingRepository.save(setting);
 
+    // Create approval record with merchant's admin_id as agent_id
+    const approval = await this.approvalService.create({
+      merchant_id: merchantId,
+      approval_type: 'paid_ad',
+      approval_owner: 'agent',
+      agent_id: merchant.admin_id, // Set the admin who created this merchant
+      request_from: 'merchant',
+      approval_status: 'pending',
+    });
+
     return {
-      message: 'Paid ad image uploaded successfully',
+      message: 'Paid ad image uploaded successfully and approval request created',
       data: {
         paid_ad_image: updated.paid_ad_image,
         paid_ad_placement: updated.paid_ad_placement,
+        approval: approval,
       },
     };
   }

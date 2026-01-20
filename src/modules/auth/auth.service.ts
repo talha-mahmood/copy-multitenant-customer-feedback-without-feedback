@@ -22,6 +22,10 @@ import { MerchantWallet } from '../wallets/entities/merchant-wallet.entity';
 import { SystemLogService } from '../system-logs/system-log.service';
 import { SystemLogAction } from 'src/common/enums/system-log.enum';
 
+
+
+
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -66,6 +70,10 @@ export class AuthService {
     let merchantId: number | null = null;
     let adminId: number | null = null;
     let customerId: number | null = null;
+    let isSubscriptionExpired: boolean = false;
+    let subscriptionExpiresAt: Date | null = null;
+    console.log("i am checking this", userHasRole);
+
     const roleName = userHasRole.role.name;
     if (roleName === 'merchant') {
       const merchant = await this.merchantRepository.findOne({ where: { user_id: Number(user.id) } });
@@ -93,18 +101,26 @@ export class AuthService {
     } else if (roleName === 'admin') {
       const admin = await this.adminRepository.findOne({ where: { user_id: Number(user.id) } });
       if (admin) {
+
         adminId = admin.id;
         // Check admin subscription expiration
         const adminWallet = await this.adminWalletRepository.findOne({ where: { admin_id: admin.id } });
-        if (adminWallet && adminWallet.subscription_expires_at && adminWallet.subscription_expires_at < new Date()) {
-          throw new UnprocessableEntityException('Admin subscription has expired');
-
+        console.log("i am checking this ----> adminWallet", adminWallet);
+        if (!adminWallet?.subscription_expires_at) {
+          isSubscriptionExpired = true;
+          console.log('Admin subscription has expired in null block');
         }
-        else if (
-          adminWallet &&
-          adminWallet.subscription_expires_at
-        ) {
-          console.log('Admin still has access to the subscription plan');
+        if (adminWallet && adminWallet.subscription_expires_at) {
+          subscriptionExpiresAt = adminWallet.subscription_expires_at;
+          if (adminWallet.subscription_expires_at < new Date()) {
+            isSubscriptionExpired = true;
+            console.log('Admin subscription has expired');
+
+            console.log("i am checking this", adminWallet.subscription_expires_at);
+
+          } else {
+            console.log('Admin still has access to the subscription plan');
+          }
         }
       }
     }
@@ -116,6 +132,7 @@ export class AuthService {
       merchantId,
       adminId,
       customerId,
+      isSubscriptionExpired,
     };
     const response: any = {
       access_token: await this.jwtService.signAsync(payload),
@@ -129,6 +146,8 @@ export class AuthService {
         merchantId,
         adminId,
         customerId,
+        is_subscription_expired: isSubscriptionExpired,
+        subscription_expires_at: subscriptionExpiresAt,
       },
     };
 
