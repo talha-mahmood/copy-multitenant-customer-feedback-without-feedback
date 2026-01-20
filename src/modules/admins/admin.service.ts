@@ -11,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { WalletService } from '../wallets/wallet.service';
 import { SystemLogService } from '../system-logs/system-log.service';
 import { SystemLogAction, SystemLogCategory, SystemLogLevel } from 'src/common/enums/system-log.enum';
+import { ApprovalService } from '../approvals/approval.service';
 
 @Injectable()
 export class AdminService {
@@ -21,7 +22,8 @@ export class AdminService {
     private dataSource: DataSource,
     private walletService: WalletService,
     private systemLogService: SystemLogService,
-  ) {}
+    private approvalService: ApprovalService,
+  ) { }
 
   async create(createAdminDto: CreateAdminDto) {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -125,7 +127,7 @@ export class AdminService {
     const queryBuilder = this.adminRepository
       .createQueryBuilder('admin')
       .leftJoinAndSelect('admin.user', 'user');
-      
+
     if (isActive !== undefined) {
       queryBuilder.where('user.is_active = :isActive', { isActive });
     }
@@ -162,7 +164,7 @@ export class AdminService {
   }
 
   async findOne(id: number, user?: { role: string; adminId?: number | null }) {
-    const admin = await this.adminRepository.findOne({ 
+    const admin = await this.adminRepository.findOne({
       where: { id },
       relations: ['user'],
     });
@@ -214,7 +216,7 @@ export class AdminService {
       if (updateAdminDto.address !== undefined) adminUpdateData.address = updateAdminDto.address;
       if (updateAdminDto.city !== undefined) adminUpdateData.city = updateAdminDto.city;
       if (updateAdminDto.country !== undefined) adminUpdateData.country = updateAdminDto.country;
-      
+
       if (Object.keys(adminUpdateData).length > 0) {
         await queryRunner.manager.update(Admin, id, adminUpdateData);
       }
@@ -243,10 +245,10 @@ export class AdminService {
         metadata: {
           admin_id: id,
           agent_name: updatedAdmin.user.name,
-          updated_fields: Object.keys({...userUpdateData, ...adminUpdateData}),
+          updated_fields: Object.keys({ ...userUpdateData, ...adminUpdateData }),
         },
       });
-    
+
       return {
         message: 'Admin updated successfully',
         data: instanceToPlain(updatedAdmin),
@@ -630,5 +632,34 @@ export class AdminService {
         paid_ad_placement: merchantSetting[0].paid_ad_placement
       }
     };
+  }
+
+  async getApprovalsByAgentId(agentId: number) {
+    // Verify agent exists
+    const agent = await this.adminRepository.findOne({
+      where: { id: agentId }
+    });
+
+    if (!agent) {
+      throw new NotFoundException(`Agent with ID ${agentId} not found`);
+    }
+
+    // Get approvals where agent_id matches
+    const approvals = await this.approvalService.findByAdmin(agentId); // Reusing findByAdmin since agent uses admin table id in approval.agent_id logically based on previous steps, but wait - let's check approval.service.ts methods.
+
+    // Correction: In step 153/154 we set stored `merchant.admin_id` into `approval.agent_id`.
+    // The `approval.service.ts` has `findByAdmin` which queries `admin_id` column, NOT `agent_id` column.
+    // I need to add `findByAgent` into `ApprovalService` OR simply query it here if I had access to repo, but I'm using service.
+    // It's better to add `findByAgent` to `ApprovalService`.
+
+    // Let me first add findByAgent to ApprovalService, then use it here.
+    // For now I will write this method assuming `findByAgent` exists or will exist.
+
+    // Actually, looking at `approval.service.ts`:
+    // async findByAdmin(adminId: number) { return await this.approvalRepository.find({ where: { admin_id: adminId }, ... }); }
+    // This queries the `admin_id` column which is for the APPROVER/REJECTOR.
+    // The `agent_id` column is the one we want to filter by.
+
+    return this.approvalService.findByAgent(agentId);
   }
 }

@@ -8,15 +8,16 @@ import { Merchant } from '../merchants/entities/merchant.entity';
 import { DataSource } from 'typeorm';
 import { merchantProviders } from '../merchants/merchant.provider';
 import { WalletModule } from '../wallets/wallet.module';
+import { ApprovalModule } from '../approvals/approval.module';
 
 @Module({
-  imports: [DatabaseModule, NestjsFormDataModule, WalletModule],
+  imports: [DatabaseModule, NestjsFormDataModule, WalletModule, ApprovalModule],
   controllers: [MerchantSettingController],
   providers: [
     MerchantSettingService,
     ...merchantSettingProviders,
     ...merchantProviders
-   
+
   ],
   exports: [MerchantSettingService],
 })

@@ -5,11 +5,12 @@ import { DatabaseModule } from 'src/database/database.module';
 import { adminProviders } from './admin.provider';
 import { WalletModule } from '../wallets/wallet.module';
 import { SystemLogModule } from '../system-logs/system-log.module';
+import { ApprovalModule } from '../approvals/approval.module';
 
 @Module({
-  imports: [DatabaseModule, WalletModule, SystemLogModule],
+  imports: [DatabaseModule, WalletModule, SystemLogModule, ApprovalModule],
   controllers: [AdminController],
   providers: [AdminService, ...adminProviders],
   exports: [AdminService],
 })
-export class AdminModule {}
+export class AdminModule { }

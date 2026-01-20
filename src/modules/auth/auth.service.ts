@@ -13,21 +13,23 @@ import { RegisterDto } from './dtos/register.dto';
 import { UploadFileDto } from './dtos/upload-file.dto';
 import { uploadFile } from 'src/common/helpers/file-upload.helper';
 import { UserHasRoleService } from '../roles-permission-management/user-has-role/user-has-role.service';
-import { AdminWallet } from '../wallets/entities/admin-wallet.entity';
-import { MerchantWallet } from '../wallets/entities/merchant-wallet.entity';
 import { EncryptionHelper } from 'src/common/helpers/encryption-helper';
-import { SuperAdmin } from '../super-admins/entities/super-admin.entity';
 import { Admin } from '../admins/entities/admin.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { Customer } from '../customers/entities/customer.entity';
+import { AdminWallet } from '../wallets/entities/admin-wallet.entity';
+import { MerchantWallet } from '../wallets/entities/merchant-wallet.entity';
 import { SystemLogService } from '../system-logs/system-log.service';
 import { SystemLogAction } from 'src/common/enums/system-log.enum';
+
+
+
+
 
 @Injectable()
 export class AuthService {
   constructor(
     @Inject('USER_REPOSITORY') private userRepository: Repository<User>,
-    @Inject('SUPER_ADMIN_REPOSITORY') private superAdminRepository: Repository<SuperAdmin>,
     @Inject('ADMIN_REPOSITORY') private adminRepository: Repository<Admin>,
     @Inject('MERCHANT_REPOSITORY') private merchantRepository: Repository<Merchant>,
     @Inject('CUSTOMER_REPOSITORY') private customerRepository: Repository<Customer>,
@@ -37,7 +39,7 @@ export class AuthService {
     private userHasRoleService: UserHasRoleService,
     private encryptionHelper: EncryptionHelper,
     private systemLogService: SystemLogService,
-  ) {}
+  ) { }
 
   async login(loginDto: LoginDto) {
     const user = await this.userRepository.findOne({
@@ -67,8 +69,11 @@ export class AuthService {
 
     let merchantId: number | null = null;
     let adminId: number | null = null;
-    let superAdminId: number | null = null;
     let customerId: number | null = null;
+    let isSubscriptionExpired: boolean = false;
+    let subscriptionExpiresAt: Date | null = null;
+    console.log("i am checking this", userHasRole);
+
     const roleName = userHasRole.role.name;
     if (roleName === 'merchant') {
       const merchant = await this.merchantRepository.findOne({ where: { user_id: Number(user.id) } });
@@ -96,25 +101,27 @@ export class AuthService {
     } else if (roleName === 'admin') {
       const admin = await this.adminRepository.findOne({ where: { user_id: Number(user.id) } });
       if (admin) {
+
         adminId = admin.id;
         // Check admin subscription expiration
         const adminWallet = await this.adminWalletRepository.findOne({ where: { admin_id: admin.id } });
-        if (adminWallet && adminWallet.subscription_expires_at && adminWallet.subscription_expires_at < new Date()) {
-          throw new UnprocessableEntityException('Admin subscription has expired');
-
+        console.log("i am checking this ----> adminWallet", adminWallet);
+        if (!adminWallet?.subscription_expires_at) {
+          isSubscriptionExpired = true;
+          console.log('Admin subscription has expired in null block');
         }
-        else if (
-          adminWallet &&
-          adminWallet.subscription_expires_at
-        ) {
-          console.log('Admin still has access to the subscription plan');
-        }
+        if (adminWallet && adminWallet.subscription_expires_at) {
+          subscriptionExpiresAt = adminWallet.subscription_expires_at;
+          if (adminWallet.subscription_expires_at < new Date()) {
+            isSubscriptionExpired = true;
+            console.log('Admin subscription has expired');
 
-      }
-    } else if (roleName === 'super_admin') {
-      const superAdmin = await this.superAdminRepository.findOne({ where: { user_id: Number(user.id) } });
-      if (superAdmin) {
-        superAdminId = superAdmin.id;
+            console.log("i am checking this", adminWallet.subscription_expires_at);
+
+          } else {
+            console.log('Admin still has access to the subscription plan');
+          }
+        }
       }
     }
     // Note: Customers don't have user accounts anymore
@@ -122,10 +129,10 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: roleName, // use string role name
-      superAdminId,
       merchantId,
       adminId,
       customerId,
+      isSubscriptionExpired,
     };
     const response: any = {
       access_token: await this.jwtService.signAsync(payload),
@@ -136,22 +143,16 @@ export class AuthService {
         avatar: user.avatar,
         is_active: user.is_active,
         role: roleName, // use string role name
-        superAdminId,
         merchantId,
         adminId,
         customerId,
+        is_subscription_expired: isSubscriptionExpired,
+        subscription_expires_at: subscriptionExpiresAt,
       },
     };
 
     // Fetch and include role-specific object
-    if (roleName === 'super_admin') {
-      const superAdmin = await this.superAdminRepository.findOne({
-        where: { user_id: Number(user.id) },
-      });
-      if (superAdmin) {
-        response.superAdmin = superAdmin;
-      }
-    } else if (roleName === 'admin') {
+    if (roleName === 'admin') {
       const admin = await this.adminRepository.findOne({
         where: { user_id: Number(user.id) },
       });
@@ -179,7 +180,7 @@ export class AuthService {
         role: roleName,
         merchantId,
         adminId,
-        superAdminId,
+
       },
     );
 
