@@ -8,6 +8,7 @@ import { instanceToPlain } from 'class-transformer';
 import { CreateSuperAdminDto } from './dto/create-super-admin.dto';
 import { UpdateSuperAdminDto } from './dto/update-super-admin.dto';
 import * as bcrypt from 'bcrypt';
+import { WalletService } from '../wallets/wallet.service';
 
 @Injectable()
 export class SuperAdminService {
@@ -16,6 +17,7 @@ export class SuperAdminService {
     private superAdminRepository: Repository<SuperAdmin>,
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
+    private walletService: WalletService,
   ) {}
 
   async create(createSuperAdminDto: CreateSuperAdminDto) {
@@ -59,6 +61,19 @@ export class SuperAdminService {
         address: createSuperAdminDto.address,
       });
       const savedSuperAdmin = await queryRunner.manager.save(superAdmin);
+
+      // Create super admin wallet
+      const superAdminWallet = queryRunner.manager.create('SuperAdminWallet', {
+        super_admin_id: savedSuperAdmin.id,
+        balance: 0,
+        total_earnings: 0,
+        total_spent: 0,
+        pending_amount: 0,
+        currency: 'USD',
+        admin_subscription_fee: 1199.00,
+        is_active: true,
+      });
+      await queryRunner.manager.save(superAdminWallet);
 
       await queryRunner.commitTransaction();
 

@@ -9,11 +9,13 @@ import { Repository, DataSource } from 'typeorm';
 import {
   ADMIN_WALLET_REPOSITORY,
   MERCHANT_WALLET_REPOSITORY,
+  SUPER_ADMIN_WALLET_REPOSITORY,
   WALLET_TRANSACTION_REPOSITORY,
   CREDIT_PACKAGE_REPOSITORY,
 } from './wallet.provider';
 import { AdminWallet } from './entities/admin-wallet.entity';
 import { MerchantWallet } from './entities/merchant-wallet.entity';
+import { SuperAdminWallet } from './entities/super-admin-wallet.entity';
 import { WalletTransaction } from './entities/wallet-transaction.entity';
 import { CreditPackage } from './entities/credit-package.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
@@ -29,6 +31,8 @@ export class WalletService {
     private adminWalletRepository: Repository<AdminWallet>,
     @Inject(MERCHANT_WALLET_REPOSITORY)
     private merchantWalletRepository: Repository<MerchantWallet>,
+    @Inject(SUPER_ADMIN_WALLET_REPOSITORY)
+    private superAdminWalletRepository: Repository<SuperAdminWallet>,
     @Inject(WALLET_TRANSACTION_REPOSITORY)
     private transactionRepository: Repository<WalletTransaction>,
     @Inject(CREDIT_PACKAGE_REPOSITORY)
@@ -131,6 +135,57 @@ export class WalletService {
     }
 
     return wallet;
+  }
+
+  /**
+   * Create super admin wallet when super admin is created
+   */
+  async createSuperAdminWallet(superAdminId: number, currency = 'USD'): Promise<SuperAdminWallet> {
+    const existingWallet = await this.superAdminWalletRepository.findOne({
+      where: { super_admin_id: superAdminId },
+    });
+
+    if (existingWallet) {
+      return existingWallet;
+    }
+
+    const wallet = this.superAdminWalletRepository.create({
+      super_admin_id: superAdminId,
+      balance: 0,
+      total_earnings: 0,
+      total_spent: 0,
+      pending_amount: 0,
+      currency,
+      admin_subscription_fee: 1199.00, // Default admin subscription fee
+      is_active: true,
+    });
+
+    return await this.superAdminWalletRepository.save(wallet);
+  }
+
+  /**
+   * Get super admin wallet
+   */
+  async getSuperAdminWallet(): Promise<SuperAdminWallet> {
+    const wallet = await this.superAdminWalletRepository.findOne({
+      where: { is_active: true },
+      relations: ['superAdmin', 'superAdmin.user'],
+    });
+
+    if (!wallet) {
+      throw new NotFoundException('Super admin wallet not found');
+    }
+
+    return wallet;
+  }
+
+  /**
+   * Update admin subscription fee (super admin only)
+   */
+  async updateAdminSubscriptionFee(newFee: number): Promise<SuperAdminWallet> {
+    const wallet = await this.getSuperAdminWallet();
+    wallet.admin_subscription_fee = newFee;
+    return await this.superAdminWalletRepository.save(wallet);
   }
 
   /**
@@ -908,5 +963,81 @@ export class WalletService {
     }
 
     return { hasCredits, availableCredits };
+  }
+
+  /**
+   * Process admin subscription payment to super admin
+   */
+  async processAdminSubscriptionPayment(adminId: number): Promise<any> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Get super admin wallet to get the subscription fee
+      const superAdminWallet = await this.getSuperAdminWallet();
+      const subscriptionFee = parseFloat(superAdminWallet.admin_subscription_fee.toString());
+
+      // Get admin wallet
+      const adminWallet = await queryRunner.manager.findOne(AdminWallet, {
+        where: { admin_id: adminId },
+      });
+
+      if (!adminWallet) {
+        throw new NotFoundException('Admin wallet not found');
+      }
+
+      // Set subscription expiration to one year from now
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+      // Update admin wallet subscription
+      await queryRunner.manager.update(AdminWallet, adminWallet.id, {
+        subscription_expires_at: oneYearFromNow,
+      });
+
+      // Credit super admin wallet
+      await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
+        balance: parseFloat(superAdminWallet.balance.toString()) + subscriptionFee,
+        total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + subscriptionFee,
+      });
+
+      // Create transaction for super admin
+      await queryRunner.manager.save(WalletTransaction, {
+        super_admin_wallet_id: superAdminWallet.id,
+        type: 'subscription_fee',
+        amount: subscriptionFee,
+        status: 'completed',
+        description: `Admin subscription payment from admin #${adminId}`,
+        metadata: JSON.stringify({ admin_id: adminId }),
+        completed_at: new Date(),
+      });
+
+      // Log the transaction
+      await this.systemLogService.logWallet(
+        SystemLogAction.CREDIT_ADD,
+        `Admin subscription fee $${subscriptionFee} received from admin #${adminId}`,
+        superAdminWallet.super_admin_id,
+        'super_admin',
+        subscriptionFee,
+        { admin_id: adminId, subscription_expires_at: oneYearFromNow },
+      );
+
+      await queryRunner.commitTransaction();
+
+      return {
+        message: 'Admin subscription payment processed successfully',
+        data: {
+          adminId,
+          subscriptionFee,
+          subscriptionExpiresAt: oneYearFromNow,
+        },
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }
