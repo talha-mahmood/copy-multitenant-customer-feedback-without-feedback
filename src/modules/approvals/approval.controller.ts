@@ -16,6 +16,7 @@ import { UpdateApprovalDto } from './dto/update-approval.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, User } from '../../common/decorators/current-user';
 import { SkipSubscription } from 'src/common/decorators/skip-subscription.decorator';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('approvals')
 @UseGuards(JwtAuthGuard)
@@ -90,6 +91,13 @@ export class ApprovalController {
             throw new UnauthorizedException('Admin ID not found in token');
         }
         return this.approvalService.reject(targetId, user.adminId);
+    }
+
+    @SkipSubscription()
+    @Public()
+    @Get('approved-paid-ads/admin/:adminId')
+    getApprovedPaidAdds(@Param('adminId', ParseIntPipe) adminId: number) {
+        return this.approvalService.getApprovedPaidAdds(adminId);
     }
 
     @Delete(':id')

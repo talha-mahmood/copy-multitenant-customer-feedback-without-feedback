@@ -173,6 +173,23 @@ export class ApprovalService {
         return refetched;
     }
 
+    async getApprovedPaidAdds(adminId: number) {
+        const approvals = await this.approvalRepository.find({
+            where: {
+                admin_id: adminId,
+                approval_status: 'approved',
+                approval_type: 'paid_ad',
+            },
+            relations: ['merchant', 'merchant.settings'],
+        });
+
+        return approvals.map((approval) => ({
+            ...approval.merchant,
+            paid_ad_image: approval.merchant?.settings?.paid_ad_image,
+            paid_ad_placement: approval.merchant?.settings?.paid_ad_placement,
+        }));
+    }
+
     private async handleApprovalSideEffects(approval: Approval): Promise<void> {
         try {
             console.log(`[ApprovalService] Handling side effects for type: ${approval.approval_type}, status: ${approval.approval_status}`);
