@@ -2,6 +2,7 @@ import { Column, Entity, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from 'src/common/entities/base.entity';
 import { AdminWallet } from './admin-wallet.entity';
 import { MerchantWallet } from './merchant-wallet.entity';
+import { SuperAdminWallet } from './super-admin-wallet.entity';
 
 @Entity('wallet_transactions')
 export class WalletTransaction extends BaseEntity {
@@ -18,6 +19,13 @@ export class WalletTransaction extends BaseEntity {
   @ManyToOne(() => MerchantWallet, (wallet) => wallet.transactions, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'merchant_wallet_id' })
   merchant_wallet: MerchantWallet;
+
+  @Column({ name: 'super_admin_wallet_id', nullable: true })
+  super_admin_wallet_id: number;
+
+  @ManyToOne(() => SuperAdminWallet, (wallet) => wallet.transactions, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'super_admin_wallet_id' })
+  super_admin_wallet: SuperAdminWallet;
 
   @Column({ type: 'varchar', length: 20 })
   type: string; // 'credit', 'debit', 'commission', 'refund', 'purchase'

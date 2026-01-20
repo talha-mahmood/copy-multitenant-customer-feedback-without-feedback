@@ -35,6 +35,41 @@ export class WalletController {
     return await this.walletService.getMerchantWallet(merchantId);
   }
 
+  @Roles(UserRole.SUPER_ADMIN)
+  @Get('super-admin')
+  async getSuperAdminWallet() {
+    return await this.walletService.getSuperAdminWallet();
+  }
+
+  @SkipSubscription()
+  @Get('admin-subscription-fee')
+  async getAdminSubscriptionFee() {
+    const { fee, currency } = await this.walletService.getAdminSubscriptionFee();
+    return {
+      message: 'Admin subscription fee retrieved successfully',
+      data: {
+        fee,
+        currency,
+      },
+    };
+  }
+
+  @Roles(UserRole.SUPER_ADMIN)
+  @Patch('super-admin/subscription-fee')
+  async updateAdminSubscriptionFee(@Body('fee') fee: number) {
+    const wallet = await this.walletService.updateAdminSubscriptionFee(fee);
+    return {
+      message: 'Admin subscription fee updated successfully',
+      data: wallet,
+    };
+  }
+
+  @SkipSubscription()
+  @Post('admin/:adminId/subscribe')
+  async processAdminSubscription(@Param('adminId') adminId: number) {
+    return await this.walletService.processAdminSubscriptionPayment(adminId);
+  }
+
   @Get('admin/:adminId/transactions')
   async getAdminTransactions(
     @Param('adminId') adminId: number,
