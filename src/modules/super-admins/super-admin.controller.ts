@@ -14,6 +14,7 @@ import {
 import { SuperAdminService } from './super-admin.service';
 import { CreateSuperAdminDto } from './dto/create-super-admin.dto';
 import { UpdateSuperAdminDto } from './dto/update-super-admin.dto';
+import { SuperAdminDashboardQueryDto } from './dto/super-admin-dashboard.dto';
 
 @Controller('super-admins')
 export class SuperAdminController {
@@ -35,6 +36,13 @@ export class SuperAdminController {
       throw new Error('Page size cannot be greater than 500');
     }
     return this.superAdminService.findAll(page, pageSize, search, isActive);
+  }
+
+  @Get('dashboard')
+  getDashboard(
+    @Query() query: SuperAdminDashboardQueryDto,
+  ) {
+    return this.superAdminService.getDashboardAnalytics(query.startDate, query.endDate);
   }
 
   @Get(':id')

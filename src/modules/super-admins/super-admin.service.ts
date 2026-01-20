@@ -127,6 +127,154 @@ export class SuperAdminService {
     };
   }
 
+  async getDashboardAnalytics(startDate?: string, endDate?: string) {
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+    const hasDateFilter = start && end;
+
+    const dataSource = this.dataSource;
+
+    const adminStats = await dataSource.query(`
+      SELECT 
+        COUNT(*) AS total_admins,
+        COUNT(*) FILTER (WHERE u.is_active = TRUE) AS active_admins,
+        COUNT(*) FILTER (WHERE u.is_active = FALSE) AS inactive_admins
+      FROM admins a
+      LEFT JOIN users u ON u.id = a.user_id
+      WHERE a.deleted_at IS NULL
+    `);
+
+    const merchantStats = await dataSource.query(`
+      SELECT 
+        COUNT(*) AS total_merchants,
+        COUNT(*) FILTER (WHERE u.is_active = TRUE) AS active_merchants,
+        COUNT(*) FILTER (WHERE u.is_active = FALSE) AS inactive_merchants,
+        COUNT(*) FILTER (WHERE m.merchant_type = 'annual') AS annual_merchants,
+        COUNT(*) FILTER (WHERE m.merchant_type = 'temporary') AS temporary_merchants
+      FROM merchants m
+      LEFT JOIN users u ON u.id = m.user_id
+      WHERE m.deleted_at IS NULL
+    `);
+
+    const customerStats = await dataSource.query(`
+      SELECT COUNT(*) AS total_customers FROM customers
+    `);
+
+    const feedbackStats = await dataSource.query(`
+      SELECT COUNT(*) AS total_feedbacks
+      FROM feedbacks
+      ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
+    `, hasDateFilter ? [start, end] : []);
+
+    const couponStats = await dataSource.query(`
+      SELECT 
+        COUNT(*) FILTER (WHERE status = 'issued') AS total_issued,
+        COUNT(*) FILTER (WHERE status = 'redeemed') AS total_redeemed
+      FROM coupons
+      ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
+    `, hasDateFilter ? [start, end] : []);
+
+    const revenueTotals = await dataSource.query(`
+      SELECT 
+        COALESCE(SUM(amount) FILTER (WHERE type = 'commission'), 0) AS total_commissions,
+        COALESCE(SUM(amount) FILTER (WHERE type = 'commission' AND description ILIKE '%Annual subscription%'), 0) AS annual_subscription_revenue,
+        COALESCE(SUM(amount) FILTER (WHERE type = 'commission' AND description ILIKE '%credit purchase%'), 0) AS credit_purchase_revenue
+      FROM wallet_transactions
+      ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
+    `, hasDateFilter ? [start, end] : []);
+
+    const monthlyRevenue = await dataSource.query(`
+      SELECT 
+        TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') AS month,
+        COALESCE(SUM(amount), 0) AS revenue,
+        COALESCE(SUM(amount) FILTER (WHERE type = 'commission'), 0) AS commissions
+      FROM wallet_transactions
+      ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
+      GROUP BY DATE_TRUNC('month', created_at)
+      ORDER BY month ASC
+    `, hasDateFilter ? [start, end] : []);
+
+    const merchantGrowth = await dataSource.query(`
+      SELECT 
+        TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') AS month,
+        COUNT(*) AS new_merchants
+      FROM merchants
+      ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
+      GROUP BY DATE_TRUNC('month', created_at)
+      ORDER BY month ASC
+    `, hasDateFilter ? [start, end] : []);
+
+    const customerGrowth = await dataSource.query(`
+      SELECT 
+        TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') AS month,
+        COUNT(*) AS new_customers
+      FROM customers
+      ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
+      GROUP BY DATE_TRUNC('month', created_at)
+      ORDER BY month ASC
+    `, hasDateFilter ? [start, end] : []);
+
+    const topMerchants = await dataSource.query(`
+      SELECT 
+        m.id AS merchant_id,
+        m.business_name,
+        COUNT(*) FILTER (WHERE c.status = 'issued') AS total_coupons_issued,
+        COUNT(*) FILTER (WHERE c.status = 'redeemed') AS total_coupons_redeemed
+      FROM merchants m
+      LEFT JOIN coupons c ON c.merchant_id = m.id
+      GROUP BY m.id, m.business_name
+      HAVING COUNT(c.id) > 0
+      ORDER BY total_coupons_redeemed DESC
+      LIMIT 10
+    `);
+
+    return {
+      message: 'Super admin dashboard analytics retrieved successfully',
+      data: {
+        overview: {
+          totalAdmins: parseInt(adminStats[0]?.total_admins || '0', 10),
+          activeAdmins: parseInt(adminStats[0]?.active_admins || '0', 10),
+          inactiveAdmins: parseInt(adminStats[0]?.inactive_admins || '0', 10),
+          totalMerchants: parseInt(merchantStats[0]?.total_merchants || '0', 10),
+          activeMerchants: parseInt(merchantStats[0]?.active_merchants || '0', 10),
+          inactiveMerchants: parseInt(merchantStats[0]?.inactive_merchants || '0', 10),
+          annualMerchants: parseInt(merchantStats[0]?.annual_merchants || '0', 10),
+          temporaryMerchants: parseInt(merchantStats[0]?.temporary_merchants || '0', 10),
+          totalCustomers: parseInt(customerStats[0]?.total_customers || '0', 10),
+          totalCouponsIssued: parseInt(couponStats[0]?.total_issued || '0', 10),
+          totalCouponsRedeemed: parseInt(couponStats[0]?.total_redeemed || '0', 10),
+          totalFeedbackSubmissions: parseInt(feedbackStats[0]?.total_feedbacks || '0', 10),
+        },
+        revenue: {
+          totalCommissions: parseFloat(revenueTotals[0]?.total_commissions || '0'),
+          annualSubscriptionRevenue: parseFloat(revenueTotals[0]?.annual_subscription_revenue || '0'),
+          creditPurchaseRevenue: parseFloat(revenueTotals[0]?.credit_purchase_revenue || '0'),
+          monthlyRevenue: monthlyRevenue.map((mr: any) => ({
+            month: mr.month,
+            revenue: parseFloat(mr.revenue) || 0,
+            commissions: parseFloat(mr.commissions) || 0,
+          })),
+        },
+        growth: {
+          monthlyMerchants: merchantGrowth.map((m: any) => ({
+            month: m.month,
+            newMerchants: parseInt(m.new_merchants || '0', 10),
+          })),
+          monthlyCustomers: customerGrowth.map((c: any) => ({
+            month: c.month,
+            newCustomers: parseInt(c.new_customers || '0', 10),
+          })),
+        },
+        topMerchants: topMerchants.map((m: any) => ({
+          merchantId: m.merchant_id,
+          businessName: m.business_name,
+          totalCouponsIssued: parseInt(m.total_coupons_issued || '0', 10),
+          totalCouponsRedeemed: parseInt(m.total_coupons_redeemed || '0', 10),
+        })),
+      },
+    };
+  }
+
   async update(id: number, updateSuperAdminDto: UpdateSuperAdminDto) {
     const superAdmin = await this.superAdminRepository.findOne({ 
       where: { id },
