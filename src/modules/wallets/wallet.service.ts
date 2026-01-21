@@ -996,9 +996,11 @@ export class WalletService {
       const oneYearFromNow = new Date();
       oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
 
+
       // Update admin wallet subscription
       await queryRunner.manager.update(AdminWallet, adminWallet.id, {
         subscription_expires_at: oneYearFromNow,
+        is_subscription_expired: false,
       });
 
       // Credit super admin wallet
@@ -1025,7 +1027,7 @@ export class WalletService {
         superAdminWallet.super_admin_id,
         'super_admin',
         subscriptionFee,
-        { admin_id: adminId, subscription_expires_at: oneYearFromNow },
+        { admin_id: adminId, subscription_expires_at: oneYearFromNow, is_subscription_expired: false },
       );
 
       await queryRunner.commitTransaction();
@@ -1036,6 +1038,7 @@ export class WalletService {
           adminId,
           subscriptionFee,
           subscriptionExpiresAt: oneYearFromNow,
+          isSubscriptionExpired: false,
         },
       };
     } catch (error) {

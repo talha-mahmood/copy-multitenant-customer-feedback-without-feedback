@@ -38,7 +38,7 @@ export class SubscriptionGuard implements CanActivate {
         // Check subscription status using adminId from JWT
         const adminWallet = await this.dataSource.query(
             `
-      SELECT subscription_expires_at 
+      SELECT subscription_expires_at, is_subscription_expired 
       FROM admin_wallets 
       WHERE admin_id = $1
       LIMIT 1
@@ -54,6 +54,26 @@ export class SubscriptionGuard implements CanActivate {
                 redirectTo: '/payment',
             });
         }
+
+        // Check is_subscription_expired field (updated on every login)
+        if (adminWallet[0].is_subscription_expired === true) {
+            throw new ForbiddenException({
+                statusCode: 403,
+                message: 'Subscription expired',
+                error: 'SUBSCRIPTION_EXPIRED',
+                redirectTo: '/payment',
+            });
+        }
+
+        // Fallback: Check subscription_expires_at if null or past date
+        // if (!adminWallet[0].subscription_expires_at) {
+        //     throw new ForbiddenException({
+        //         statusCode: 403,
+        //         message: 'No subscription found',
+        //         error: 'NO_SUBSCRIPTION',
+        //         redirectTo: '/payment',
+        //     });
+        // }
 
         const expiryDate = new Date(adminWallet[0].subscription_expires_at);
         const now = new Date();

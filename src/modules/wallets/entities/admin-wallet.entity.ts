@@ -33,6 +33,9 @@ export class AdminWallet extends BaseEntity {
   @Column({ name: 'subscription_expires_at', type: 'timestamp', nullable: true })
   subscription_expires_at: Date;
 
+  @Column({ name: 'is_subscription_expired', type: 'boolean', default: false })
+  is_subscription_expired: boolean;
+
   @Column({ name: 'is_active', type: 'boolean', default: true })
   is_active: boolean;
 
