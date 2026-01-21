@@ -89,6 +89,10 @@ export async function seedUser(dataSource: DataSource) {
         pending_amount: 0,
         currency: 'USD',
         admin_subscription_fee: 1199.00,
+        temporary_merchant_commission_rate: 0.20, // 20%
+        annual_merchant_commission_rate: 0.02, // 2%
+        merchant_annual_fee: 1199.00,
+        admin_annual_commission_rate: 0.75, // 75%
         is_active: true,
       });
     }

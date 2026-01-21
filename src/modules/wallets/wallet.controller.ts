@@ -65,6 +65,36 @@ export class WalletController {
   }
 
   @SkipSubscription()
+  @Get('commission-settings')
+  async getCommissionSettings() {
+    const settings = await this.walletService.getCommissionSettings();
+    return {
+      message: 'Commission settings retrieved successfully',
+      data: settings,
+    };
+  }
+
+  @Roles(UserRole.SUPER_ADMIN)
+  @Patch('commission-settings')
+  async updateCommissionSettings(
+    @Body('temporaryMerchantCommissionRate') temporaryMerchantCommissionRate?: number,
+    @Body('annualMerchantCommissionRate') annualMerchantCommissionRate?: number,
+    @Body('merchantAnnualFee') merchantAnnualFee?: number,
+    @Body('adminAnnualCommissionRate') adminAnnualCommissionRate?: number,
+  ) {
+    const wallet = await this.walletService.updateCommissionSettings({
+      temporaryMerchantCommissionRate,
+      annualMerchantCommissionRate,
+      merchantAnnualFee,
+      adminAnnualCommissionRate,
+    });
+    return {
+      message: 'Commission settings updated successfully',
+      data: wallet,
+    };
+  }
+
+  @SkipSubscription()
   @Post('admin/:adminId/subscribe')
   async processAdminSubscription(@Param('adminId') adminId: number) {
     return await this.walletService.processAdminSubscriptionPayment(adminId);

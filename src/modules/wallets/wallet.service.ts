@@ -194,6 +194,53 @@ export class WalletService {
   }
 
   /**
+   * Update commission rates and merchant fees (super admin only)
+   */
+  async updateCommissionSettings(settings: {
+    temporaryMerchantCommissionRate?: number;
+    annualMerchantCommissionRate?: number;
+    merchantAnnualFee?: number;
+    adminAnnualCommissionRate?: number;
+  }): Promise<SuperAdminWallet> {
+    const wallet = await this.getSuperAdminWallet();
+    
+    if (settings.temporaryMerchantCommissionRate !== undefined) {
+      wallet.temporary_merchant_commission_rate = settings.temporaryMerchantCommissionRate;
+    }
+    if (settings.annualMerchantCommissionRate !== undefined) {
+      wallet.annual_merchant_commission_rate = settings.annualMerchantCommissionRate;
+    }
+    if (settings.merchantAnnualFee !== undefined) {
+      wallet.merchant_annual_fee = settings.merchantAnnualFee;
+    }
+    if (settings.adminAnnualCommissionRate !== undefined) {
+      wallet.admin_annual_commission_rate = settings.adminAnnualCommissionRate;
+    }
+    
+    return await this.superAdminWalletRepository.save(wallet);
+  }
+
+  /**
+   * Get commission settings (public)
+   */
+  async getCommissionSettings(): Promise<{
+    temporaryMerchantCommissionRate: number;
+    annualMerchantCommissionRate: number;
+    merchantAnnualFee: number;
+    adminAnnualCommissionRate: number;
+    currency: string;
+  }> {
+    const wallet = await this.getSuperAdminWallet();
+    return {
+      temporaryMerchantCommissionRate: parseFloat(wallet.temporary_merchant_commission_rate.toString()),
+      annualMerchantCommissionRate: parseFloat(wallet.annual_merchant_commission_rate.toString()),
+      merchantAnnualFee: parseFloat(wallet.merchant_annual_fee.toString()),
+      adminAnnualCommissionRate: parseFloat(wallet.admin_annual_commission_rate.toString()),
+      currency: wallet.currency,
+    };
+  }
+
+  /**
    * Add credits to admin wallet (commission earnings)
    */
   async creditAdminWallet(
@@ -347,10 +394,11 @@ export class WalletService {
         throw new NotFoundException('Merchant not found');
       }
 
-      // Calculate commission based on merchant type
-      // Temporary merchants: 20% commission
-      // Annual merchants: 2% commission
-      const commissionRate = merchant.merchant_type === 'temporary' ? 0.20 : 0.02;
+      // Get commission rates from super admin wallet
+      const superAdminWallet = await this.getSuperAdminWallet();
+      const commissionRate = merchant.merchant_type === 'temporary' 
+        ? parseFloat(superAdminWallet.temporary_merchant_commission_rate.toString())
+        : parseFloat(superAdminWallet.annual_merchant_commission_rate.toString());
       const adminCommission = amount * commissionRate;
       const platformAmount = amount - adminCommission;
 
@@ -712,8 +760,10 @@ export class WalletService {
    * Upgrade merchant to annual subscription
    */
   async upgradeToAnnual(merchantId: number, adminId: number) {
-    const ANNUAL_FEE = 1199.00; // Predefined annual subscription fee
-    const COMMISSION_RATE = 0.75; // 75% commission to admin
+    // Get fees and rates from super admin wallet
+    const superAdminWallet = await this.getSuperAdminWallet();
+    const ANNUAL_FEE = parseFloat(superAdminWallet.merchant_annual_fee.toString());
+    const COMMISSION_RATE = parseFloat(superAdminWallet.admin_annual_commission_rate.toString());
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
