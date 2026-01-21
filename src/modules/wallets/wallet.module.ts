@@ -6,9 +6,10 @@ import { WalletController } from './wallet.controller';
 import { SystemLogModule } from '../system-logs/system-log.module';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Reflector } from '@nestjs/core';
+import { SuperAdminSettingsModule } from '../super-admin-settings/super-admin-settings.module';
 
 @Module({
-  imports: [DatabaseModule, SystemLogModule],
+  imports: [DatabaseModule, SystemLogModule, SuperAdminSettingsModule],
   providers: [...walletProviders, WalletService, RolesGuard, Reflector],
   controllers: [WalletController],
   exports: [...walletProviders, WalletService],

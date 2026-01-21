@@ -42,59 +42,6 @@ export class WalletController {
   }
 
   @SkipSubscription()
-  @Get('admin-subscription-fee')
-  async getAdminSubscriptionFee() {
-    const { fee, currency } = await this.walletService.getAdminSubscriptionFee();
-    return {
-      message: 'Admin subscription fee retrieved successfully',
-      data: {
-        fee,
-        currency,
-      },
-    };
-  }
-
-  @Roles(UserRole.SUPER_ADMIN)
-  @Patch('super-admin/subscription-fee')
-  async updateAdminSubscriptionFee(@Body('fee') fee: number) {
-    const wallet = await this.walletService.updateAdminSubscriptionFee(fee);
-    return {
-      message: 'Admin subscription fee updated successfully',
-      data: wallet,
-    };
-  }
-
-  @SkipSubscription()
-  @Get('commission-settings')
-  async getCommissionSettings() {
-    const settings = await this.walletService.getCommissionSettings();
-    return {
-      message: 'Commission settings retrieved successfully',
-      data: settings,
-    };
-  }
-
-  @Roles(UserRole.SUPER_ADMIN)
-  @Patch('commission-settings')
-  async updateCommissionSettings(
-    @Body('temporaryMerchantCommissionRate') temporaryMerchantCommissionRate?: number,
-    @Body('annualMerchantCommissionRate') annualMerchantCommissionRate?: number,
-    @Body('merchantAnnualFee') merchantAnnualFee?: number,
-    @Body('adminAnnualCommissionRate') adminAnnualCommissionRate?: number,
-  ) {
-    const wallet = await this.walletService.updateCommissionSettings({
-      temporaryMerchantCommissionRate,
-      annualMerchantCommissionRate,
-      merchantAnnualFee,
-      adminAnnualCommissionRate,
-    });
-    return {
-      message: 'Commission settings updated successfully',
-      data: wallet,
-    };
-  }
-
-  @SkipSubscription()
   @Post('admin/:adminId/subscribe')
   async processAdminSubscription(@Param('adminId') adminId: number) {
     return await this.walletService.processAdminSubscriptionPayment(adminId);

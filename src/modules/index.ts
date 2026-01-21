@@ -8,6 +8,9 @@ export { UserModule } from './users/user.module';
 // Super Admin management
 export { SuperAdminModule } from './super-admins/super-admin.module';
 
+// Super Admin Settings
+export { SuperAdminSettingsModule } from './super-admin-settings/super-admin-settings.module';
+
 // Admin management
 export { AdminModule } from './admins/admin.module';
 

@@ -23,6 +23,7 @@ import { CreateCreditPackageDto } from './dto/create-credit-package.dto';
 import { UpdateCreditPackageDto } from './dto/update-credit-package.dto';
 import { SystemLogService } from '../system-logs/system-log.service';
 import { SystemLogAction } from 'src/common/enums/system-log.enum';
+import { SuperAdminSettingsService } from '../super-admin-settings/super-admin-settings.service';
 
 @Injectable()
 export class WalletService {
@@ -40,6 +41,7 @@ export class WalletService {
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
     private systemLogService: SystemLogService,
+    private superAdminSettingsService: SuperAdminSettingsService,
   ) {}
 
   /**
@@ -150,7 +152,6 @@ export class WalletService {
       total_spent: 0,
       pending_amount: 0,
       currency,
-      admin_subscription_fee: 1199.00, // Default admin subscription fee
       is_active: true,
     });
 
@@ -171,73 +172,6 @@ export class WalletService {
     }
 
     return wallet;
-  }
-
-  /**
-   * Get admin subscription fee (public)
-   */
-  async getAdminSubscriptionFee(): Promise<{ fee: number; currency: string }> {
-    const wallet = await this.getSuperAdminWallet();
-    return {
-      fee: parseFloat(wallet.admin_subscription_fee.toString()),
-      currency: wallet.currency,
-    };
-  }
-
-  /**
-   * Update admin subscription fee (super admin only)
-   */
-  async updateAdminSubscriptionFee(newFee: number): Promise<SuperAdminWallet> {
-    const wallet = await this.getSuperAdminWallet();
-    wallet.admin_subscription_fee = newFee;
-    return await this.superAdminWalletRepository.save(wallet);
-  }
-
-  /**
-   * Update commission rates and merchant fees (super admin only)
-   */
-  async updateCommissionSettings(settings: {
-    temporaryMerchantCommissionRate?: number;
-    annualMerchantCommissionRate?: number;
-    merchantAnnualFee?: number;
-    adminAnnualCommissionRate?: number;
-  }): Promise<SuperAdminWallet> {
-    const wallet = await this.getSuperAdminWallet();
-    
-    if (settings.temporaryMerchantCommissionRate !== undefined) {
-      wallet.temporary_merchant_commission_rate = settings.temporaryMerchantCommissionRate;
-    }
-    if (settings.annualMerchantCommissionRate !== undefined) {
-      wallet.annual_merchant_commission_rate = settings.annualMerchantCommissionRate;
-    }
-    if (settings.merchantAnnualFee !== undefined) {
-      wallet.merchant_annual_fee = settings.merchantAnnualFee;
-    }
-    if (settings.adminAnnualCommissionRate !== undefined) {
-      wallet.admin_annual_commission_rate = settings.adminAnnualCommissionRate;
-    }
-    
-    return await this.superAdminWalletRepository.save(wallet);
-  }
-
-  /**
-   * Get commission settings (public)
-   */
-  async getCommissionSettings(): Promise<{
-    temporaryMerchantCommissionRate: number;
-    annualMerchantCommissionRate: number;
-    merchantAnnualFee: number;
-    adminAnnualCommissionRate: number;
-    currency: string;
-  }> {
-    const wallet = await this.getSuperAdminWallet();
-    return {
-      temporaryMerchantCommissionRate: parseFloat(wallet.temporary_merchant_commission_rate.toString()),
-      annualMerchantCommissionRate: parseFloat(wallet.annual_merchant_commission_rate.toString()),
-      merchantAnnualFee: parseFloat(wallet.merchant_annual_fee.toString()),
-      adminAnnualCommissionRate: parseFloat(wallet.admin_annual_commission_rate.toString()),
-      currency: wallet.currency,
-    };
   }
 
   /**
@@ -394,11 +328,11 @@ export class WalletService {
         throw new NotFoundException('Merchant not found');
       }
 
-      // Get commission rates from super admin wallet
-      const superAdminWallet = await this.getSuperAdminWallet();
+      // Get commission rates from settings
+      const settings = await this.superAdminSettingsService.getSettings();
       const commissionRate = merchant.merchant_type === 'temporary' 
-        ? parseFloat(superAdminWallet.temporary_merchant_commission_rate.toString())
-        : parseFloat(superAdminWallet.annual_merchant_commission_rate.toString());
+        ? parseFloat(settings.temporary_merchant_commission_rate.toString())
+        : parseFloat(settings.annual_merchant_commission_rate.toString());
       const adminCommission = amount * commissionRate;
       const platformAmount = amount - adminCommission;
 
@@ -760,10 +694,10 @@ export class WalletService {
    * Upgrade merchant to annual subscription
    */
   async upgradeToAnnual(merchantId: number, adminId: number) {
-    // Get fees and rates from super admin wallet
-    const superAdminWallet = await this.getSuperAdminWallet();
-    const ANNUAL_FEE = parseFloat(superAdminWallet.merchant_annual_fee.toString());
-    const COMMISSION_RATE = parseFloat(superAdminWallet.admin_annual_commission_rate.toString());
+    // Get fees and rates from settings
+    const settings = await this.superAdminSettingsService.getSettings();
+    const ANNUAL_FEE = parseFloat(settings.merchant_annual_fee.toString());
+    const COMMISSION_RATE = parseFloat(settings.admin_annual_commission_rate.toString());
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -1029,9 +963,9 @@ export class WalletService {
     await queryRunner.startTransaction();
 
     try {
-      // Get super admin wallet to get the subscription fee
-      const superAdminWallet = await this.getSuperAdminWallet();
-      const subscriptionFee = parseFloat(superAdminWallet.admin_subscription_fee.toString());
+      // Get subscription fee from settings
+      const settings = await this.superAdminSettingsService.getSettings();
+      const subscriptionFee = parseFloat(settings.admin_subscription_fee.toString());
 
       // Get admin wallet
       const adminWallet = await queryRunner.manager.findOne(AdminWallet, {
@@ -1050,6 +984,15 @@ export class WalletService {
       await queryRunner.manager.update(AdminWallet, adminWallet.id, {
         subscription_expires_at: oneYearFromNow,
       });
+
+      // Get super admin wallet within transaction
+      const superAdminWallet = await queryRunner.manager.findOne(SuperAdminWallet, {
+        where: { is_active: true },
+      });
+
+      if (!superAdminWallet) {
+        throw new NotFoundException('Super admin wallet not found');
+      }
 
       // Credit super admin wallet
       await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
