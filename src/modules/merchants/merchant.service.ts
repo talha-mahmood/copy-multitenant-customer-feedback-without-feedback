@@ -601,6 +601,9 @@ export class MerchantService {
 
     const totalIssued = parseInt(couponStats[0].issued) || 0;
     const totalRedeemed = parseInt(couponStats[0].redeemed) || 0;
+    const totalExpired = parseInt(couponStats[0].expired) || 0;
+    const totalCreated = parseInt(couponStats[0].created) || 0;
+    const totalCoupons = totalCreated + totalIssued + totalRedeemed + totalExpired;
     const totalWhatsappSent = parseInt(couponStats[0].whatsapp_sent) || 0;
     const redemptionRate = totalIssued > 0 ? ((totalRedeemed / totalIssued) * 100).toFixed(2) : '0.00';
     
@@ -619,9 +622,11 @@ export class MerchantService {
       message: 'Dashboard analytics retrieved successfully',
       data: {
         overview: {
+          totalCoupons,
+          totalCouponsCreated: totalCreated,
           totalCouponsIssued: totalIssued,
           totalCouponsRedeemed: totalRedeemed,
-          totalCouponsExpired: parseInt(couponStats[0].expired) || 0,
+          totalCouponsExpired: totalExpired,
           redemptionRate: parseFloat(redemptionRate),
           whatsappMessagesSent: totalWhatsappSent,
           totalCustomers,
