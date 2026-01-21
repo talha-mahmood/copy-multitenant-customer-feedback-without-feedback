@@ -45,7 +45,7 @@ export class WalletService {
   /**
    * Create admin wallet when admin is created
    */
-  async createAdminWallet(adminId: number, currency = 'MYR'): Promise<AdminWallet> {
+  async createAdminWallet(adminId: number, currency = 'USD'): Promise<AdminWallet> {
     const existingWallet = await this.adminWalletRepository.findOne({
       where: { admin_id: adminId },
     });
@@ -73,7 +73,7 @@ export class WalletService {
   async createMerchantWallet(
     merchantId: number,
     subscriptionType = 'temporary',
-    currency = 'MYR',
+    currency = 'USD',
   ): Promise<MerchantWallet> {
     const existingWallet = await this.merchantWalletRepository.findOne({
       where: { merchant_id: merchantId },

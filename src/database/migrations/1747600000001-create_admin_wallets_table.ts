@@ -49,7 +49,7 @@ export class CreateAdminWalletsTable1747600000001 implements MigrationInterface 
             name: 'currency',
             type: 'varchar',
             length: '10',
-            default: "'MYR'",
+            default: "'USD'",
           },
           {
             name: 'is_active',

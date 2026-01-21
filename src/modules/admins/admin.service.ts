@@ -76,7 +76,7 @@ export class AdminService {
         total_earnings: 0,
         total_spent: 0,
         pending_amount: 0,
-        currency: 'MYR',
+        currency: 'USD',
         is_active: true,
       });
       await queryRunner.manager.save(adminWallet);

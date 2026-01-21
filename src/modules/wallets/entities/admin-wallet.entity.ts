@@ -24,7 +24,7 @@ export class AdminWallet extends BaseEntity {
   @Column({ name: 'pending_amount', type: 'decimal', precision: 10, scale: 2, default: 0 })
   pending_amount: number;
 
-  @Column({ type: 'varchar', length: 10, default: 'MYR' })
+  @Column({ type: 'varchar', length: 10, default: 'USD' })
   currency: string;
 
   @Column({ name: 'subscription_type', type: 'varchar', length: 20, default: 'annual' })
