@@ -62,7 +62,7 @@ export class CreateMerchantWalletsTable1747600000002 implements MigrationInterfa
             name: 'currency',
             type: 'varchar',
             length: '10',
-            default: "'MYR'",
+            default: "'USD'",
           },
           {
             name: 'is_active',

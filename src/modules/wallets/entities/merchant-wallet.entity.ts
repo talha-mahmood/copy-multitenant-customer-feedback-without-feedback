@@ -36,7 +36,7 @@ export class MerchantWallet extends BaseEntity {
   @Column({ name: 'annual_fee_paid', type: 'boolean', default: false })
   annual_fee_paid: boolean;
 
-  @Column({ type: 'varchar', length: 10, default: 'MYR' })
+  @Column({ type: 'varchar', length: 10, default: 'USD' })
   currency: string;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
