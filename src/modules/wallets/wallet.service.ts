@@ -331,8 +331,8 @@ export class WalletService {
       // Get commission rates from settings
       const settings = await this.superAdminSettingsService.getSettings();
       const commissionRate = merchant.merchant_type === 'temporary' 
-        ? parseFloat(settings.temporary_merchant_commission_rate.toString())
-        : parseFloat(settings.annual_merchant_commission_rate.toString());
+        ? parseFloat(settings.temporary_merchant_packages_admin_commission_rate.toString())
+        : parseFloat(settings.annual_merchant_packages_admin_commission_rate.toString());
       const adminCommission = amount * commissionRate;
       const platformAmount = amount - adminCommission;
 
@@ -697,7 +697,7 @@ export class WalletService {
     // Get fees and rates from settings
     const settings = await this.superAdminSettingsService.getSettings();
     const ANNUAL_FEE = parseFloat(settings.merchant_annual_fee.toString());
-    const COMMISSION_RATE = parseFloat(settings.admin_annual_commission_rate.toString());
+    const COMMISSION_RATE = parseFloat(settings.annual_merchant_subscription_admin_commission_rate.toString());
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -965,7 +965,7 @@ export class WalletService {
     try {
       // Get subscription fee from settings
       const settings = await this.superAdminSettingsService.getSettings();
-      const subscriptionFee = parseFloat(settings.admin_subscription_fee.toString());
+      const subscriptionFee = parseFloat(settings.admin_annual_subscription_fee.toString());
 
       // Get admin wallet
       const adminWallet = await queryRunner.manager.findOne(AdminWallet, {

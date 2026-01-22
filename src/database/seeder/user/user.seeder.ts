@@ -95,11 +95,11 @@ export async function seedUser(dataSource: DataSource) {
       // Create super admin settings
       const superAdminSettingsRepo = dataSource.getRepository(SuperAdminSettings);
       await superAdminSettingsRepo.insert({
-        admin_subscription_fee: 1199.00,
-        temporary_merchant_commission_rate: 0.20, // 20%
-        annual_merchant_commission_rate: 0.02, // 2%
+        admin_annual_subscription_fee: 1199.00,
+        temporary_merchant_packages_admin_commission_rate: 0.20, // 20%
+        annual_merchant_packages_admin_commission_rate: 0.02, // 2%
         merchant_annual_fee: 1199.00,
-        admin_annual_commission_rate: 0.75, // 75%
+        annual_merchant_subscription_admin_commission_rate: 0.75, // 75%
         currency: 'USD',
         is_active: true,
       });
