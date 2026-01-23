@@ -53,13 +53,6 @@ export class CreateSuperAdminWalletsTable1768600000000 implements MigrationInter
             default: "'USD'",
           },
           {
-            name: 'admin_subscription_fee',
-            type: 'decimal',
-            precision: 10,
-            scale: 2,
-            default: 1199.00,
-          },
-          {
             name: 'is_active',
             type: 'boolean',
             default: true,
