@@ -12,7 +12,7 @@ export class CreateSuperAdminSettingsTable1768720000000 implements MigrationInte
             type: 'uuid',
             isPrimary: true,
             generationStrategy: 'uuid',
-            default: 'uuid_generate_v4()',
+            default: 'gen_random_uuid()',
           },
           {
             name: 'admin_annual_subscription_fee',
