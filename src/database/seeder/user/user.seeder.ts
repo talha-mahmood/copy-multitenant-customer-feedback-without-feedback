@@ -7,6 +7,7 @@ import { Customer } from '../../../modules/customers/entities/customer.entity';
 import { AdminWallet } from '../../../modules/wallets/entities/admin-wallet.entity';
 import { MerchantWallet } from '../../../modules/wallets/entities/merchant-wallet.entity';
 import { SuperAdminWallet } from '../../../modules/wallets/entities/super-admin-wallet.entity';
+import { SuperAdminSettings } from '../../../modules/super-admin-settings/entities/super-admin-settings.entity';
 import * as bcrypt from 'bcrypt';
 import { faker } from '@faker-js/faker';
 import { UserHasRole } from '../../../modules/roles-permission-management/user-has-role/entities/user-has-role.entity';
@@ -88,7 +89,18 @@ export async function seedUser(dataSource: DataSource) {
         total_spent: 0,
         pending_amount: 0,
         currency: 'USD',
-        admin_subscription_fee: 1199.00,
+        is_active: true,
+      });
+
+      // Create super admin settings
+      const superAdminSettingsRepo = dataSource.getRepository(SuperAdminSettings);
+      await superAdminSettingsRepo.insert({
+        admin_annual_subscription_fee: 1199.00,
+        temporary_merchant_packages_admin_commission_rate: 0.20, // 20%
+        annual_merchant_packages_admin_commission_rate: 0.02, // 2%
+        merchant_annual_fee: 1199.00,
+        annual_merchant_subscription_admin_commission_rate: 0.75, // 75%
+        currency: 'USD',
         is_active: true,
       });
     }

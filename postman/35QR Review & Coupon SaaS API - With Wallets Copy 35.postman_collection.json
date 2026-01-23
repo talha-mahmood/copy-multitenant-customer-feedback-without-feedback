@@ -1,7 +1,7 @@
 {
   "info": {
-    "_postman_id": "610ab051-0c2a-41c8-9e2d-d1716addeebf",
-    "name": "33QR Review & Coupon SaaS API - With Wallets Copy 33",
+    "_postman_id": "f8931e2c-fad1-4995-a85b-fb2873c4564f",
+    "name": "35QR Review & Coupon SaaS API - With Wallets Copy 35",
     "description": "Complete API collection including wallet system for admins and merchants",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "22622973"
@@ -72,7 +72,9 @@
                   "    console.log('Admin ID saved:', jsonData.data.id);",
                   "}"
                 ],
-                "type": "text/javascript"
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
               }
             }
           ],
@@ -86,7 +88,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"John Agent\",\n  \"email\": \"agent1@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456789\",\n  \"address\": \"123 Agent Street, KL\",\n  \"subscription_type\": \"annual\",\n  \"subscription_expires_at\": \"2026-01-20\"\n}"
+              "raw": "{\n  \"name\": \"John Agent\",\n  \"email\": \"agent1@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456789\",\n  \"address\": \"123 Agent Street, KL\"\n\n}"
             },
             "url": {
               "raw": "{{base_url}}/admins",
@@ -477,6 +479,17 @@
                 "description": "Get paginated list of admin wallet transactions"
               },
               "response": []
+            },
+            {
+              "name": "Get Admin Subscription Fee",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": ""
+                }
+              },
+              "response": []
             }
           ]
         },
@@ -619,40 +632,7 @@
                     "super-admin"
                   ]
                 },
-                "description": "Get super admin wallet details including balance, total earnings, and admin subscription fee (Super Admin only)"
-              },
-              "response": []
-            },
-            {
-              "name": "Update Admin Subscription Fee",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwt_token}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"fee\": 1499.00\n}"
-                },
-                "url": {
-                  "raw": "{{base_url}}/wallets/super-admin/subscription-fee",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "wallets",
-                    "super-admin",
-                    "subscription-fee"
-                  ]
-                },
-                "description": "Update the admin subscription fee amount (Super Admin only). Default is $1,199"
+                "description": "Get super admin wallet details including balance and total earnings (Super Admin only)"
               },
               "response": []
             },
@@ -693,7 +673,7 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/wallets/credit-packages?merchant_type=temporary",
+                  "raw": "{{base_url}}/wallets/credit-packages",
                   "host": [
                     "{{base_url}}"
                   ],
@@ -897,6 +877,103 @@
               "response": []
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "Super Admin Settings",
+      "item": [
+        {
+          "name": "Get All Settings (Super Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/super-admin-settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "super-admin-settings"
+              ]
+            },
+            "description": "Get all super admin settings including commission rates, fees, and currency (Super Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Settings (Super Admin Only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"admin_annual_subscription_fee\": 1499.00,\n  \"temporary_merchant_packages_admin_commission_rate\": 0.25,\n  \"annual_merchant_packages_admin_commission_rate\": 0.03,\n  \"merchant_annual_fee\": 1499.00,\n  \"annual_merchant_subscription_admin_commission_rate\": 0.80,\n  \"currency\": \"USD\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/super-admin-settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "super-admin-settings"
+              ]
+            },
+            "description": "Update super admin settings. All fields are optional. Rates are decimal values (e.g., 0.20 = 20%, 0.02 = 2%). Fields:\n- admin_annual_subscription_fee: Admin annual subscription fee\n- temporary_merchant_packages_admin_commission_rate: Commission for temporary merchant packages\n- annual_merchant_packages_admin_commission_rate: Commission for annual merchant packages\n- merchant_annual_fee: Merchant annual subscription fee\n- annual_merchant_subscription_admin_commission_rate: Admin commission for merchant annual subscriptions"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Admin Subscription Fee (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/super-admin-settings/admin-subscription-fee",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "super-admin-settings",
+                "admin-subscription-fee"
+              ]
+            },
+            "description": "Get the current admin subscription fee. No authentication required. Returns fee amount and currency."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Commission Settings (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/super-admin-settings/commission-settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "super-admin-settings",
+                "commission-settings"
+              ]
+            },
+            "description": "Get all commission rates and fees. No authentication required. Returns:\n- temporaryMerchantCommissionRate (default: 0.20 = 20%)\n- annualMerchantCommissionRate (default: 0.02 = 2%)\n- merchantAnnualFee (default: 1199.00)\n- adminAnnualCommissionRate (default: 0.75 = 75%)\n- currency"
+          },
+          "response": []
         }
       ]
     },
@@ -3494,6 +3571,42 @@
       "item": [
         {
           "name": "Get Dashboard Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/super-admins/dashboard?startDate=2025-01-01&endDate=2025-12-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "super-admins",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2025-01-01",
+                  "description": "Start date for filtering (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-12-31",
+                  "description": "End date for filtering (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Get comprehensive platform analytics for super admin including:\n- Admin stats (total, active, inactive)\n- Merchant stats (total, active, inactive, annual, temporary)\n- Customer stats\n- Feedback submissions\n- Coupon stats (issued, redeemed, expired, active)\n- Revenue totals (commission, annual fees, credit purchases)\n- Monthly revenue breakdown\n- Merchant and customer growth\n- Top 10 merchants by coupons redeemed\n\nAll metrics support date filtering via startDate and endDate query parameters."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard Analytics Copy",
           "request": {
             "method": "GET",
             "header": [

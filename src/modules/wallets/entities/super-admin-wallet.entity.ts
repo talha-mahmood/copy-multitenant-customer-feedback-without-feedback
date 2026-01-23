@@ -27,9 +27,6 @@ export class SuperAdminWallet extends BaseEntity {
   @Column({ type: 'varchar', length: 10, default: 'USD' })
   currency: string;
 
-  @Column({ name: 'admin_subscription_fee', type: 'decimal', precision: 10, scale: 2, default: 1199.00 })
-  admin_subscription_fee: number; // Fee for admin annual subscription
-
   @Column({ name: 'is_active', type: 'boolean', default: true })
   is_active: boolean;
 
