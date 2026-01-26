@@ -14,5 +14,17 @@
   {
     "name": "customer",
     "display_name": "Customer"
+  },
+  {
+    "name": "finance_viewer",
+    "display_name": "Finance Viewer"
+  },
+  {
+    "name": "ad_approver",
+    "display_name": "Ad Approver"
+  },
+  {
+    "name": "support_staff",
+    "display_name": "Support Staff"
   }
 ]
