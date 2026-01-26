@@ -11,18 +11,17 @@ import { merchantProviders } from '../merchants/merchant.provider';
 import { merchantSettingProviders } from '../merchant-settings/merchant-setting.provider';
 import { couponProvider } from '../coupons/coupon.provider';
 import { couponBatchProvider } from '../coupon-batches/coupon-batch.provider';
-import { WhatsAppService } from '../whatsapp/whatsapp.service';
+import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 import { WalletModule } from '../wallets/wallet.module';
 import { SystemLogModule } from '../system-logs/system-log.module';
 
 @Module({
-  imports: [DatabaseModule, WalletModule, SystemLogModule],
+  imports: [DatabaseModule, WalletModule, SystemLogModule, WhatsAppModule],
   controllers: [FeedbackController, PresetReviewController],
   providers: [
     FeedbackService,
     PresetReviewService,
     BirthdayMessageService,
-    WhatsAppService,
     ...feedbackProviders,
     ...presetReviewProvider,
     ...merchantProviders,
