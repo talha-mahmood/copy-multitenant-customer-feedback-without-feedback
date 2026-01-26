@@ -422,6 +422,19 @@ export class AdminService {
       ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
     `, hasDateFilter ? [start, end] : []);
 
+    // WhatsApp UI/BI Statistics from whatsapp_messages table
+    const whatsappMessageStats = await dataSource.query(`
+      SELECT 
+        COUNT(*) as total_messages,
+        COUNT(*) FILTER (WHERE message_type = 'UI') as ui_messages,
+        COUNT(*) FILTER (WHERE message_type = 'BI') as bi_messages,
+        COUNT(*) FILTER (WHERE status = 'sent' OR status = 'delivered') as successful_messages,
+        COUNT(*) FILTER (WHERE status = 'failed') as failed_messages,
+        SUM(credits_deducted) as total_credits_used
+      FROM whatsapp_messages
+      ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
+    `, hasDateFilter ? [start, end] : []);
+
     // WhatsApp by Merchant
     const whatsappByMerchant = await dataSource.query(`
       SELECT 
@@ -477,6 +490,14 @@ export class AdminService {
 
     const totalMessagesSent = parseInt(whatsappStats[0].total_messages_sent) || 0;
     const estimatedWhatsappCost = totalMessagesSent * 0.05; // $0.05 per message
+    
+    // WhatsApp message stats from whatsapp_messages table
+    const totalWhatsAppMessages = parseInt(whatsappMessageStats[0]?.total_messages) || 0;
+    const uiMessages = parseInt(whatsappMessageStats[0]?.ui_messages) || 0;
+    const biMessages = parseInt(whatsappMessageStats[0]?.bi_messages) || 0;
+    const successfulMessages = parseInt(whatsappMessageStats[0]?.successful_messages) || 0;
+    const failedMessages = parseInt(whatsappMessageStats[0]?.failed_messages) || 0;
+    const totalCreditsUsed = parseInt(whatsappMessageStats[0]?.total_credits_used) || 0;
 
     const totalRevenue = parseFloat(revenueStats[0].total_commissions) || 0;
     const annualRevenue = parseFloat(revenueStats[0].annual_subscription_revenue) || 0;
@@ -584,6 +605,21 @@ export class AdminService {
           totalMessagesSent,
           totalCost: estimatedWhatsappCost,
           averageCostPerMessage: 0.05,
+          // Detailed UI/BI breakdown from whatsapp_messages table
+          messageBreakdown: {
+            total: totalWhatsAppMessages,
+            uiMessages: {
+              count: uiMessages,
+              percentage: totalWhatsAppMessages > 0 ? ((uiMessages / totalWhatsAppMessages) * 100).toFixed(2) : '0.00',
+            },
+            biMessages: {
+              count: biMessages,
+              percentage: totalWhatsAppMessages > 0 ? ((biMessages / totalWhatsAppMessages) * 100).toFixed(2) : '0.00',
+            },
+            successful: successfulMessages,
+            failed: failedMessages,
+            creditsUsed: totalCreditsUsed,
+          },
           byMerchant: whatsappByMerchant.map(w => ({
             merchantId: w.merchant_id,
             businessName: w.business_name,
