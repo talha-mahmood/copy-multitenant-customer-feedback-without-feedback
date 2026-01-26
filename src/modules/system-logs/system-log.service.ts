@@ -193,6 +193,34 @@ export class SystemLogService {
     });
   }
 
+  async logWhatsAppUI(action: SystemLogAction, message: string, merchantId: number, customerId?: number, metadata?: Record<string, any>) {
+    return this.log({
+      category: SystemLogCategory.WHATSAPP_UI,
+      action,
+      message,
+      entityType: 'whatsapp_message',
+      entityId: customerId,
+      userId: merchantId,
+      userType: 'merchant',
+      metadata,
+      level: action.toString().includes('FAILED') ? SystemLogLevel.WARNING : SystemLogLevel.INFO,
+    });
+  }
+
+  async logWhatsAppBI(action: SystemLogAction, message: string, merchantId: number, customerId?: number, metadata?: Record<string, any>) {
+    return this.log({
+      category: SystemLogCategory.WHATSAPP_BI,
+      action,
+      message,
+      entityType: 'whatsapp_message',
+      entityId: customerId,
+      userId: merchantId,
+      userType: 'merchant',
+      metadata,
+      level: action.toString().includes('FAILED') ? SystemLogLevel.WARNING : SystemLogLevel.INFO,
+    });
+  }
+
   async logWallet(action: SystemLogAction, message: string, userId: number, userType: string, amount: number, metadata?: Record<string, any>) {
     return this.log({
       category: SystemLogCategory.WALLET,

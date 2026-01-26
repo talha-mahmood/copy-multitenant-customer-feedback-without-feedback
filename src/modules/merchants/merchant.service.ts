@@ -564,7 +564,8 @@ export class MerchantService {
         COUNT(*) as total_messages,
         COUNT(*) FILTER (WHERE message_type = 'UI') as ui_messages,
         COUNT(*) FILTER (WHERE message_type = 'BI') as bi_messages,
-        COUNT(*) FILTER (WHERE message_type = 'UI' AND campaign_type IS NULL) as ui_feedback_lucky,
+        COUNT(*) FILTER (WHERE message_type = 'UI' AND campaign_type = 'feedback') as ui_feedback,
+        COUNT(*) FILTER (WHERE message_type = 'UI' AND campaign_type = 'luckydraw') as ui_luckydraw,
         COUNT(*) FILTER (WHERE message_type = 'UI' AND campaign_type = 'custom') as ui_homepage,
         COUNT(*) FILTER (WHERE message_type = 'BI' AND campaign_type = 'birthday') as bi_birthday,
         COUNT(*) FILTER (WHERE message_type = 'BI' AND campaign_type = 'inactive_recall') as bi_inactive,
@@ -587,7 +588,8 @@ export class MerchantService {
     const totalWhatsAppMessages = parseInt(whatsappMessageStats[0]?.total_messages) || 0;
     const uiMessages = parseInt(whatsappMessageStats[0]?.ui_messages) || 0;
     const biMessages = parseInt(whatsappMessageStats[0]?.bi_messages) || 0;
-    const uiFeedbackLucky = parseInt(whatsappMessageStats[0]?.ui_feedback_lucky) || 0;
+    const uiFeedback = parseInt(whatsappMessageStats[0]?.ui_feedback) || 0;
+    const uiLuckydraw = parseInt(whatsappMessageStats[0]?.ui_luckydraw) || 0;
     const uiHomepage = parseInt(whatsappMessageStats[0]?.ui_homepage) || 0;
     const biBirthday = parseInt(whatsappMessageStats[0]?.bi_birthday) || 0;
     const biInactive = parseInt(whatsappMessageStats[0]?.bi_inactive) || 0;
@@ -685,10 +687,10 @@ export class MerchantService {
           creditsUsed: whatsappCreditsUsed,
           // UI/BI Breakdown from whatsapp_messages table
           uiMessages: {
-            total: uiMessages, // User-initiated messages (feedback, lucky draw)
-            feedbackCoupons: uiFeedbackLucky, // Feedback and lucky draw combined
-            luckyDrawWins: 0, // Can be separated if needed by adding more granular tracking
-            homepageCoupons: uiHomepage,
+            total: uiMessages, // User-initiated messages (feedback, lucky draw, homepage)
+            feedbackCoupons: uiFeedback, // Feedback form submissions
+            luckyDrawWins: uiLuckydraw, // Lucky draw spin wins
+            homepageCoupons: uiHomepage, // Homepage coupon claims
           },
           biMessages: {
             total: biMessages, // Business-initiated messages (campaigns)

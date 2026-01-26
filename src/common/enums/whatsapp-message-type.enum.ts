@@ -28,6 +28,8 @@ export enum WhatsAppMessageStatus {
 }
 
 export enum WhatsAppCampaignType {
+  FEEDBACK = 'feedback',
+  LUCKYDRAW = 'luckydraw',
   BIRTHDAY = 'birthday',
   INACTIVE_RECALL = 'inactive_recall',
   FESTIVAL = 'festival',

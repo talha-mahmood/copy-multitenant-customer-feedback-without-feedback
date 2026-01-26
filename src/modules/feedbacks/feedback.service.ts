@@ -14,7 +14,7 @@ import { WalletService } from '../wallets/wallet.service';
 import { randomBytes } from 'crypto';
 import { SystemLogService } from '../system-logs/system-log.service';
 import { SystemLogAction, SystemLogLevel, SystemLogCategory } from 'src/common/enums/system-log.enum';
-import { WhatsAppMessageType } from 'src/common/enums/whatsapp-message-type.enum';
+import { WhatsAppMessageType, WhatsAppCampaignType } from 'src/common/enums/whatsapp-message-type.enum';
 
 @Injectable()
 export class FeedbackService {
@@ -229,7 +229,7 @@ export class FeedbackService {
                     savedCustomer.phone,
                     message,
                     WhatsAppMessageType.USER_INITIATED,
-                    undefined, // No campaign type for feedback
+                    WhatsAppCampaignType.FEEDBACK, // Feedback campaign type
                     coupon.id,
                     savedCustomer.id,
                   );

@@ -12,7 +12,7 @@ import { SpinWheelDto } from './dto/spin-wheel.dto';
 import { LUCKY_DRAW_PRIZE_REPOSITORY, LUCKY_DRAW_RESULT_REPOSITORY } from './lucky-draw.provider';
 import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { WalletService } from '../wallets/wallet.service';
-import { WhatsAppMessageType } from 'src/common/enums/whatsapp-message-type.enum';
+import { WhatsAppMessageType, WhatsAppCampaignType } from 'src/common/enums/whatsapp-message-type.enum';
 
 @Injectable()
 export class LuckyDrawService {
@@ -399,7 +399,7 @@ export class LuckyDrawService {
                   customer.phone,
                   message,
                   WhatsAppMessageType.USER_INITIATED,
-                  undefined, // No campaign type for lucky draw
+                  WhatsAppCampaignType.LUCKYDRAW, // Lucky draw campaign type
                   coupon.id,
                   customer.id,
                 );

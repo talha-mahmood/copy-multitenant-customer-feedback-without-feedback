@@ -8,6 +8,8 @@ import { CreditsLedger } from '../wallets/entities/credits-ledger.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { WHATSAPP_MESSAGE_REPOSITORY } from './whatsapp.provider';
 import { MERCHANT_WALLET_REPOSITORY, CREDITS_LEDGER_REPOSITORY } from '../wallets/wallet.provider';
+import { SystemLogService } from '../system-logs/system-log.service';
+import { SystemLogAction } from 'src/common/enums/system-log.enum';
 
 
 
@@ -63,6 +65,7 @@ export class WhatsAppService {
     private readonly merchantRepository: Repository<Merchant>,
     @Inject('DATA_SOURCE')
     private readonly dataSource: DataSource,
+    private readonly systemLogService: SystemLogService,
   ) {
     this.apiUrl =
       this.configService.get<string>('WHATSAPP_API_URL')?.replace(/"/g, '') ||
@@ -430,6 +433,9 @@ export class WhatsAppService {
         // Step 5: Deduct credits ONLY after successful send
         await this.deductWhatsAppCredits(merchantId, messageType, savedMessage.id, 1);
 
+        // Log successful message send with source-specific action
+        await this.logMessageSuccess(merchantId, customerId, messageType, campaignType, savedMessage.id, phoneNumber, sendResult.messageId || 'unknown');
+
         const updatedMessage = await this.whatsAppMessageRepository.findOne({ where: { id: savedMessage.id } });
         if (!updatedMessage) {
           throw new NotFoundException('Message not found after update');
@@ -443,6 +449,9 @@ export class WhatsAppService {
           failure_reason: sendResult.error,
         });
 
+        // Log failed message with source-specific action
+        await this.logMessageFailure(merchantId, customerId, messageType, campaignType, savedMessage.id, phoneNumber, sendResult.error || 'Unknown error');
+
         throw new BadRequestException(`Failed to send WhatsApp message: ${sendResult.error}`);
       }
     } catch (error) {
@@ -452,6 +461,9 @@ export class WhatsAppService {
         failed_at: new Date(),
         failure_reason: error.message,
       });
+
+      // Log exception failure with source-specific action
+      await this.logMessageFailure(merchantId, customerId, messageType, campaignType, savedMessage.id, phoneNumber, error.message, error.stack);
 
       throw new BadRequestException(`Failed to send WhatsApp message: ${error.message}`);
     }
@@ -502,5 +514,178 @@ export class WhatsAppService {
         credits_used: biCreditsUsed,
       },
     };
+  }
+
+  /**
+   * Helper method to log successful WhatsApp message with source-specific action
+   */
+  private async logMessageSuccess(
+    merchantId: number,
+    customerId: number | undefined,
+    messageType: WhatsAppMessageType,
+    campaignType: WhatsAppCampaignType | undefined,
+    messageId: number,
+    phoneNumber: string,
+    whatsappMessageId: string,
+  ) {
+    const metadata = {
+      message_id: messageId,
+      merchant_id: merchantId,
+      message_type: messageType,
+      campaign_type: campaignType,
+      phone_number: phoneNumber,
+      whatsapp_message_id: whatsappMessageId,
+    };
+
+    if (messageType === WhatsAppMessageType.USER_INITIATED) {
+      // Determine source for UI messages
+      let action: SystemLogAction;
+      let source: string;
+
+      switch (campaignType) {
+        case WhatsAppCampaignType.FEEDBACK:
+          action = SystemLogAction.UI_FEEDBACK_SENT;
+          source = 'feedback form';
+          break;
+        case WhatsAppCampaignType.LUCKYDRAW:
+          action = SystemLogAction.UI_LUCKYDRAW_SENT;
+          source = 'lucky draw spin';
+          break;
+        case WhatsAppCampaignType.CUSTOM:
+          action = SystemLogAction.UI_HOMEPAGE_SENT;
+          source = 'homepage';
+          break;
+        default:
+          action = SystemLogAction.UI_FEEDBACK_SENT;
+          source = 'feedback/luckydraw';
+      }
+
+      await this.systemLogService.logWhatsAppUI(
+        action,
+        `WhatsApp UI message sent successfully from ${source}`,
+        merchantId,
+        customerId,
+        metadata,
+      );
+    } else {
+      // Business-Initiated messages
+      let action: SystemLogAction;
+      let source: string;
+
+      switch (campaignType) {
+        case WhatsAppCampaignType.BIRTHDAY:
+          action = SystemLogAction.BI_BIRTHDAY_SENT;
+          source = 'birthday campaign';
+          break;
+        case WhatsAppCampaignType.INACTIVE_RECALL:
+          action = SystemLogAction.BI_INACTIVE_RECALL_SENT;
+          source = 'inactive customer recall';
+          break;
+        case WhatsAppCampaignType.FESTIVAL:
+          action = SystemLogAction.BI_FESTIVAL_SENT;
+          source = 'festival broadcast';
+          break;
+        default:
+          action = SystemLogAction.BI_CUSTOM_CAMPAIGN_SENT;
+          source = 'custom campaign';
+      }
+
+      await this.systemLogService.logWhatsAppBI(
+        action,
+        `WhatsApp BI message sent successfully from ${source}`,
+        merchantId,
+        customerId,
+        metadata,
+      );
+    }
+  }
+
+  /**
+   * Helper method to log failed WhatsApp message with source-specific action
+   */
+  private async logMessageFailure(
+    merchantId: number,
+    customerId: number | undefined,
+    messageType: WhatsAppMessageType,
+    campaignType: WhatsAppCampaignType | undefined,
+    messageId: number,
+    phoneNumber: string,
+    error: string,
+    stack?: string,
+  ) {
+    const metadata: any = {
+      message_id: messageId,
+      merchant_id: merchantId,
+      message_type: messageType,
+      campaign_type: campaignType,
+      phone_number: phoneNumber,
+      error,
+    };
+
+    if (stack) {
+      metadata.stack = stack;
+    }
+
+    if (messageType === WhatsAppMessageType.USER_INITIATED) {
+      // Determine source for UI messages
+      let action: SystemLogAction;
+      let source: string;
+
+      switch (campaignType) {
+        case WhatsAppCampaignType.FEEDBACK:
+          action = SystemLogAction.UI_FEEDBACK_FAILED;
+          source = 'feedback form';
+          break;
+        case WhatsAppCampaignType.LUCKYDRAW:
+          action = SystemLogAction.UI_LUCKYDRAW_FAILED;
+          source = 'lucky draw spin';
+          break;
+        case WhatsAppCampaignType.CUSTOM:
+          action = SystemLogAction.UI_HOMEPAGE_FAILED;
+          source = 'homepage';
+          break;
+        default:
+          action = SystemLogAction.UI_FEEDBACK_FAILED;
+          source = 'feedback/luckydraw';
+      }
+
+      await this.systemLogService.logWhatsAppUI(
+        action,
+        `WhatsApp UI message failed from ${source}: ${error}`,
+        merchantId,
+        customerId,
+        metadata,
+      );
+    } else {
+      // Business-Initiated messages
+      let action: SystemLogAction;
+      let source: string;
+
+      switch (campaignType) {
+        case WhatsAppCampaignType.BIRTHDAY:
+          action = SystemLogAction.BI_BIRTHDAY_FAILED;
+          source = 'birthday campaign';
+          break;
+        case WhatsAppCampaignType.INACTIVE_RECALL:
+          action = SystemLogAction.BI_INACTIVE_RECALL_FAILED;
+          source = 'inactive customer recall';
+          break;
+        case WhatsAppCampaignType.FESTIVAL:
+          action = SystemLogAction.BI_FESTIVAL_FAILED;
+          source = 'festival broadcast';
+          break;
+        default:
+          action = SystemLogAction.BI_CUSTOM_CAMPAIGN_FAILED;
+          source = 'custom campaign';
+      }
+
+      await this.systemLogService.logWhatsAppBI(
+        action,
+        `WhatsApp BI message failed from ${source}: ${error}`,
+        merchantId,
+        customerId,
+        metadata,
+      );
+    }
   }
 }
