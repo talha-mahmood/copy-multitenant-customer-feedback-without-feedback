@@ -31,8 +31,7 @@ export class BirthdayMessageService {
     private systemLogService: SystemLogService,
   ) {}
 
-  // @Cron(CronExpression.EVERY_DAY_AT_9AM) // Run daily at 9 AM
-    @Cron(CronExpression.EVERY_10_SECONDS) // Run every 10 seconds
+  @Cron(CronExpression.EVERY_DAY_AT_9AM) // Run daily at 9 AM
   async sendBirthdayMessages() {
     this.logger.log('Starting birthday message cron job...');
 
