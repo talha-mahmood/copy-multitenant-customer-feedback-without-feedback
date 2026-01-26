@@ -3,15 +3,15 @@ import { DatabaseModule } from 'src/database/database.module';
 import { LuckyDrawController } from './lucky-draw.controller';
 import { LuckyDrawService } from './lucky-draw.service';
 import { luckyDrawProviders } from './lucky-draw.provider';
-import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { customerProviders } from '../customers/customer.provider';
 import { merchantProviders } from '../merchants/merchant.provider';
 import { couponProvider } from '../coupons/coupon.provider';
 import { couponBatchProvider } from '../coupon-batches/coupon-batch.provider';
 import { WalletModule } from '../wallets/wallet.module';
+import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 
 @Module({
-  imports: [DatabaseModule, WalletModule],
+  imports: [DatabaseModule, WalletModule, WhatsAppModule],
   controllers: [LuckyDrawController],
   providers: [
     ...luckyDrawProviders,
@@ -20,7 +20,6 @@ import { WalletModule } from '../wallets/wallet.module';
     ...couponProvider,
     ...couponBatchProvider,
     LuckyDrawService,
-    WhatsAppService,
   ],
   exports: [LuckyDrawService],
 })
