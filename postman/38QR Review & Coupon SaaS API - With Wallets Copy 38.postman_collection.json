@@ -1,7 +1,7 @@
 {
   "info": {
     "_postman_id": "9ad5861f-e55b-44fb-83ab-a8cf23ea5925",
-    "name": "37QR Review & Coupon SaaS API - With Wallets Copy 37",
+    "name": "38QR Review & Coupon SaaS API - With Wallets Copy 38",
     "description": "Complete API collection including wallet system for admins and merchants",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "22622973"
@@ -717,7 +717,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "\n// {\n//   \"credits\": 100,\n//   \"credit_type\": \"whatsapp ui message\",\n//   \"amount\": 50,\n//   \"admin_id\": {{admin_id}},\n//   \"description\": \"Perfect for small businesses\",\n//   \"metadata\": {\n//     \"package_id\": 11,\n//     \"package_name\": \"Starter Packag\"\n\n//   }\n// }\n\n// {\n//   \"credits\": 200,\n//   \"credit_type\": \"coupon\",\n//   \"amount\": 100,\n//   \"admin_id\": {{admin_id}},\n//   \"description\": \"Coupon Package\",\n//   \"metadata\": {\n//     \"package_id\": 12,\n//     \"package_name\": \"Coupon Package\"\n\n//   }\n// }\n\n\n// {\n//   \"credits\": 1,\n//   \"credit_type\": \"paid ads\",\n//   \"amount\": 50,\n//   \"admin_id\": {{admin_id}},\n//   \"description\": \"Perfect for small businesses\",\n//   \"metadata\": {\n//     \"package_id\": 11,\n//     \"package_name\": \"Starter Packag\"\n\n//   }\n// }\n\n\n\n\n\n"
+                  "raw": "{\n  \"package_id\": {{credit_package_id}},\n  \"credits\": 100,\n  \"credit_type\": \"whatsapp ui message\",\n  \"amount\": 50.00,\n  \"admin_id\": {{admin_id}},\n  \"description\": \"WhatsApp UI Credits Package Purchase\"\n}\n\n// WhatsApp BI Package (Annual merchants only):\n// {\n//   \"package_id\": {{credit_package_id}},\n//   \"credits\": 200,\n//   \"credit_type\": \"whatsapp bi message\",\n//   \"amount\": 100.00,\n//   \"admin_id\": {{admin_id}},\n//   \"description\": \"WhatsApp BI Credits Package Purchase\"\n// }\n\n// Coupon Credits Package:\n// {\n//   \"package_id\": {{credit_package_id}},\n//   \"credits\": 500,\n//   \"credit_type\": \"coupon\",\n//   \"amount\": 75.00,\n//   \"admin_id\": {{admin_id}},\n//   \"description\": \"Coupon Credits Package Purchase\"\n// }\n\n// Paid Ads Package:\n// {\n//   \"package_id\": {{credit_package_id}},\n//   \"credits\": 10,\n//   \"credit_type\": \"paid ads\",\n//   \"amount\": 50.00,\n//   \"admin_id\": {{admin_id}},\n//   \"description\": \"Paid Ads Package Purchase\"\n// }"
                 },
                 "url": {
                   "raw": "{{base_url}}/wallets/merchant/{{merchant_id}}/add-credits",
@@ -731,7 +731,7 @@
                     "add-credits"
                   ]
                 },
-                "description": "Add credits to merchant wallet. Automatically credits admin with commission (20% for temporary, 2% for annual). credit_type: 'whatsapp message' | 'paid ads' | 'coupon'"
+                "description": "Add credits to merchant wallet from a credit package. REQUIRED: package_id must be provided and package must exist. System verifies package compatibility with merchant type (temporary merchants cannot purchase WhatsApp BI packages). Automatically credits admin with commission."
               },
               "response": []
             },

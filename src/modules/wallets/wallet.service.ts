@@ -303,6 +303,7 @@ export class WalletService {
    */
   async addMerchantCredits(
     merchantId: number,
+    packageId: number,
     credits: number,
     creditType: string, // e.g., "whatsapp ui message", "whatsapp bi message", "paid ads", "coupon"
     amount: number,
@@ -315,6 +316,23 @@ export class WalletService {
     if (!validCreditTypes.includes(creditType)) {
       throw new BadRequestException(
         `Invalid credit type: "${creditType}". Valid types are: ${validCreditTypes.join(', ')}`
+      );
+    }
+
+    // Verify credit package exists and is active
+    const creditPackage = await this.creditPackageRepository.findOne({
+      where: { id: packageId },
+    });
+
+    if (!creditPackage) {
+      throw new NotFoundException(
+        `Credit package with ID ${packageId} not found. Please select a valid credit package.`
+      );
+    }
+
+    if (!creditPackage.is_active) {
+      throw new BadRequestException(
+        `Credit package "${creditPackage.name}" is not active and cannot be purchased.`
       );
     }
 
@@ -339,6 +357,22 @@ export class WalletService {
 
       if (!merchant) {
         throw new NotFoundException('Merchant not found');
+      }
+
+      // Verify package is compatible with merchant type
+      if (creditPackage.merchant_type && 
+          creditPackage.merchant_type !== 'all' && 
+          creditPackage.merchant_type !== merchant.merchant_type) {
+        throw new BadRequestException(
+          `Credit package "${creditPackage.name}" is only available for ${creditPackage.merchant_type} merchants. Your merchant type is ${merchant.merchant_type}.`
+        );
+      }
+
+      // Verify package credit type matches requested credit type
+      if (creditPackage.credit_type !== creditType) {
+        throw new BadRequestException(
+          `Credit package type mismatch. Package "${creditPackage.name}" is for "${creditPackage.credit_type}" but you requested "${creditType}".`
+        );
       }
 
       // Temporary merchants CANNOT purchase WhatsApp BI message credits
@@ -385,7 +419,18 @@ export class WalletService {
         amount,
         status: 'completed',
         description,
-        metadata: metadata ? JSON.stringify({ ...metadata, commission_rate: commissionRate, platform_amount: platformAmount }) : JSON.stringify({ commission_rate: commissionRate, platform_amount: platformAmount }),
+        metadata: metadata ? JSON.stringify({ 
+          ...metadata, 
+          commission_rate: commissionRate, 
+          platform_amount: platformAmount,
+          package_id: creditPackage.id,
+          package_name: creditPackage.name,
+        }) : JSON.stringify({ 
+          commission_rate: commissionRate, 
+          platform_amount: platformAmount,
+          package_id: creditPackage.id,
+          package_name: creditPackage.name,
+        }),
         completed_at: new Date(),
       });
 
@@ -421,6 +466,8 @@ export class WalletService {
           commission_rate: commissionRate,
           credits,
           credit_type: creditType,
+          package_id: creditPackage.id,
+          package_name: creditPackage.name,
         }),
         balance_before: adminBalanceBefore,
         balance_after: newAdminBalance,
@@ -434,7 +481,7 @@ export class WalletService {
       // Log wallet credit addition
       await this.systemLogService.logWallet(
         SystemLogAction.CREDIT_ADD,
-        `Added ${credits} ${creditType} credits to merchant wallet`,
+        `Added ${credits} ${creditType} credits to merchant wallet from package "${creditPackage.name}"`,
         merchantId,
         'merchant',
         amount,
@@ -446,6 +493,8 @@ export class WalletService {
           admin_id: adminId,
           commission: adminCommission,
           commission_rate: commissionRate,
+          package_id: creditPackage.id,
+          package_name: creditPackage.name,
         },
       );
 
