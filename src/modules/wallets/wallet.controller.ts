@@ -81,6 +81,7 @@ export class WalletController {
   ) {
     const result = await this.walletService.addMerchantCredits(
       merchantId,
+      addCreditsDto.package_id,
       addCreditsDto.credits,
       addCreditsDto.credit_type,
       addCreditsDto.amount,
