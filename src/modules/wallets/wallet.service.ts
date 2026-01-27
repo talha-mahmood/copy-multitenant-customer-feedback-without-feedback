@@ -341,6 +341,13 @@ export class WalletService {
         throw new NotFoundException('Merchant not found');
       }
 
+      // Temporary merchants CANNOT purchase WhatsApp BI message credits
+      if (merchant.merchant_type === 'temporary' && creditType === 'whatsapp bi message') {
+        throw new BadRequestException(
+          'Temporary merchants cannot purchase WhatsApp BI (Business-Initiated) message credits. Only annual merchants can access automated campaign features. Please upgrade to annual subscription.'
+        );
+      }
+
       // Get commission rates from settings
       const settings = await this.superAdminSettingsService.getSettings();
       const commissionRate = merchant.merchant_type === 'temporary' 
@@ -602,6 +609,7 @@ export class WalletService {
 
   /**
    * Get all credit packages (managed by super admin)
+   * Temporary merchants cannot see WhatsApp BI packages
    */
   async getCreditPackages(merchantType?: string) {
     const query: any = { is_active: true };
@@ -610,16 +618,30 @@ export class WalletService {
       query.merchant_type = merchantType;
     }
 
-    return await this.creditPackageRepository.find({
+    const packages = await this.creditPackageRepository.find({
       where: query,
       order: { sort_order: 'ASC', price: 'ASC' },
     });
+
+    // Filter out WhatsApp BI packages for temporary merchants
+    if (merchantType === 'temporary') {
+      return packages.filter(pkg => pkg.credit_type !== 'whatsapp bi message');
+    }
+
+    return packages;
   }
 
   /**
    * Create a new credit package (super admin only)
    */
   async createCreditPackage(createDto: CreateCreditPackageDto) {
+    // Validate: WhatsApp BI packages cannot be created for temporary merchants
+    if (createDto.credit_type === 'whatsapp bi message' && createDto.merchant_type === 'temporary') {
+      throw new BadRequestException(
+        'WhatsApp BI (Business-Initiated) message packages cannot be created for temporary merchants.'
+      );
+    }
+
     const creditPackage = this.creditPackageRepository.create({
       name: createDto.name,
       description: createDto.description,
@@ -684,6 +706,13 @@ export class WalletService {
     if (updateDto.is_active !== undefined) creditPackage.is_active = updateDto.is_active;
     if (updateDto.sort_order !== undefined) creditPackage.sort_order = updateDto.sort_order;
     if (updateDto.bonus_credits !== undefined) creditPackage.bonus_credits = updateDto.bonus_credits;
+
+    // Validate: WhatsApp BI packages cannot be for temporary merchants
+    if (creditPackage.credit_type === 'whatsapp bi message' && creditPackage.merchant_type === 'temporary') {
+      throw new BadRequestException(
+        'WhatsApp BI (Business-Initiated) message packages cannot be assigned to temporary merchants.'
+      );
+    }
 
     const updated = await this.creditPackageRepository.save(creditPackage);
 
