@@ -169,6 +169,8 @@ export class FeedbackService {
       // 8. Check luckydraw_enabled and send coupon if needed
       let coupon: Coupon | null = null;
       let whatsappSent = false;
+      let whatsappCreditsInsufficient = false;
+      let availableWhatsappCredits = 0;
 
       // Only send coupon directly if luckydraw is NOT enabled and whatsapp_enabled_for_batch_id is set
       if (!merchantSettings.luckydraw_enabled) {
@@ -266,9 +268,28 @@ export class FeedbackService {
                   );
                 }
               } else {
-                // Log warning but don't block the feedback creation
-                console.warn(`Merchant ${merchant.id} has insufficient WhatsApp UI credits. Available: ${creditCheck.availableCredits}`);
-                throw new HttpException(`Merchant with business name ${merchant.business_name} has insufficient WhatsApp UI credits. Available: ${creditCheck.availableCredits}`, 500);
+                // Log warning but DON'T block the feedback creation
+                whatsappCreditsInsufficient = true;
+                availableWhatsappCredits = creditCheck.availableCredits;
+                console.warn(`Merchant ${merchant.id} has insufficient WhatsApp UI credits. Available: ${creditCheck.availableCredits}. Feedback will be submitted without WhatsApp notification.`);
+                
+                // Log the insufficient credits issue in system logs
+                await this.systemLogService.logWallet(
+                  SystemLogAction.WARNING,
+                  `Insufficient WhatsApp UI credits for feedback coupon. Merchant: ${merchant.business_name}, Available: ${creditCheck.availableCredits}`,
+                  merchant.id,
+                  'merchant',
+                  0,
+                  {
+                    merchant_id: merchant.id,
+                    customer_id: savedCustomer.id,
+                    customer_phone: savedCustomer.phone,
+                    available_credits: creditCheck.availableCredits,
+                    required_credits: 1,
+                    context: 'feedback_submission_coupon',
+                    action: 'insufficient_credits',
+                  },
+                );
               }
             }
 
@@ -334,6 +355,11 @@ export class FeedbackService {
           } : null,
           luckydraw_enabled: merchantSettings.luckydraw_enabled,
           isNewCustomer,
+          whatsapp_notification: {
+            sent: whatsappSent,
+            credits_insufficient: whatsappCreditsInsufficient,
+            available_credits: whatsappCreditsInsufficient ? availableWhatsappCredits : undefined,
+          },
         },
       };
     } catch (error) {
