@@ -64,3 +64,6 @@ export { SystemLogModule } from './system-logs/system-log.module';
 
 // Approval
 export { ApprovalModule } from './approvals/approval.module';
+
+// Agent Stripe Settings
+export { AgentStripeSettingsModule } from './agent-stripe-settings/agent-stripe-settings.module';

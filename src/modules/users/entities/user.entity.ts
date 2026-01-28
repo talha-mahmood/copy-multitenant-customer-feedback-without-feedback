@@ -11,4 +11,3 @@ export class User extends BaseEntity {
   @Exclude() @Column() password: string;
   @Column({ name: 'is_active', default: true }) is_active: boolean;
 }
-/*hello */
