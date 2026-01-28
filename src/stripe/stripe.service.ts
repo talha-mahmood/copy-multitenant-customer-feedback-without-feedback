@@ -1,18 +1,20 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import Stripe from 'stripe';
 
 @Injectable()
 export class StripeService {
-  constructor() { }
+  private stripe: Stripe;
 
-  /**
-   * Creates a dynamic Stripe client using the provided secret key.
-   */
-  private getStripeClient(secretKey: string): Stripe {
+  constructor() {
+    const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
+
     if (!secretKey) {
-      throw new BadRequestException('Agent Stripe Secret Key is not configured');
+      throw new Error(
+        'STRIPE_SECRET_KEY is not set. Stripe cannot be initialized.',
+      );
     }
-    return new Stripe(secretKey, {
+
+    this.stripe = new Stripe(secretKey, {
       apiVersion: '2025-12-15.clover',
     });
   }
@@ -21,12 +23,10 @@ export class StripeService {
     amount: number;
     currency?: string;
     metadata?: Record<string, string>;
-    secretKey: string;
   }) {
-    const { amount, currency = 'usd', metadata, secretKey } = params;
-    const stripe = this.getStripeClient(secretKey);
+    const { amount, currency = 'usd', metadata } = params;
 
-    const paymentIntent = await stripe.paymentIntents.create({
+    const paymentIntent = await this.stripe.paymentIntents.create({
       amount, // cents
       currency,
       automatic_payment_methods: {
@@ -41,22 +41,19 @@ export class StripeService {
   async createCheckoutSession(params: {
     amount: number;
     currency?: string;
-    metadata?: Record<string, string>;
+    packageId?: number;
     successUrl: string;
     cancelUrl: string;
-    secretKey: string;
   }) {
     const {
       amount,
       currency = 'usd',
-      metadata,
+      packageId,
       successUrl,
       cancelUrl,
-      secretKey,
     } = params;
-    const stripe = this.getStripeClient(secretKey);
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await this.stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: [
         {
@@ -64,7 +61,7 @@ export class StripeService {
             currency,
             unit_amount: amount,
             product_data: {
-              name: 'Order Payment',
+              name: 'Package payment',
             },
           },
           quantity: 1,
@@ -72,22 +69,9 @@ export class StripeService {
       ],
       success_url: successUrl,
       cancel_url: cancelUrl,
-      metadata,
+      metadata: packageId ? { package_id: packageId.toString() } : undefined,
     });
 
     return session;
-  }
-
-  /**
-   * Validates a Stripe Secret Key by attempting to retrieve account info.
-   */
-  async validateSecretKey(secretKey: string): Promise<boolean> {
-    try {
-      const stripe = this.getStripeClient(secretKey);
-      await stripe.accounts.retrieve();
-      return true;
-    } catch (error) {
-      return false;
-    }
   }
 }

@@ -12,7 +12,6 @@ import { join } from 'path';
 import { envConfig } from './common/config/env.config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { StripeModule } from './stripe/stripe.module';
-import { AgentStripeSettingsModule } from './modules/agent-stripe-settings/agent-stripe-settings.module';
 
 @Module({
   imports: [
