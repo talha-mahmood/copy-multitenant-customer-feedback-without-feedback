@@ -1,9 +1,8 @@
-import { Column, Entity, ManyToOne, JoinColumn, OneToMany, OneToOne } from 'typeorm';
+import { Column, Entity, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { BaseEntity } from 'src/common/entities/base.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { Merchant } from 'src/modules/merchants/entities/merchant.entity';
-import { AgentStripeSetting } from 'src/modules/agent-stripe-settings/entities/agent-stripe-setting.entity';
 
 @Entity('admins')
 export class Admin extends BaseEntity {
@@ -25,7 +24,4 @@ export class Admin extends BaseEntity {
 
   @OneToMany(() => Merchant, (merchant) => merchant.admin)
   merchants: Merchant[];
-
-  @OneToOne(() => AgentStripeSetting, (setting) => setting.admin)
-  stripe_settings: AgentStripeSetting;
 }
