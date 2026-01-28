@@ -17,6 +17,9 @@ import { EncryptionHelper } from 'src/common/helpers/encryption-helper';
 import { Admin } from '../admins/entities/admin.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { Customer } from '../customers/entities/customer.entity';
+import { FinanceViewer } from '../finance-viewers/entities/finance-viewer.entity';
+import { AdApprover } from '../ad-approvers/entities/ad-approver.entity';
+import { SupportStaff } from '../support-staff/entities/support-staff.entity';
 import { AdminWallet } from '../wallets/entities/admin-wallet.entity';
 import { MerchantWallet } from '../wallets/entities/merchant-wallet.entity';
 import { SystemLogService } from '../system-logs/system-log.service';
@@ -33,6 +36,9 @@ export class AuthService {
     @Inject('ADMIN_REPOSITORY') private adminRepository: Repository<Admin>,
     @Inject('MERCHANT_REPOSITORY') private merchantRepository: Repository<Merchant>,
     @Inject('CUSTOMER_REPOSITORY') private customerRepository: Repository<Customer>,
+    @Inject('FINANCE_VIEWER_REPOSITORY') private financeViewerRepository: Repository<FinanceViewer>,
+    @Inject('AD_APPROVER_REPOSITORY') private adApproverRepository: Repository<AdApprover>,
+    @Inject('SUPPORT_STAFF_REPOSITORY') private supportStaffRepository: Repository<SupportStaff>,
     @Inject('ADMIN_WALLET_REPOSITORY') private adminWalletRepository: Repository<AdminWallet>,
     @Inject('MERCHANT_WALLET_REPOSITORY') private merchantWalletRepository: Repository<MerchantWallet>,
     private jwtService: JwtService,
@@ -70,6 +76,9 @@ export class AuthService {
     let merchantId: number | null = null;
     let adminId: number | null = null;
     let customerId: number | null = null;
+    let financeViewerId: number | null = null;
+    let adApproverId: number | null = null;
+    let supportStaffId: number | null = null;
     let adminWalletData: AdminWallet | null = null;
     let subscriptionExpiresAt: Date | null = null;
     console.log("i am checking this", userHasRole);
@@ -133,32 +142,67 @@ export class AuthService {
           }
         }
       }
+    } else if (roleName === 'finance_viewer') {
+      const financeViewer = await this.financeViewerRepository.findOne({ where: { user_id: Number(user.id) } });
+      if (financeViewer) {
+        financeViewerId = financeViewer.id;
+      }
+    } else if (roleName === 'ad_approver') {
+      const adApprover = await this.adApproverRepository.findOne({ where: { user_id: Number(user.id) } });
+      if (adApprover) {
+        adApproverId = adApprover.id;
+      }
+    } else if (roleName === 'support_staff') {
+      const supportStaff = await this.supportStaffRepository.findOne({ where: { user_id: Number(user.id) } });
+      if (supportStaff) {
+        supportStaffId = supportStaff.id;
+      }
     }
     // Note: Customers don't have user accounts anymore
-    const payload = {
+    
+    // Build payload and response with only relevant role ID
+    const payload: any = {
       sub: user.id,
       email: user.email,
-      role: roleName, // use string role name
-      merchantId,
-      adminId,
-      customerId,
+      role: roleName,
       isSubscriptionExpired: adminWalletData?.is_subscription_expired ?? false,
     };
+
+    const userResponse: any = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      is_active: user.is_active,
+      role: roleName,
+      is_subscription_expired: adminWalletData?.is_subscription_expired ?? false,
+      subscription_expires_at: subscriptionExpiresAt,
+    };
+
+    // Add only the relevant role ID based on user's role
+    if (roleName === 'merchant' && merchantId) {
+      payload.merchantId = merchantId;
+      userResponse.merchantId = merchantId;
+    } else if (roleName === 'admin' && adminId) {
+      payload.adminId = adminId;
+      userResponse.adminId = adminId;
+    } else if (roleName === 'finance_viewer' && financeViewerId) {
+      payload.financeViewerId = financeViewerId;
+      userResponse.financeViewerId = financeViewerId;
+    } else if (roleName === 'ad_approver' && adApproverId) {
+      payload.adApproverId = adApproverId;
+      userResponse.adApproverId = adApproverId;
+    } else if (roleName === 'support_staff' && supportStaffId) {
+      payload.supportStaffId = supportStaffId;
+      userResponse.supportStaffId = supportStaffId;
+    } else if (roleName === 'customer' && customerId) {
+      payload.customerId = customerId;
+      userResponse.customerId = customerId;
+    }
+
     const response: any = {
       access_token: await this.jwtService.signAsync(payload),
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatar: user.avatar,
-        is_active: user.is_active,
-        role: roleName, // use string role name
-        merchantId,
-        adminId,
-        customerId,
-        is_subscription_expired: adminWalletData?.is_subscription_expired ?? false,
-        subscription_expires_at: subscriptionExpiresAt,
-      },
+      user: userResponse,
     };
 
     // Fetch and include role-specific object
@@ -176,22 +220,57 @@ export class AuthService {
       if (merchant) {
         response.merchant = merchant;
       }
+    } else if (roleName === 'finance_viewer') {
+      const financeViewer = await this.financeViewerRepository.findOne({
+        where: { user_id: Number(user.id) },
+      });
+      if (financeViewer) {
+        response.financeViewer = financeViewer;
+      }
+    } else if (roleName === 'ad_approver') {
+      const adApprover = await this.adApproverRepository.findOne({
+        where: { user_id: Number(user.id) },
+      });
+      if (adApprover) {
+        response.adApprover = adApprover;
+      }
+    } else if (roleName === 'support_staff') {
+      const supportStaff = await this.supportStaffRepository.findOne({
+        where: { user_id: Number(user.id) },
+      });
+      if (supportStaff) {
+        response.supportStaff = supportStaff;
+      }
     }
     // Note: Customers don't have user accounts anymore
 
     // Log successful login
+    const logMetadata: any = {
+      email: user.email,
+      role: roleName,
+    };
+
+    // Add only the relevant role ID to log metadata
+    if (roleName === 'merchant' && merchantId) {
+      logMetadata.merchantId = merchantId;
+    } else if (roleName === 'admin' && adminId) {
+      logMetadata.adminId = adminId;
+    } else if (roleName === 'finance_viewer' && financeViewerId) {
+      logMetadata.financeViewerId = financeViewerId;
+    } else if (roleName === 'ad_approver' && adApproverId) {
+      logMetadata.adApproverId = adApproverId;
+    } else if (roleName === 'support_staff' && supportStaffId) {
+      logMetadata.supportStaffId = supportStaffId;
+    } else if (roleName === 'customer' && customerId) {
+      logMetadata.customerId = customerId;
+    }
+
     await this.systemLogService.logAuth(
       SystemLogAction.LOGIN,
       user.id,
       roleName,
       `User ${user.email} logged in successfully`,
-      {
-        email: user.email,
-        role: roleName,
-        merchantId,
-        adminId,
-
-      },
+      logMetadata,
     );
 
     return response;

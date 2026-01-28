@@ -13,14 +13,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: any) {
-    return {
+    const user: any = {
       id: payload.sub,
       email: payload.email,
-      role: payload.role, // now always string
-      superAdminId: payload.superAdminId,
-      merchantId: payload.merchantId,
-      adminId: payload.adminId,
-      // Note: customerId removed - customers don't have user accounts anymore
+      role: payload.role,
     };
+
+    // Only add role IDs if they exist in the payload
+    if (payload.superAdminId !== undefined) user.superAdminId = payload.superAdminId;
+    if (payload.merchantId !== undefined) user.merchantId = payload.merchantId;
+    if (payload.adminId !== undefined) user.adminId = payload.adminId;
+    if (payload.financeViewerId !== undefined) user.financeViewerId = payload.financeViewerId;
+    if (payload.adApproverId !== undefined) user.adApproverId = payload.adApproverId;
+    if (payload.supportStaffId !== undefined) user.supportStaffId = payload.supportStaffId;
+    if (payload.customerId !== undefined) user.customerId = payload.customerId;
+
+    return user;
   }
 }
