@@ -15,6 +15,7 @@ import { uploadFile } from 'src/common/helpers/file-upload.helper';
 import { UserHasRoleService } from '../roles-permission-management/user-has-role/user-has-role.service';
 import { EncryptionHelper } from 'src/common/helpers/encryption-helper';
 import { Admin } from '../admins/entities/admin.entity';
+import { SuperAdmin } from '../super-admins/entities/super-admin.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { AdminWallet } from '../wallets/entities/admin-wallet.entity';
@@ -35,6 +36,7 @@ export class AuthService {
     @Inject('CUSTOMER_REPOSITORY') private customerRepository: Repository<Customer>,
     @Inject('ADMIN_WALLET_REPOSITORY') private adminWalletRepository: Repository<AdminWallet>,
     @Inject('MERCHANT_WALLET_REPOSITORY') private merchantWalletRepository: Repository<MerchantWallet>,
+    @Inject('SUPER_ADMIN_REPOSITORY') private superAdminRepository: Repository<SuperAdmin>,
     private jwtService: JwtService,
     private userHasRoleService: UserHasRoleService,
     private encryptionHelper: EncryptionHelper,
@@ -69,6 +71,7 @@ export class AuthService {
 
     let merchantId: number | null = null;
     let adminId: number | null = null;
+    let superAdminId: number | null = null;
     let customerId: number | null = null;
     let adminWalletData: AdminWallet | null = null;
     let subscriptionExpiresAt: Date | null = null;
@@ -102,14 +105,14 @@ export class AuthService {
       const admin = await this.adminRepository.findOne({ where: { user_id: Number(user.id) } });
       if (admin) {
         adminId = admin.id;
-        
+
         // Check admin subscription expiration
         const adminWallet = await this.adminWalletRepository.findOne({ where: { admin_id: admin.id } });
         console.log("i am checking this ----> adminWallet", adminWallet);
-        
+
         if (adminWallet) {
           let isExpired = false;
-          
+
           // If subscription_expires_at is null or expired, mark as expired
           if (!adminWallet.subscription_expires_at) {
             isExpired = true;
@@ -123,7 +126,7 @@ export class AuthService {
               console.log('Admin still has access to the subscription plan');
             }
           }
-          
+
           // Update is_subscription_expired if it doesn't match current state
           if (adminWallet.is_subscription_expired !== isExpired) {
             adminWallet.is_subscription_expired = isExpired;
@@ -133,6 +136,11 @@ export class AuthService {
           }
         }
       }
+    } else if (roleName === 'super_admin') {
+      const superAdmin = await this.superAdminRepository.findOne({ where: { user_id: Number(user.id) } });
+      if (superAdmin) {
+        superAdminId = superAdmin.id;
+      }
     }
     // Note: Customers don't have user accounts anymore
     const payload = {
@@ -141,6 +149,7 @@ export class AuthService {
       role: roleName, // use string role name
       merchantId,
       adminId,
+      superAdminId,
       customerId,
       isSubscriptionExpired: adminWalletData?.is_subscription_expired ?? false,
     };
@@ -155,6 +164,7 @@ export class AuthService {
         role: roleName, // use string role name
         merchantId,
         adminId,
+        superAdminId,
         customerId,
         is_subscription_expired: adminWalletData?.is_subscription_expired ?? false,
         subscription_expires_at: subscriptionExpiresAt,

@@ -58,3 +58,6 @@ export { ApprovalModule } from './approvals/approval.module';
 
 // SuperAdmin Roles
 export { SuperadminRoleModule } from './superadmin-roles/superadmin-role.module';
+
+// Chat
+export { ChatModule } from './chat/chat.module';
