@@ -698,13 +698,14 @@ export class WhatsAppService {
     campaignType: WhatsAppCampaignType,
     sinceDate: Date,
   ): Promise<WhatsAppMessage | null> {
-    const { MoreThanOrEqual } = await import('typeorm');
+    const { MoreThanOrEqual, Not } = await import('typeorm');
     return await this.whatsAppMessageRepository.findOne({
       where: {
         merchant_id: merchantId,
         customer_id: customerId,
         campaign_type: campaignType,
         created_at: MoreThanOrEqual(sinceDate),
+        status: Not(WhatsAppMessageStatus.FAILED),
       },
       order: { created_at: 'DESC' },
     });

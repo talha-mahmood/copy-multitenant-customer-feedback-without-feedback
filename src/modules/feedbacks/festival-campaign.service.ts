@@ -242,7 +242,7 @@ export class FestivalCampaignService {
       });
 
       // Send WhatsApp festival message as BI campaign (automated)
-      const message = `${festival.message}\n\nHi ${customer.name}, celebrate ${festival.name} with ${merchant.business_name}! Here's a special festival offer: Coupon Code: ${coupon.coupon_code} Valid until: ${expiryDate}. Visit us at ${merchant.address || 'our location'} to redeem!`;
+      const message = `${festival.message}Hi ${customer.name}, celebrate ${festival.name} with ${merchant.business_name}! Here's a special festival offer: Coupon Code: ${coupon.coupon_code} Valid until: ${expiryDate}. Visit us at ${merchant.address || 'our location'} to redeem!`;
 
       try {
         const whatsappMessage = await this.whatsappService.sendWhatsAppMessageWithCredits(

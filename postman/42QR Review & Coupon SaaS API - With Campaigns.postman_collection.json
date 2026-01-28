@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "9ad5861f-e55b-44fb-83ab-a8cf23ea5925",
-    "name": "38QR Review & Coupon SaaS API - With Wallets Copy 38",
-    "description": "Complete API collection including wallet system for admins and merchants",
+    "_postman_id": "9ad5861f-e55b-44fb-83ab-a8cf23ea5926",
+    "name": "42QR Review & Coupon SaaS API - With Campaigns",
+    "description": "Complete API collection including wallet system, automated campaigns (inactive recall, festival broadcasts, scheduled campaigns)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "22622973"
   },
@@ -4149,6 +4149,135 @@
               ]
             },
             "description": "Get all completed campaigns with statistics (total customers, messages sent, messages failed)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Festival Messages",
+      "item": [
+        {
+          "name": "Enable Festival Campaign",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"festival_campaign_enabled\": true,\n  \"festival_coupon_batch_id\": {{batch_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Enable festival campaigns for a merchant. The system will automatically send WhatsApp messages on festival dates (New Year, Valentine's Day, Chinese New Year, Christmas) to all active customers.\n\n**Requirements:**\n- Only available for annual merchants\n- Must specify a valid coupon batch ID\n- System checks WhatsApp BI credits before sending\n- Automatically assigns coupons from the specified batch\n\n**Supported Festivals:**\n- New Year (January 1)\n- Valentine's Day (February 14)\n- Chinese New Year (February 10)\n- Christmas (December 25)\n\n**Note:** This is an automated background service (cron job). Messages are sent automatically on festival dates at 8 AM."
+          },
+          "response": []
+        },
+        {
+          "name": "Disable Festival Campaign",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"festival_campaign_enabled\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Disable festival campaigns for a merchant. No festival messages will be sent automatically."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Festival Campaign Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Get merchant settings including festival campaign configuration.\n\n**Response fields:**\n- festival_campaign_enabled (boolean): Whether festival campaigns are enabled\n- festival_coupon_batch_id (number): ID of the coupon batch to use for festival messages"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Festival Coupon Batch",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"festival_coupon_batch_id\": {{batch_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Update the coupon batch used for festival campaigns. The new batch will be used for all future festival messages.\n\n**Important:**\n- The coupon batch must belong to the merchant\n- The batch must be active\n- The batch should have sufficient coupons for all customers"
           },
           "response": []
         }

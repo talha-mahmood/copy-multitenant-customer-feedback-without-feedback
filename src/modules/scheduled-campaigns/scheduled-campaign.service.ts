@@ -305,7 +305,7 @@ export class ScheduledCampaignService {
       message = message.replace('{business_name}', merchant.business_name);
 
       if (couponCode) {
-        message += `\n\nCoupon Code: ${couponCode}\nValid until: ${expiryDate}`;
+        message += `Coupon Code: ${couponCode}Valid until: ${expiryDate}`;
       }
 
       // Send WhatsApp message as BI campaign (automated)
