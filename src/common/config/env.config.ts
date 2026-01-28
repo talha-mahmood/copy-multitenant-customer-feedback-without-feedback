@@ -33,7 +33,6 @@ export const envConfig = {
             WHATSAPP_TOKEN: process.env.WHATSAPP_TOKEN || '',
             WHATSAPP_PHONE_NUMBER_ID: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
             WHATSAPP_WEBHOOK_VERIFY_TOKEN: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '',
-            STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
         }),
     ],
 }

@@ -121,10 +121,6 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   WHATSAPP_WEBHOOK_VERIFY_TOKEN: string;
-
-  @IsString()
-  @IsNotEmpty()
-  STRIPE_SECRET_KEY: string;
 }
 
 export function validate(config: Record<string, unknown>) {
