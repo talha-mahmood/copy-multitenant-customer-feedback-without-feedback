@@ -688,4 +688,25 @@ export class WhatsAppService {
       );
     }
   }
+
+  /**
+   * Find recent WhatsApp message to prevent duplicates
+   */
+  async findRecentMessage(
+    merchantId: number,
+    customerId: number,
+    campaignType: WhatsAppCampaignType,
+    sinceDate: Date,
+  ): Promise<WhatsAppMessage | null> {
+    const { MoreThanOrEqual } = await import('typeorm');
+    return await this.whatsAppMessageRepository.findOne({
+      where: {
+        merchant_id: merchantId,
+        customer_id: customerId,
+        campaign_type: campaignType,
+        created_at: MoreThanOrEqual(sinceDate),
+      },
+      order: { created_at: 'DESC' },
+    });
+  }
 }
