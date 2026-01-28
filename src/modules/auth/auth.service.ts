@@ -159,36 +159,50 @@ export class AuthService {
       }
     }
     // Note: Customers don't have user accounts anymore
-    const payload = {
+    
+    // Build payload and response with only relevant role ID
+    const payload: any = {
       sub: user.id,
       email: user.email,
-      role: roleName, // use string role name
-      merchantId,
-      adminId,
-      customerId,
-      financeViewerId,
-      adApproverId,
-      supportStaffId,
+      role: roleName,
       isSubscriptionExpired: adminWalletData?.is_subscription_expired ?? false,
     };
+
+    const userResponse: any = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      is_active: user.is_active,
+      role: roleName,
+      is_subscription_expired: adminWalletData?.is_subscription_expired ?? false,
+      subscription_expires_at: subscriptionExpiresAt,
+    };
+
+    // Add only the relevant role ID based on user's role
+    if (roleName === 'merchant' && merchantId) {
+      payload.merchantId = merchantId;
+      userResponse.merchantId = merchantId;
+    } else if (roleName === 'admin' && adminId) {
+      payload.adminId = adminId;
+      userResponse.adminId = adminId;
+    } else if (roleName === 'finance_viewer' && financeViewerId) {
+      payload.financeViewerId = financeViewerId;
+      userResponse.financeViewerId = financeViewerId;
+    } else if (roleName === 'ad_approver' && adApproverId) {
+      payload.adApproverId = adApproverId;
+      userResponse.adApproverId = adApproverId;
+    } else if (roleName === 'support_staff' && supportStaffId) {
+      payload.supportStaffId = supportStaffId;
+      userResponse.supportStaffId = supportStaffId;
+    } else if (roleName === 'customer' && customerId) {
+      payload.customerId = customerId;
+      userResponse.customerId = customerId;
+    }
+
     const response: any = {
       access_token: await this.jwtService.signAsync(payload),
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatar: user.avatar,
-        is_active: user.is_active,
-        role: roleName, // use string role name
-        merchantId,
-        adminId,
-        customerId,
-        financeViewerId,
-        adApproverId,
-        supportStaffId,
-        is_subscription_expired: adminWalletData?.is_subscription_expired ?? false,
-        subscription_expires_at: subscriptionExpiresAt,
-      },
+      user: userResponse,
     };
 
     // Fetch and include role-specific object
@@ -231,20 +245,32 @@ export class AuthService {
     // Note: Customers don't have user accounts anymore
 
     // Log successful login
+    const logMetadata: any = {
+      email: user.email,
+      role: roleName,
+    };
+
+    // Add only the relevant role ID to log metadata
+    if (roleName === 'merchant' && merchantId) {
+      logMetadata.merchantId = merchantId;
+    } else if (roleName === 'admin' && adminId) {
+      logMetadata.adminId = adminId;
+    } else if (roleName === 'finance_viewer' && financeViewerId) {
+      logMetadata.financeViewerId = financeViewerId;
+    } else if (roleName === 'ad_approver' && adApproverId) {
+      logMetadata.adApproverId = adApproverId;
+    } else if (roleName === 'support_staff' && supportStaffId) {
+      logMetadata.supportStaffId = supportStaffId;
+    } else if (roleName === 'customer' && customerId) {
+      logMetadata.customerId = customerId;
+    }
+
     await this.systemLogService.logAuth(
       SystemLogAction.LOGIN,
       user.id,
       roleName,
       `User ${user.email} logged in successfully`,
-      {
-        email: user.email,
-        role: roleName,
-        merchantId,
-        adminId,
-        financeViewerId,
-        adApproverId,
-        supportStaffId,
-      },
+      logMetadata,
     );
 
     return response;
