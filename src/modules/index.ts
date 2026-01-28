@@ -14,6 +14,15 @@ export { SuperAdminSettingsModule } from './super-admin-settings/super-admin-set
 // Admin management
 export { AdminModule } from './admins/admin.module';
 
+// Finance Viewer management
+export { FinanceViewerModule } from './finance-viewers/finance-viewer.module';
+
+// Ad Approver management
+export { AdApproverModule } from './ad-approvers/ad-approver.module';
+
+// Support Staff management
+export { SupportStaffModule } from './support-staff/support-staff.module';
+
 // Merchant management
 export { MerchantModule } from './merchants/merchant.module';
 

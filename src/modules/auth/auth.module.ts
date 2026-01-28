@@ -17,6 +17,9 @@ import { merchantProviders } from '../merchants/merchant.provider';
 import { customerProviders } from '../customers/customer.provider';
 import { walletProviders } from '../wallets/wallet.provider';
 import { SystemLogModule } from '../system-logs/system-log.module';
+import { financeViewerProviders } from '../finance-viewers/finance-viewer.provider';
+import { adApproverProviders } from '../ad-approvers/ad-approver.provider';
+import { supportStaffProviders } from '../support-staff/support-staff.provider';
 
 @Module({
   imports: [
@@ -44,6 +47,9 @@ import { SystemLogModule } from '../system-logs/system-log.module';
     ...merchantProviders,
     ...customerProviders,
     ...walletProviders,
+    ...financeViewerProviders,
+    ...adApproverProviders,
+    ...supportStaffProviders,
     IsUniqueConstraint,
     EncryptionHelper,
   ],

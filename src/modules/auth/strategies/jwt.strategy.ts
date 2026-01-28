@@ -20,6 +20,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       superAdminId: payload.superAdminId,
       merchantId: payload.merchantId,
       adminId: payload.adminId,
+      financeViewerId: payload.financeViewerId,
+      adApproverId: payload.adApproverId,
+      supportStaffId: payload.supportStaffId,
       // Note: customerId removed - customers don't have user accounts anymore
     };
   }

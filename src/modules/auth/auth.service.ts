@@ -17,6 +17,9 @@ import { EncryptionHelper } from 'src/common/helpers/encryption-helper';
 import { Admin } from '../admins/entities/admin.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { Customer } from '../customers/entities/customer.entity';
+import { FinanceViewer } from '../finance-viewers/entities/finance-viewer.entity';
+import { AdApprover } from '../ad-approvers/entities/ad-approver.entity';
+import { SupportStaff } from '../support-staff/entities/support-staff.entity';
 import { AdminWallet } from '../wallets/entities/admin-wallet.entity';
 import { MerchantWallet } from '../wallets/entities/merchant-wallet.entity';
 import { SystemLogService } from '../system-logs/system-log.service';
@@ -33,6 +36,9 @@ export class AuthService {
     @Inject('ADMIN_REPOSITORY') private adminRepository: Repository<Admin>,
     @Inject('MERCHANT_REPOSITORY') private merchantRepository: Repository<Merchant>,
     @Inject('CUSTOMER_REPOSITORY') private customerRepository: Repository<Customer>,
+    @Inject('FINANCE_VIEWER_REPOSITORY') private financeViewerRepository: Repository<FinanceViewer>,
+    @Inject('AD_APPROVER_REPOSITORY') private adApproverRepository: Repository<AdApprover>,
+    @Inject('SUPPORT_STAFF_REPOSITORY') private supportStaffRepository: Repository<SupportStaff>,
     @Inject('ADMIN_WALLET_REPOSITORY') private adminWalletRepository: Repository<AdminWallet>,
     @Inject('MERCHANT_WALLET_REPOSITORY') private merchantWalletRepository: Repository<MerchantWallet>,
     private jwtService: JwtService,
@@ -70,6 +76,9 @@ export class AuthService {
     let merchantId: number | null = null;
     let adminId: number | null = null;
     let customerId: number | null = null;
+    let financeViewerId: number | null = null;
+    let adApproverId: number | null = null;
+    let supportStaffId: number | null = null;
     let adminWalletData: AdminWallet | null = null;
     let subscriptionExpiresAt: Date | null = null;
     console.log("i am checking this", userHasRole);
@@ -133,6 +142,21 @@ export class AuthService {
           }
         }
       }
+    } else if (roleName === 'finance_viewer') {
+      const financeViewer = await this.financeViewerRepository.findOne({ where: { user_id: Number(user.id) } });
+      if (financeViewer) {
+        financeViewerId = financeViewer.id;
+      }
+    } else if (roleName === 'ad_approver') {
+      const adApprover = await this.adApproverRepository.findOne({ where: { user_id: Number(user.id) } });
+      if (adApprover) {
+        adApproverId = adApprover.id;
+      }
+    } else if (roleName === 'support_staff') {
+      const supportStaff = await this.supportStaffRepository.findOne({ where: { user_id: Number(user.id) } });
+      if (supportStaff) {
+        supportStaffId = supportStaff.id;
+      }
     }
     // Note: Customers don't have user accounts anymore
     const payload = {
@@ -142,6 +166,9 @@ export class AuthService {
       merchantId,
       adminId,
       customerId,
+      financeViewerId,
+      adApproverId,
+      supportStaffId,
       isSubscriptionExpired: adminWalletData?.is_subscription_expired ?? false,
     };
     const response: any = {
@@ -156,6 +183,9 @@ export class AuthService {
         merchantId,
         adminId,
         customerId,
+        financeViewerId,
+        adApproverId,
+        supportStaffId,
         is_subscription_expired: adminWalletData?.is_subscription_expired ?? false,
         subscription_expires_at: subscriptionExpiresAt,
       },
@@ -176,6 +206,27 @@ export class AuthService {
       if (merchant) {
         response.merchant = merchant;
       }
+    } else if (roleName === 'finance_viewer') {
+      const financeViewer = await this.financeViewerRepository.findOne({
+        where: { user_id: Number(user.id) },
+      });
+      if (financeViewer) {
+        response.financeViewer = financeViewer;
+      }
+    } else if (roleName === 'ad_approver') {
+      const adApprover = await this.adApproverRepository.findOne({
+        where: { user_id: Number(user.id) },
+      });
+      if (adApprover) {
+        response.adApprover = adApprover;
+      }
+    } else if (roleName === 'support_staff') {
+      const supportStaff = await this.supportStaffRepository.findOne({
+        where: { user_id: Number(user.id) },
+      });
+      if (supportStaff) {
+        response.supportStaff = supportStaff;
+      }
     }
     // Note: Customers don't have user accounts anymore
 
@@ -190,7 +241,9 @@ export class AuthService {
         role: roleName,
         merchantId,
         adminId,
-
+        financeViewerId,
+        adApproverId,
+        supportStaffId,
       },
     );
 
