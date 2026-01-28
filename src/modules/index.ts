@@ -55,3 +55,6 @@ export { SystemLogModule } from './system-logs/system-log.module';
 
 // Approval
 export { ApprovalModule } from './approvals/approval.module';
+
+// SuperAdmin Roles
+export { SuperadminRoleModule } from './superadmin-roles/superadmin-role.module';

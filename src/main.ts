@@ -94,9 +94,7 @@ async function bootstrap() {
     }),
   );
 
-  if (configService.get('APP_ENV') === 'local') {
-    app.setGlobalPrefix('api');
-  }
+  app.setGlobalPrefix('api');
 
   // Enable CORS with default or custom options
   const allowedOrigins = [
