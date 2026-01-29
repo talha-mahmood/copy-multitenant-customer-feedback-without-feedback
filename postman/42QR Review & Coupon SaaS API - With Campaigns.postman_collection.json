@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "9ad5861f-e55b-44fb-83ab-a8cf23ea5925",
-    "name": "38QR Review & Coupon SaaS API - With Wallets Copy 38",
-    "description": "Complete API collection including wallet system for admins and merchants",
+    "_postman_id": "9ad5861f-e55b-44fb-83ab-a8cf23ea5926",
+    "name": "43QR Review & Coupon SaaS API - With Campaigns",
+    "description": "Complete API collection including wallet system, automated campaigns (inactive recall, festival broadcasts, scheduled campaigns)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "22622973"
   },
@@ -3492,7 +3492,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "// {\n//   \"enableGoogleReviews\": true,\n//   \"enableFacebookReviews\": true,\n//   \"googleReviewUrl\": \"https://g.page/r/updated-url\",\n//   \"facebookPageUrl\": \"https://facebook.com/updated-page\"\n// }\n\n{\n    \"whatsapp_enabled_for_batch_id\": 2,\n    \"luckydraw_enabled\": false,\n    \"birthday_message_enabled\": true,\n    \"days_before_birthday\": 3,\n    \"days_after_birthday\": 0,\n    \"birthday_coupon_batch_id\": 1\n}"
+              "raw": "// Basic Settings Example:\n// {\n//   \"enableGoogleReviews\": true,\n//   \"enableFacebookReviews\": true,\n//   \"googleReviewUrl\": \"https://g.page/r/updated-url\",\n//   \"facebookPageUrl\": \"https://facebook.com/updated-page\"\n// }\n\n// Full Settings with Campaigns:\n{\n    \"whatsapp_enabled_for_batch_id\": 2,\n    \"luckydraw_enabled\": false,\n    \"birthday_message_enabled\": true,\n    \"days_before_birthday\": 3,\n    \"days_after_birthday\": 0,\n    \"birthday_coupon_batch_id\": 1,\n    \"inactive_recall_enabled\": true,\n    \"inactive_recall_days\": 30,\n    \"inactive_recall_coupon_batch_id\": 2,\n    \"festival_campaign_enabled\": true,\n    \"festival_coupon_batch_id\": 3\n}"
             },
             "url": {
               "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
@@ -3929,6 +3929,530 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Scheduled Campaigns",
+      "item": [
+        {
+          "name": "Create Scheduled Campaign",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set('campaign_id', jsonData.data.id);",
+                  "        console.log('Campaign ID saved:', jsonData.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"campaign_name\": \"Grand Opening Special\",\n  \"campaign_message\": \"Hi {customer_name}, we're excited to invite you to our grand opening at {business_name}! Don't miss out on exclusive offers!\",\n  \"scheduled_date\": \"2026-02-01T10:00:00Z\",\n  \"target_audience\": \"all\",\n  \"send_coupons\": true,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n// Target Audience Options:\n// \"all\" - All customers\n// \"active\" - Customers with feedback in last 30 days\n// \"inactive\" - Customers without feedback in last 90 days\n// \"first_time\" - Customers with only 1 feedback\n// \"returning\" - Customers with more than 1 feedback"
+            },
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns"
+              ]
+            },
+            "description": "Create a new scheduled campaign. Only available for annual merchants.\n\nPlaceholders in message:\n- {customer_name} - Replaced with customer's name\n- {business_name} - Replaced with merchant's business name\n\nTarget audiences:\n- all: All customers\n- active: Feedback in last 30 days\n- inactive: No feedback in last 90 days\n- first_time: Only 1 feedback\n- returning: More than 1 feedback"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns?merchant_id={{merchant_id}}&status=scheduled",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns"
+              ],
+              "query": [
+                {
+                  "key": "merchant_id",
+                  "value": "{{merchant_id}}",
+                  "description": "Filter by merchant ID"
+                },
+                {
+                  "key": "status",
+                  "value": "scheduled",
+                  "description": "Filter by status: scheduled, processing, completed, cancelled, failed"
+                }
+              ]
+            },
+            "description": "Get all scheduled campaigns. Merchants can only see their own campaigns. Super admins can see all campaigns."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Campaign by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns/{{campaign_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns",
+                "{{campaign_id}}"
+              ]
+            },
+            "description": "Get details of a specific campaign including merchant and coupon batch information."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Campaign",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaign_name\": \"Updated Campaign Name\",\n  \"campaign_message\": \"Updated message for {customer_name} from {business_name}\",\n  \"scheduled_date\": \"2026-02-15T14:00:00Z\",\n  \"target_audience\": \"active\",\n  \"send_coupons\": true,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n// Note: Can only update campaigns with status \"scheduled\"\n// Cannot update campaigns that are processing or completed"
+            },
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns/{{campaign_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns",
+                "{{campaign_id}}"
+              ]
+            },
+            "description": "Update a scheduled campaign. Only campaigns with status 'scheduled' can be updated. All fields are optional."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Campaign",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns/{{campaign_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns",
+                "{{campaign_id}}"
+              ]
+            },
+            "description": "Cancel a scheduled campaign. Only campaigns with status 'scheduled' can be cancelled. Sets status to 'cancelled'."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Scheduled Campaigns (All)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns"
+              ]
+            },
+            "description": "Get all campaigns without filters. Merchants see only their campaigns, super admins see all."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Completed Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns?merchant_id={{merchant_id}}&status=completed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns"
+              ],
+              "query": [
+                {
+                  "key": "merchant_id",
+                  "value": "{{merchant_id}}"
+                },
+                {
+                  "key": "status",
+                  "value": "completed"
+                }
+              ]
+            },
+            "description": "Get all completed campaigns with statistics (total customers, messages sent, messages failed)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Festival Messages",
+      "item": [
+        {
+          "name": "Enable Festival Campaign",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"festival_campaign_enabled\": true,\n  \"festival_coupon_batch_id\": {{batch_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Enable festival campaigns for a merchant. The system will automatically send WhatsApp messages on festival dates (New Year, Valentine's Day, Chinese New Year, Christmas) to all active customers.\n\n**Requirements:**\n- Only available for annual merchants\n- Must specify a valid coupon batch ID\n- System checks WhatsApp BI credits before sending\n- Automatically assigns coupons from the specified batch\n\n**Supported Festivals:**\n- New Year (January 1)\n- Valentine's Day (February 14)\n- Chinese New Year (February 10)\n- Christmas (December 25)\n\n**Note:** This is an automated background service (cron job). Messages are sent automatically on festival dates at 8 AM."
+          },
+          "response": []
+        },
+        {
+          "name": "Disable Festival Campaign",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"festival_campaign_enabled\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Disable festival campaigns for a merchant. No festival messages will be sent automatically."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Festival Campaign Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Get merchant settings including festival campaign configuration.\n\n**Response fields:**\n- festival_campaign_enabled (boolean): Whether festival campaigns are enabled\n- festival_coupon_batch_id (number): ID of the coupon batch to use for festival messages"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Festival Coupon Batch",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"festival_coupon_batch_id\": {{batch_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Update the coupon batch used for festival campaigns. The new batch will be used for all future festival messages.\n\n**Important:**\n- The coupon batch must belong to the merchant\n- The batch must be active\n- The batch should have sufficient coupons for all customers"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Festival Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set('festival_message_id', jsonData.data.id);",
+                  "        console.log('Festival Message ID saved:', jsonData.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"festival_name\": \"Eid Mubarak\",\n  \"festival_date\": \"2026-03-21\",\n  \"message\": \"Eid Mubarak! Celebrate this blessed occasion with special offers from us!\",\n  \"is_active\": true,\n  \"is_recurring\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/festival-messages",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages"
+              ]
+            },
+            "description": "Create a custom festival message for a merchant. The system will automatically send this message to all customers on the specified festival date.\n\n**Fields:**\n- festival_name: Name of the festival\n- festival_date: Date in YYYY-MM-DD format\n- message: Custom message to send (supports placeholders)\n- is_active: Whether this festival is active\n- is_recurring: If true, sends every year on the same date\n\n**Note:** Requires merchant to have festival campaigns enabled in settings."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Festival Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/festival-messages?merchant_id={{merchant_id}}&is_active=true&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages"
+              ],
+              "query": [
+                {
+                  "key": "merchant_id",
+                  "value": "{{merchant_id}}",
+                  "description": "Filter by merchant ID"
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "description": "Filter by active status"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all festival messages with optional filtering by merchant and active status."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Festival Message by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/festival-messages/{{festival_message_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages",
+                "{{festival_message_id}}"
+              ]
+            },
+            "description": "Get a specific festival message by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Festival Message",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"festival_name\": \"Eid Mubarak (Updated)\",\n  \"message\": \"Eid Mubarak! Celebrate this blessed occasion with our special offers and discounts!\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/festival-messages/{{festival_message_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages",
+                "{{festival_message_id}}"
+              ]
+            },
+            "description": "Update an existing festival message. All fields are optional."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Festival Message",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/festival-messages/{{festival_message_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages",
+                "{{festival_message_id}}"
+              ]
+            },
+            "description": "Soft delete a festival message. The message will be marked as deleted but not removed from the database."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "auth": {
@@ -3983,6 +4507,31 @@
     {
       "key": "customer_id",
       "value": ""
+    },
+    {
+      "key": "campaign_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "festival_message_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "finance_viewer_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ad_approver_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "support_staff_id",
+      "value": "",
+      "type": "string"
     }
   ]
 }

@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "9ad5861f-e55b-44fb-83ab-a8cf23ea5925",
-    "name": "38QR Review & Coupon SaaS API - With Wallets Copy 38",
-    "description": "Complete API collection including wallet system for admins and merchants",
+    "_postman_id": "8e0054f2-7870-495f-b5aa-c11d23a38b34",
+    "name": "41QR Review & Coupon SaaS API - With Campaigns",
+    "description": "Complete API collection including wallet system, automated campaigns (inactive recall, festival broadcasts, scheduled campaigns)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "22622973"
   },
@@ -39,7 +39,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "// Super Admin Login\n// {\n//   \"email\": \"superadmin@must.services\",\n//   \"password\": \"Pakistan@123\"\n// }\n\n// Admin/Agent Login\n// {\n//   \"email\": \"agent1@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Staff Login (Finance Viewer)\n// {\n//   \"email\": \"finance@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Staff Login (Ad Approver)\n// {\n//   \"email\": \"adapprover@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Staff Login (Support Staff)\n{\n  \"email\": \"support@example.com\",\n  \"password\": \"password123\"\n}\n"
+              "raw": "// Super Admin Login\n{\n  \"email\": \"superadmin@must.services\",\n  \"password\": \"Pakistan@123\"\n}\n\n// Admin/Agent Login\n// {\n//   \"email\": \"agent1@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Staff Login (Finance Viewer)\n// {\n//   \"email\": \"finance@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Staff Login (Ad Approver)\n// {\n//   \"email\": \"adapprover@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Staff Login (Support Staff)\n// {\n//   \"email\": \"support@example.com\",\n//   \"password\": \"password123\"\n// }\n"
             },
             "url": {
               "raw": "{{base_url}}/auth/login",
@@ -233,24 +233,24 @@
       ]
     },
     {
-      "name": "Staff",
+      "name": "Finance Viewers",
       "item": [
         {
-          "name": "Create Staff",
+          "name": "Create Finance Viewer",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 201) {",
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
                   "    var jsonData = pm.response.json();",
-                  "    pm.collectionVariables.set('staff_id', jsonData.data.id);",
-                  "    console.log('Staff ID saved:', jsonData.data.id);",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set('finance_viewer_id', jsonData.data.id);",
+                  "        console.log('Finance Viewer ID saved:', jsonData.data.id);",
+                  "    }",
                   "}"
                 ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
+                "type": "text/javascript"
               }
             }
           ],
@@ -260,37 +260,46 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Jane Finance\",\n  \"email\": \"finance@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456789\",\n  \"staff_role\": \"finance_viewer\",\n  \"department\": \"Finance\",\n  \"address\": \"123 Finance Street\",\n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"is_active\": true\n}"
+              "raw": "{\n  \"name\": \"Jane Finance\",\n  \"email\": \"finance@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456789\",\n  \"address\": \"123 Finance Street\",\n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"notes\": \"Financial reports viewer\",\n  \"is_active\": true\n}"
             },
             "url": {
-              "raw": "{{base_url}}/staff",
+              "raw": "{{base_url}}/finance-viewers",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "staff"
+                "finance-viewers"
               ]
             },
-            "description": "Create a new staff member. Roles: finance_viewer, ad_approver, support_staff"
+            "description": "Create a new Finance Viewer staff member. Can view financial reports and analytics."
           },
           "response": []
         },
         {
-          "name": "Get All Staff",
+          "name": "Get All Finance Viewers",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
             "url": {
-              "raw": "{{base_url}}/staff?page=1&pageSize=20&staffRole=finance_viewer",
+              "raw": "{{base_url}}/finance-viewers?page=1&pageSize=20",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "staff"
+                "finance-viewers"
               ],
               "query": [
                 {
@@ -302,14 +311,175 @@
                   "value": "20"
                 },
                 {
-                  "key": "staffRole",
-                  "value": "finance_viewer",
-                  "description": "Filter by role: finance_viewer, ad_approver, support_staff"
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all Finance Viewers with pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Finance Viewer by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finance-viewers/{{finance_viewer_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finance-viewers",
+                "{{finance_viewer_id}}"
+              ]
+            },
+            "description": "Get a specific Finance Viewer by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Finance Viewer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Finance Updated\",\n  \"notes\": \"Senior Financial Analyst\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/finance-viewers/{{finance_viewer_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finance-viewers",
+                "{{finance_viewer_id}}"
+              ]
+            },
+            "description": "Update Finance Viewer details"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Finance Viewer",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finance-viewers/{{finance_viewer_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finance-viewers",
+                "{{finance_viewer_id}}"
+              ]
+            },
+            "description": "Delete (soft delete) a Finance Viewer"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Ad Approvers",
+      "item": [
+        {
+          "name": "Create Ad Approver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set('ad_approver_id', jsonData.data.id);",
+                  "        console.log('Ad Approver ID saved:', jsonData.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Ad Manager\",\n  \"email\": \"adapprover@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456790\",\n  \"address\": \"456 Marketing Street\",\n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"notes\": \"Approves paid advertisements\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ad-approvers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ad-approvers"
+              ]
+            },
+            "description": "Create a new Ad Approver staff member. Can approve/reject paid ad submissions."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Ad Approvers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ad-approvers?page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ad-approvers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
                 },
                 {
-                  "key": "isActive",
-                  "value": "true",
-                  "disabled": true
+                  "key": "pageSize",
+                  "value": "20"
                 },
                 {
                   "key": "search",
@@ -318,73 +488,258 @@
                 }
               ]
             },
-            "description": "Get all staff members with optional filters"
+            "description": "Get all Ad Approvers with pagination"
           },
           "response": []
         },
         {
-          "name": "Get Staff by ID",
+          "name": "Get Ad Approver by ID",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
             "url": {
-              "raw": "{{base_url}}/staff/{{staff_id}}",
+              "raw": "{{base_url}}/ad-approvers/{{ad_approver_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "staff",
-                "{{staff_id}}"
+                "ad-approvers",
+                "{{ad_approver_id}}"
               ]
             },
-            "description": "Get a specific staff member by ID"
+            "description": "Get a specific Ad Approver by ID"
           },
           "response": []
         },
         {
-          "name": "Update Staff",
+          "name": "Update Ad Approver",
           "request": {
             "method": "PATCH",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Jane Finance Updated\",\n  \"department\": \"Finance & Accounting\",\n  \"is_active\": true\n}"
+              "raw": "{\n  \"name\": \"John Ad Manager Updated\",\n  \"notes\": \"Senior Ad Approval Manager\",\n  \"is_active\": true\n}"
             },
             "url": {
-              "raw": "{{base_url}}/staff/{{staff_id}}",
+              "raw": "{{base_url}}/ad-approvers/{{ad_approver_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "staff",
-                "{{staff_id}}"
+                "ad-approvers",
+                "{{ad_approver_id}}"
               ]
             },
-            "description": "Update staff member details"
+            "description": "Update Ad Approver details"
           },
           "response": []
         },
         {
-          "name": "Delete Staff",
+          "name": "Delete Ad Approver",
           "request": {
             "method": "DELETE",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
             "url": {
-              "raw": "{{base_url}}/staff/{{staff_id}}",
+              "raw": "{{base_url}}/ad-approvers/{{ad_approver_id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "staff",
-                "{{staff_id}}"
+                "ad-approvers",
+                "{{ad_approver_id}}"
               ]
             },
-            "description": "Delete (soft delete) a staff member"
+            "description": "Delete (soft delete) an Ad Approver"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Support Staff",
+      "item": [
+        {
+          "name": "Create Support Staff",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set('support_staff_id', jsonData.data.id);",
+                  "        console.log('Support Staff ID saved:', jsonData.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sarah Support\",\n  \"email\": \"support@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456791\",\n  \"address\": \"789 Support Street\",\n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"notes\": \"Customer support representative\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/support-staff",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "support-staff"
+              ]
+            },
+            "description": "Create a new Support Staff member. Can handle customer support queries."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Support Staff",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/support-staff?page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "support-staff"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all Support Staff with pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Support Staff by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/support-staff/{{support_staff_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "support-staff",
+                "{{support_staff_id}}"
+              ]
+            },
+            "description": "Get a specific Support Staff by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Support Staff",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sarah Support Updated\",\n  \"notes\": \"Senior Support Representative\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/support-staff/{{support_staff_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "support-staff",
+                "{{support_staff_id}}"
+              ]
+            },
+            "description": "Update Support Staff details"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Support Staff",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/support-staff/{{support_staff_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "support-staff",
+                "{{support_staff_id}}"
+              ]
+            },
+            "description": "Delete (soft delete) a Support Staff member"
           },
           "response": []
         }
@@ -960,7 +1315,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Starter Package\",\n  \"description\": \"Perfect for small businesses\",\n  \"credits\": 100,\n  \"credit_type\": \"whatsapp bi message\",\n  \"price\": 50.00,\n  \"price_per_credit\": 0.50,\n  \"currency\": \"USD\",\n  \"merchant_type\": \"annual\",\n  \"is_active\": true,\n  \"sort_order\": 1,\n  \"bonus_credits\": 0\n}"
+                  "raw": "{\n  \"name\": \"Starter Package3\",\n  \"description\": \"Perfect for small businesses\",\n  \"credits\": 1,\n  \"credit_type\": \"paid ads\",\n  \"price\": 50.00,\n  \"price_per_credit\": 0.50,\n  \"currency\": \"USD\",\n  \"merchant_type\": \"annual\",\n  \"is_active\": true,\n  \"sort_order\": 1,\n  \"bonus_credits\": 0\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/wallets/credit-packages",
@@ -1187,7 +1542,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/customers?page=1&pageSize=20&isActive=true",
+              "raw": "{{base_url}}/customers?page=1&pageSize=20",
               "host": [
                 "{{base_url}}"
               ],
@@ -1202,10 +1557,6 @@
                 {
                   "key": "pageSize",
                   "value": "20"
-                },
-                {
-                  "key": "isActive",
-                  "value": "true"
                 }
               ]
             }
@@ -1494,7 +1845,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/system-logs?page=1&pageSize=20",
+              "raw": "{{base_url}}/system-logs?page=1&pageSize=20&level=error",
               "host": [
                 "{{base_url}}"
               ],
@@ -1524,9 +1875,8 @@
                 },
                 {
                   "key": "level",
-                  "value": "info",
-                  "description": "Filter by level: info, warning, error, critical",
-                  "disabled": true
+                  "value": "error",
+                  "description": "Filter by level: info, warning, error, critical"
                 },
                 {
                   "key": "userId",
@@ -3492,7 +3842,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "// {\n//   \"enableGoogleReviews\": true,\n//   \"enableFacebookReviews\": true,\n//   \"googleReviewUrl\": \"https://g.page/r/updated-url\",\n//   \"facebookPageUrl\": \"https://facebook.com/updated-page\"\n// }\n\n{\n    \"whatsapp_enabled_for_batch_id\": 2,\n    \"luckydraw_enabled\": false,\n    \"birthday_message_enabled\": true,\n    \"days_before_birthday\": 3,\n    \"days_after_birthday\": 0,\n    \"birthday_coupon_batch_id\": 1\n}"
+              "raw": "// Basic Settings Example:\n// {\n//   \"enableGoogleReviews\": true,\n//   \"enableFacebookReviews\": true,\n//   \"googleReviewUrl\": \"https://g.page/r/updated-url\",\n//   \"facebookPageUrl\": \"https://facebook.com/updated-page\"\n// }\n\n// Full Settings with Campaigns:\n{\n    \"whatsapp_enabled_for_batch_id\": 2,\n    \"luckydraw_enabled\": false,\n    \"birthday_message_enabled\": true,\n    \"days_before_birthday\": 3,\n    \"days_after_birthday\": 0,\n    \"birthday_coupon_batch_id\": 2,\n    \"inactive_recall_enabled\": true,\n    \"inactive_recall_days\": 30,\n    \"inactive_recall_coupon_batch_id\": 2,\n    \"festival_campaign_enabled\": true,\n    \"festival_coupon_batch_id\": 2\n}"
             },
             "url": {
               "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
@@ -3929,6 +4279,232 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Scheduled Campaigns",
+      "item": [
+        {
+          "name": "Create Scheduled Campaign",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set('campaign_id', jsonData.data.id);",
+                  "        console.log('Campaign ID saved:', jsonData.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"campaign_name\": \"Grand Opening Special\",\n  \"campaign_message\": \"Hi {customer_name}, we're excited to invite you to our grand opening at {business_name}! Don't miss out on exclusive offers!\",\n  \"scheduled_date\": \"2026-01-28\",\n  \"target_audience\": \"all\",\n  \"send_coupons\": true,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n// Target Audience Options:\n// \"all\" - All customers\n// \"active\" - Customers with feedback in last 30 days\n// \"inactive\" - Customers without feedback in last 90 days\n// \"first_time\" - Customers with only 1 feedback\n// \"returning\" - Customers with more than 1 feedback"
+            },
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns"
+              ]
+            },
+            "description": "Create a new scheduled campaign. Only available for annual merchants.\n\nPlaceholders in message:\n- {customer_name} - Replaced with customer's name\n- {business_name} - Replaced with merchant's business name\n\nTarget audiences:\n- all: All customers\n- active: Feedback in last 30 days\n- inactive: No feedback in last 90 days\n- first_time: Only 1 feedback\n- returning: More than 1 feedback"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns?merchant_id={{merchant_id}}&status=scheduled",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns"
+              ],
+              "query": [
+                {
+                  "key": "merchant_id",
+                  "value": "{{merchant_id}}",
+                  "description": "Filter by merchant ID"
+                },
+                {
+                  "key": "status",
+                  "value": "scheduled",
+                  "description": "Filter by status: scheduled, processing, completed, cancelled, failed"
+                }
+              ]
+            },
+            "description": "Get all scheduled campaigns. Merchants can only see their own campaigns. Super admins can see all campaigns."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Campaign by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns/{{campaign_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns",
+                "{{campaign_id}}"
+              ]
+            },
+            "description": "Get details of a specific campaign including merchant and coupon batch information."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Campaign",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaign_name\": \"Updated Campaign Name\",\n  \"campaign_message\": \"Updated message for {customer_name} from {business_name}\",\n  \"scheduled_date\": \"2026-02-15T14:00:00Z\",\n  \"target_audience\": \"active\",\n  \"send_coupons\": true,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n// Note: Can only update campaigns with status \"scheduled\"\n// Cannot update campaigns that are processing or completed"
+            },
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns/{{campaign_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns",
+                "{{campaign_id}}"
+              ]
+            },
+            "description": "Update a scheduled campaign. Only campaigns with status 'scheduled' can be updated. All fields are optional."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Campaign",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns/{{campaign_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns",
+                "{{campaign_id}}"
+              ]
+            },
+            "description": "Cancel a scheduled campaign. Only campaigns with status 'scheduled' can be cancelled. Sets status to 'cancelled'."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Scheduled Campaigns (All)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns"
+              ]
+            },
+            "description": "Get all campaigns without filters. Merchants see only their campaigns, super admins see all."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Completed Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns?merchant_id={{merchant_id}}&status=completed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns"
+              ],
+              "query": [
+                {
+                  "key": "merchant_id",
+                  "value": "{{merchant_id}}"
+                },
+                {
+                  "key": "status",
+                  "value": "completed"
+                }
+              ]
+            },
+            "description": "Get all completed campaigns with statistics (total customers, messages sent, messages failed)."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "auth": {
@@ -3983,6 +4559,26 @@
     {
       "key": "customer_id",
       "value": ""
+    },
+    {
+      "key": "campaign_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "finance_viewer_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ad_approver_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "support_staff_id",
+      "value": "",
+      "type": "string"
     }
   ]
 }

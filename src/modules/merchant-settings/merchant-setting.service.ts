@@ -150,6 +150,42 @@ export class MerchantSettingService {
       }
     }
 
+    // Validate inactive_recall_coupon_batch_id belongs to merchant
+    if (updateMerchantSettingDto.inactive_recall_coupon_batch_id !== undefined) {
+      if (updateMerchantSettingDto.inactive_recall_coupon_batch_id !== null) {
+        const inactiveBatch = await this.couponBatchRepository.findOne({
+          where: { 
+            id: updateMerchantSettingDto.inactive_recall_coupon_batch_id,
+            merchant_id: merchantId,
+          },
+        });
+
+        if (!inactiveBatch) {
+          throw new BadRequestException(
+            `Coupon batch ID ${updateMerchantSettingDto.inactive_recall_coupon_batch_id} does not exist or does not belong to merchant ID ${merchantId}`
+          );
+        }
+      }
+    }
+
+    // Validate festival_coupon_batch_id belongs to merchant
+    if (updateMerchantSettingDto.festival_coupon_batch_id !== undefined) {
+      if (updateMerchantSettingDto.festival_coupon_batch_id !== null) {
+        const festivalBatch = await this.couponBatchRepository.findOne({
+          where: { 
+            id: updateMerchantSettingDto.festival_coupon_batch_id,
+            merchant_id: merchantId,
+          },
+        });
+
+        if (!festivalBatch) {
+          throw new BadRequestException(
+            `Coupon batch ID ${updateMerchantSettingDto.festival_coupon_batch_id} does not exist or does not belong to merchant ID ${merchantId}`
+          );
+        }
+      }
+    }
+
     // Check if paid_ads is being turned on (from false to true)
     if (updateMerchantSettingDto.paid_ads === true && setting.paid_ads === false) {
       // Check if merchant has paid ad credits
@@ -188,6 +224,11 @@ export class MerchantSettingService {
       days_before_birthday: updateMerchantSettingDto.days_before_birthday ?? setting.days_before_birthday,
       days_after_birthday: updateMerchantSettingDto.days_after_birthday ?? setting.days_after_birthday,
       birthday_coupon_batch_id: updateMerchantSettingDto.birthday_coupon_batch_id ?? setting.birthday_coupon_batch_id,
+      inactive_recall_enabled: updateMerchantSettingDto.inactive_recall_enabled ?? setting.inactive_recall_enabled,
+      inactive_recall_days: updateMerchantSettingDto.inactive_recall_days ?? setting.inactive_recall_days,
+      inactive_recall_coupon_batch_id: updateMerchantSettingDto.inactive_recall_coupon_batch_id ?? setting.inactive_recall_coupon_batch_id,
+      festival_campaign_enabled: updateMerchantSettingDto.festival_campaign_enabled ?? setting.festival_campaign_enabled,
+      festival_coupon_batch_id: updateMerchantSettingDto.festival_coupon_batch_id ?? setting.festival_coupon_batch_id,
     });
 
     const updated = await this.merchantSettingRepository.save(setting);

@@ -64,6 +64,21 @@ export class MerchantSetting extends BaseEntity {
   @Column({ name: 'birthday_coupon_batch_id', type: 'int', nullable: true })
   birthday_coupon_batch_id: number;
 
+  @Column({ name: 'inactive_recall_enabled', type: 'boolean', default: false })
+  inactive_recall_enabled: boolean;
+
+  @Column({ name: 'inactive_recall_days', type: 'int', default: 30 })
+  inactive_recall_days: number;
+
+  @Column({ name: 'inactive_recall_coupon_batch_id', type: 'int', nullable: true })
+  inactive_recall_coupon_batch_id: number;
+
+  @Column({ name: 'festival_campaign_enabled', type: 'boolean', default: false })
+  festival_campaign_enabled: boolean;
+
+  @Column({ name: 'festival_coupon_batch_id', type: 'int', nullable: true })
+  festival_coupon_batch_id: number;
+
   @OneToOne(() => Merchant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'merchant_id' })
   merchant: Merchant;
