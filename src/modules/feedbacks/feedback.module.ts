@@ -14,6 +14,7 @@ import { merchantSettingProviders } from '../merchant-settings/merchant-setting.
 import { couponProvider } from '../coupons/coupon.provider';
 import { couponBatchProvider } from '../coupon-batches/coupon-batch.provider';
 import { customerProviders } from '../customers/customer.provider';
+import { festivalMessageProviders } from '../festival-messages/festival-message.provider';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 import { WalletModule } from '../wallets/wallet.module';
 import { SystemLogModule } from '../system-logs/system-log.module';
@@ -34,6 +35,7 @@ import { SystemLogModule } from '../system-logs/system-log.module';
     ...couponProvider,
     ...couponBatchProvider,
     ...customerProviders,
+    ...festivalMessageProviders,
   ],
   exports: [FeedbackService, PresetReviewService],
 })

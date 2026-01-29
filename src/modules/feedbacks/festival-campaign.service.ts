@@ -6,6 +6,7 @@ import { MerchantSetting } from '../merchant-settings/entities/merchant-setting.
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { Coupon } from '../coupons/entities/coupon.entity';
 import { CouponBatch } from '../coupon-batches/entities/coupon-batch.entity';
+import { FestivalMessage } from '../festival-messages/entities/festival-message.entity';
 import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { WalletService } from '../wallets/wallet.service';
 import { SystemLogService } from '../system-logs/system-log.service';
@@ -16,35 +17,12 @@ interface FestivalCampaign {
   name: string;
   date: Date;
   message: string;
+  merchantId?: number;
 }
 
 @Injectable()
 export class FestivalCampaignService {
   private readonly logger = new Logger(FestivalCampaignService.name);
-
-  // Define festival dates (can be moved to database or config)
-  private readonly festivals: FestivalCampaign[] = [
-    {
-      name: 'New Year',
-      date: new Date(new Date().getFullYear(), 0, 1), // January 1
-      message: 'Happy New Year! Celebrate with us with a special offer!',
-    },
-    {
-      name: 'Valentine\'s Day',
-      date: new Date(new Date().getFullYear(), 1, 14), // February 14
-      message: 'Happy Valentine\'s Day! Show your love with our special offers!',
-    },
-    {
-      name: 'Chinese New Year',
-      date: new Date(new Date().getFullYear(), 1, 10), // Approximate, varies by lunar calendar
-      message: 'Gong Xi Fa Cai! Celebrate Chinese New Year with special deals!',
-    },
-    {
-      name: 'Christmas',
-      date: new Date(new Date().getFullYear(), 11, 25), // December 25
-      message: 'Merry Christmas! Enjoy our festive specials!',
-    },
-  ];
 
   constructor(
     @Inject('CUSTOMER_REPOSITORY')
@@ -57,6 +35,8 @@ export class FestivalCampaignService {
     private couponRepository: Repository<Coupon>,
     @Inject('COUPON_BATCH_REPOSITORY')
     private couponBatchRepository: Repository<CouponBatch>,
+    @Inject('FESTIVAL_MESSAGE_REPOSITORY')
+    private festivalMessageRepository: Repository<FestivalMessage>,
     private whatsappService: WhatsAppService,
     private walletService: WalletService,
     private systemLogService: SystemLogService,
@@ -69,14 +49,16 @@ export class FestivalCampaignService {
 
     try {
       const today = new Date();
-      const currentFestival = this.getTodaysFestival(today);
+      
+      // Get all active festivals for today from database
+      const todaysFestivals = await this.getTodaysFestivals(today);
 
-      if (!currentFestival) {
-        this.logger.log('No festival today');
+      if (todaysFestivals.length === 0) {
+        this.logger.log('No festivals today');
         return;
       }
 
-      this.logger.log(`Today is ${currentFestival.name}!`);
+      this.logger.log(`Found ${todaysFestivals.length} festival(s) today`);
 
       // Get all merchants with festival campaigns enabled
       const merchantSettings = await this.merchantSettingRepository
@@ -90,8 +72,16 @@ export class FestivalCampaignService {
         return;
       }
 
+      // Process each merchant with their festival messages
       for (const settings of merchantSettings) {
-        await this.processMerchantFestivalCampaign(settings, currentFestival);
+        // Get merchant-specific festivals or use all festivals
+        const merchantFestivals = todaysFestivals.filter(
+          f => !f.merchantId || f.merchantId === settings.merchant_id
+        );
+
+        for (const festival of merchantFestivals) {
+          await this.processMerchantFestivalCampaign(settings, festival);
+        }
       }
 
       this.logger.log('Festival campaign cron job completed');
@@ -100,13 +90,24 @@ export class FestivalCampaignService {
     }
   }
 
-  private getTodaysFestival(date: Date): FestivalCampaign | null {
-    const month = date.getMonth();
+  private async getTodaysFestivals(date: Date): Promise<FestivalCampaign[]> {
+    const month = date.getMonth() + 1;
     const day = date.getDate();
 
-    return this.festivals.find(festival => {
-      return festival.date.getMonth() === month && festival.date.getDate() === day;
-    }) || null;
+    // Get active festivals from database that match today's date
+    const festivals = await this.festivalMessageRepository
+      .createQueryBuilder('festival')
+      .where('festival.is_active = :isActive', { isActive: true })
+      .andWhere('EXTRACT(MONTH FROM festival.festival_date) = :month', { month })
+      .andWhere('EXTRACT(DAY FROM festival.festival_date) = :day', { day })
+      .getMany();
+
+    return festivals.map(f => ({
+      name: f.festival_name,
+      date: f.festival_date,
+      message: f.message,
+      merchantId: f.merchant_id,
+    }));
   }
 
   private async processMerchantFestivalCampaign(

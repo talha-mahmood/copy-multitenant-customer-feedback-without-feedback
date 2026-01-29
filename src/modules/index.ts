@@ -58,3 +58,6 @@ export { ApprovalModule } from './approvals/approval.module';
 
 // Scheduled Campaigns
 export { ScheduledCampaignModule } from './scheduled-campaigns/scheduled-campaign.module';
+
+// Festival Messages
+export { FestivalMessageModule } from './festival-messages/festival-message.module';

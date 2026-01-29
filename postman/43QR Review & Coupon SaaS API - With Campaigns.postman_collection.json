@@ -1,7 +1,7 @@
 {
   "info": {
     "_postman_id": "9ad5861f-e55b-44fb-83ab-a8cf23ea5926",
-    "name": "42QR Review & Coupon SaaS API - With Campaigns",
+    "name": "43QR Review & Coupon SaaS API - With Campaigns",
     "description": "Complete API collection including wallet system, automated campaigns (inactive recall, festival broadcasts, scheduled campaigns)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "22622973"
@@ -4280,6 +4280,177 @@
             "description": "Update the coupon batch used for festival campaigns. The new batch will be used for all future festival messages.\n\n**Important:**\n- The coupon batch must belong to the merchant\n- The batch must be active\n- The batch should have sufficient coupons for all customers"
           },
           "response": []
+        },
+        {
+          "name": "Create Festival Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set('festival_message_id', jsonData.data.id);",
+                  "        console.log('Festival Message ID saved:', jsonData.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"festival_name\": \"Eid Mubarak\",\n  \"festival_date\": \"2026-03-21\",\n  \"message\": \"Eid Mubarak! Celebrate this blessed occasion with special offers from us!\",\n  \"is_active\": true,\n  \"is_recurring\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/festival-messages",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages"
+              ]
+            },
+            "description": "Create a custom festival message for a merchant. The system will automatically send this message to all customers on the specified festival date.\n\n**Fields:**\n- festival_name: Name of the festival\n- festival_date: Date in YYYY-MM-DD format\n- message: Custom message to send (supports placeholders)\n- is_active: Whether this festival is active\n- is_recurring: If true, sends every year on the same date\n\n**Note:** Requires merchant to have festival campaigns enabled in settings."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Festival Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/festival-messages?merchant_id={{merchant_id}}&is_active=true&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages"
+              ],
+              "query": [
+                {
+                  "key": "merchant_id",
+                  "value": "{{merchant_id}}",
+                  "description": "Filter by merchant ID"
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "description": "Filter by active status"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all festival messages with optional filtering by merchant and active status."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Festival Message by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/festival-messages/{{festival_message_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages",
+                "{{festival_message_id}}"
+              ]
+            },
+            "description": "Get a specific festival message by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Festival Message",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"festival_name\": \"Eid Mubarak (Updated)\",\n  \"message\": \"Eid Mubarak! Celebrate this blessed occasion with our special offers and discounts!\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/festival-messages/{{festival_message_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages",
+                "{{festival_message_id}}"
+              ]
+            },
+            "description": "Update an existing festival message. All fields are optional."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Festival Message",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/festival-messages/{{festival_message_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages",
+                "{{festival_message_id}}"
+              ]
+            },
+            "description": "Soft delete a festival message. The message will be marked as deleted but not removed from the database."
+          },
+          "response": []
         }
       ]
     }
@@ -4339,6 +4510,26 @@
     },
     {
       "key": "campaign_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "festival_message_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "finance_viewer_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ad_approver_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "support_staff_id",
       "value": "",
       "type": "string"
     }
