@@ -166,18 +166,16 @@ export class FeedbackService {
       });
       const savedFeedback = await queryRunner.manager.save(feedback);
 
-      // 8. Check luckydraw_enabled and send coupon if needed
+      // 8. Check luckydraw_enabled and find available coupon (but don't assign yet)
       let coupon: Coupon | null = null;
-      let whatsappSent = false;
-      let whatsappCreditsInsufficient = false;
-      let availableWhatsappCredits = 0;
+      let batch: CouponBatch | null = null;
 
-      // Only send coupon directly if luckydraw is NOT enabled and whatsapp_enabled_for_batch_id is set
+      // Only find coupon if luckydraw is NOT enabled and whatsapp_enabled_for_batch_id is set
       if (!merchantSettings.luckydraw_enabled) {
         if (!merchantSettings.whatsapp_enabled_for_batch_id) {
           throw new HttpException('WhatsApp coupon batch is not configured for this merchant', 500);
         }
-        const batch = await this.couponBatchRepository.findOne({
+        batch = await this.couponBatchRepository.findOne({
           where: { 
             id: merchantSettings.whatsapp_enabled_for_batch_id,
             merchant_id: createFeedbackDto.merchantId,
@@ -187,7 +185,11 @@ export class FeedbackService {
         console.log('Found coupon batch:', batch);
 
         if (batch) {
-          // Find available coupon with status='created'
+          if (batch.end_date < new Date()) {
+            throw new HttpException('Coupon has expired', 404);
+          }
+
+          // Find available coupon with status='created' but DON'T assign yet
           coupon = await this.couponRepository.findOne({
             where: {
               batch_id: batch.id,
@@ -196,117 +198,138 @@ export class FeedbackService {
             order: { created_at: 'ASC' },
           });
 
-          if (coupon) {
-
-            if( batch.end_date < new Date()) {
-              throw new HttpException('Coupon has expired', 404);
-            }
-            // Update coupon: assign to customer and mark as issued
-            coupon.customer_id = savedCustomer.id;
-            coupon.status = 'issued';
-            coupon.issued_at = new Date();
-
-            // Send coupon via WhatsApp
-            if (savedCustomer.phone) {
-              // Check if merchant has WhatsApp credits before sending
-              const creditCheck = await this.walletService.checkMerchantCredits(
-                merchant.id,
-                'whatsapp_ui',
-                1,
-              );
-
-              if (creditCheck.hasCredits) {
-                const expiryDate = new Date(batch.end_date).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                });
-
-                const message = `Hello ${savedCustomer.name}, thank you for your feedback at ${merchant.business_name}! Here's your coupon code ${coupon.coupon_code} valid until ${expiryDate}. Visit ${merchant.address || 'our location'} to redeem.`;
-
-                try {
-                  // Feedback submission is UI message (user-initiated)
-                  const whatsappMessage = await this.whatsappService.sendWhatsAppMessageWithCredits(
-                    merchant.id,
-                    savedCustomer.phone,
-                    message,
-                    WhatsAppMessageType.USER_INITIATED,
-                    WhatsAppCampaignType.FEEDBACK, // Feedback campaign type
-                    coupon.id,
-                    savedCustomer.id,
-                  );
-
-                  whatsappSent = true;
-                  coupon.whatsapp_sent = true;
-
-                  // Log successful WhatsApp message
-                  await this.systemLogService.logWhatsApp(
-                    SystemLogAction.MESSAGE_SENT,
-                    `Coupon sent via WhatsApp to ${savedCustomer.name}`,
-                    savedCustomer.id,
-                    {
-                      customer_id: savedCustomer.id,
-                      merchant_id: merchant.id,
-                      coupon_code: coupon.coupon_code,
-                      phone: savedCustomer.phone,
-                      context: 'feedback_submission',
-                    },
-                  );
-                } catch (whatsappError) {
-                  // Log failed WhatsApp message
-                  await this.systemLogService.logWhatsApp(
-                    SystemLogAction.MESSAGE_FAILED,
-                    `Failed to send coupon via WhatsApp to ${savedCustomer.name}`,
-                    savedCustomer.id,
-                    {
-                      customer_id: savedCustomer.id,
-                      merchant_id: merchant.id,
-                      phone: savedCustomer.phone,
-                      error: whatsappError.message,
-                      context: 'feedback_submission',
-                    },
-                  );
-                }
-              } else {
-                // Log warning but DON'T block the feedback creation
-                whatsappCreditsInsufficient = true;
-                availableWhatsappCredits = creditCheck.availableCredits;
-                console.warn(`Merchant ${merchant.id} has insufficient WhatsApp UI credits. Available: ${creditCheck.availableCredits}. Feedback will be submitted without WhatsApp notification.`);
-                
-                // Log the insufficient credits issue in system logs
-                await this.systemLogService.logWallet(
-                  SystemLogAction.WARNING,
-                  `Insufficient WhatsApp UI credits for feedback coupon. Merchant: ${merchant.business_name}, Available: ${creditCheck.availableCredits}`,
-                  merchant.id,
-                  'merchant',
-                  0,
-                  {
-                    merchant_id: merchant.id,
-                    customer_id: savedCustomer.id,
-                    customer_phone: savedCustomer.phone,
-                    available_credits: creditCheck.availableCredits,
-                    required_credits: 1,
-                    context: 'feedback_submission_coupon',
-                    action: 'insufficient_credits',
-                  },
-                );
-              }
-            }
-
-            // Save updated coupon
-            await queryRunner.manager.save(coupon);
-
-            // Increment batch issued_quantity
-            batch.issued_quantity += 1;
-            await queryRunner.manager.save(batch);
-          }
-          else {
+          if (!coupon) {
             throw new HttpException('No available coupons', 404);
           }
         }
       }
 
       await queryRunner.commitTransaction();
+
+      // 9. Send WhatsApp coupon AFTER transaction commit and assign coupon ONLY if WhatsApp succeeds
+      let whatsappSent = false;
+      let whatsappCreditsInsufficient = false;
+      let availableWhatsappCredits = 0;
+
+      // Send WhatsApp message after transaction commit if coupon was found
+      if (coupon && savedCustomer.phone && !merchantSettings.luckydraw_enabled) {
+        // Check if merchant has WhatsApp credits before sending
+        const creditCheck = await this.walletService.checkMerchantCredits(
+          merchant.id,
+          'whatsapp_ui',
+          1,
+        );
+
+        if (creditCheck.hasCredits) {
+          const expiryDate = new Date(batch!.end_date).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          });
+
+          const message = `Hello ${savedCustomer.name}, thank you for your feedback at ${merchant.business_name}! Here's your coupon code ${coupon.coupon_code} valid until ${expiryDate}. Visit ${merchant.address || 'our location'} to redeem.`;
+
+          try {
+            // Feedback submission is UI message (user-initiated)
+            await this.whatsappService.sendWhatsAppMessageWithCredits(
+              merchant.id,
+              savedCustomer.phone,
+              message,
+              WhatsAppMessageType.USER_INITIATED,
+              WhatsAppCampaignType.FEEDBACK,
+              coupon.id,
+              savedCustomer.id,
+            );
+
+            whatsappSent = true;
+
+            // ONLY NOW assign the coupon and increment quantity (after successful WhatsApp)
+            const issuedAt = new Date();
+            await this.couponRepository.update(coupon.id, {
+              customer_id: savedCustomer.id,
+              status: 'issued',
+              issued_at: issuedAt,
+              whatsapp_sent: true,
+            });
+
+            // Update the coupon object to reflect changes in the response
+            coupon.customer_id = savedCustomer.id;
+            coupon.status = 'issued';
+            coupon.issued_at = issuedAt;
+            coupon.whatsapp_sent = true;
+
+            // Increment batch issued_quantity
+            if (batch) {
+              await this.couponBatchRepository.increment(
+                { id: batch.id },
+                'issued_quantity',
+                1
+              );
+            }
+
+            // Log successful WhatsApp message
+            await this.systemLogService.logWhatsApp(
+              SystemLogAction.MESSAGE_SENT,
+              `Coupon sent via WhatsApp to ${savedCustomer.name}`,
+              savedCustomer.id,
+              {
+                customer_id: savedCustomer.id,
+                merchant_id: merchant.id,
+                coupon_code: coupon.coupon_code,
+                phone: savedCustomer.phone,
+                context: 'feedback_submission',
+              },
+            );
+          } catch (whatsappError) {
+            // WhatsApp failed - coupon remains unassigned and available for next customer
+            console.error(`WhatsApp send failed for customer ${savedCustomer.id}:`, whatsappError.message);
+            
+            // Set coupon to null since it wasn't successfully assigned
+            coupon = null;
+
+            // Log failed WhatsApp message
+            await this.systemLogService.logWhatsApp(
+              SystemLogAction.MESSAGE_FAILED,
+              `Failed to send coupon via WhatsApp to ${savedCustomer.name}. Coupon not assigned.`,
+              savedCustomer.id,
+              {
+                customer_id: savedCustomer.id,
+                merchant_id: merchant.id,
+                phone: savedCustomer.phone,
+                error: whatsappError.message,
+                context: 'feedback_submission',
+                note: 'Coupon remains available in batch',
+              },
+            );
+          }
+        } else {
+          // Insufficient credits - coupon not assigned
+          whatsappCreditsInsufficient = true;
+          availableWhatsappCredits = creditCheck.availableCredits;
+          coupon = null; // Set to null since it wasn't assigned
+          
+          console.warn(`Merchant ${merchant.id} has insufficient WhatsApp UI credits. Available: ${creditCheck.availableCredits}. Feedback submitted but coupon not assigned.`);
+          
+          // Log the insufficient credits issue in system logs
+          await this.systemLogService.logWallet(
+            SystemLogAction.WARNING,
+            `Insufficient WhatsApp UI credits for feedback coupon. Merchant: ${merchant.business_name}, Available: ${creditCheck.availableCredits}. Coupon not assigned.`,
+            merchant.id,
+            'merchant',
+            0,
+            {
+              merchant_id: merchant.id,
+              customer_id: savedCustomer.id,
+              customer_phone: savedCustomer.phone,
+              available_credits: creditCheck.availableCredits,
+              required_credits: 1,
+              context: 'feedback_submission_coupon',
+              action: 'insufficient_credits',
+              note: 'Coupon remains available in batch',
+            },
+          );
+        }
+      }
 
       // Load feedback with relations
       const feedbackWithRelations = await this.feedbackRepository.findOne({
