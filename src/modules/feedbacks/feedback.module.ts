@@ -4,6 +4,8 @@ import { FeedbackController } from './feedback.controller';
 import { PresetReviewService } from './preset-review.service';
 import { PresetReviewController } from './preset-review.controller';
 import { BirthdayMessageService } from './birthday-message.service';
+import { InactiveCustomerRecallService } from './inactive-customer-recall.service';
+import { FestivalCampaignService } from './festival-campaign.service';
 import { DatabaseModule } from 'src/database/database.module';
 import { feedbackProviders } from './feedback.provider';
 import { presetReviewProvider } from './preset-review.provider';
@@ -11,24 +13,29 @@ import { merchantProviders } from '../merchants/merchant.provider';
 import { merchantSettingProviders } from '../merchant-settings/merchant-setting.provider';
 import { couponProvider } from '../coupons/coupon.provider';
 import { couponBatchProvider } from '../coupon-batches/coupon-batch.provider';
-import { WhatsAppService } from '../whatsapp/whatsapp.service';
+import { customerProviders } from '../customers/customer.provider';
+import { festivalMessageProviders } from '../festival-messages/festival-message.provider';
+import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 import { WalletModule } from '../wallets/wallet.module';
 import { SystemLogModule } from '../system-logs/system-log.module';
 
 @Module({
-  imports: [DatabaseModule, WalletModule, SystemLogModule],
+  imports: [DatabaseModule, WalletModule, SystemLogModule, WhatsAppModule],
   controllers: [FeedbackController, PresetReviewController],
   providers: [
     FeedbackService,
     PresetReviewService,
     BirthdayMessageService,
-    WhatsAppService,
+    InactiveCustomerRecallService,
+    FestivalCampaignService,
     ...feedbackProviders,
     ...presetReviewProvider,
     ...merchantProviders,
     ...merchantSettingProviders,
     ...couponProvider,
     ...couponBatchProvider,
+    ...customerProviders,
+    ...festivalMessageProviders,
   ],
   exports: [FeedbackService, PresetReviewService],
 })

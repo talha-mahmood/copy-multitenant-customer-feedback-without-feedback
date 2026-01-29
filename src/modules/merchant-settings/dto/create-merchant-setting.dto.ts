@@ -82,4 +82,28 @@ export class CreateMerchantSettingDto {
   @IsOptional()
   @IsInt()
   birthday_coupon_batch_id?: number;
+
+  // Inactive Customer Recall Campaign Settings
+  @IsOptional()
+  @IsBoolean()
+  inactive_recall_enabled?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  inactive_recall_days?: number;
+
+  @Exists(() => CouponBatch, 'id', { message: 'Coupon Batch must exist' })
+  @IsOptional()
+  @IsInt()
+  inactive_recall_coupon_batch_id?: number;
+
+  // Festival Campaign Settings
+  @IsOptional()
+  @IsBoolean()
+  festival_campaign_enabled?: boolean;
+
+  @Exists(() => CouponBatch, 'id', { message: 'Coupon Batch must exist' })
+  @IsOptional()
+  @IsInt()
+  festival_coupon_batch_id?: number;
 }

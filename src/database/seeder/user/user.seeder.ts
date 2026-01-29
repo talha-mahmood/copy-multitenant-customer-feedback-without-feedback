@@ -51,6 +51,30 @@ export async function seedUser(dataSource: DataSource) {
       phone: '03001234569',
     });
 
+    users.push({
+      name: 'Finance Viewer',
+      email: 'finance.viewer@must.services',
+      password: hashedPassword,
+      role: 'finance_viewer',
+      phone: '03001234570',
+    });
+
+    users.push({
+      name: 'Ad Approver',
+      email: 'ad.approver@must.services',
+      password: hashedPassword,
+      role: 'ad_approver',
+      phone: '03001234571',
+    });
+
+    users.push({
+      name: 'Support Staff',
+      email: 'support.staff@must.services',
+      password: hashedPassword,
+      role: 'support_staff',
+      phone: '03001234572',
+    });
+
     // Insert users only if they don't exist
     for (const user of users) {
       const existingUser = await userRepo.findOne({
@@ -138,6 +162,60 @@ export async function seedUser(dataSource: DataSource) {
         subscription_expires_at: oneYearFromNow,
         is_active: true,
       });
+    }
+
+    // Finance Viewer
+    const financeViewer = await userRepo.findOne({
+      where: { email: 'finance.viewer@must.services' },
+    });
+
+    if (financeViewer) {
+      const financeViewerRole = await dataSource.getRepository('Role').findOne({
+        where: { name: 'finance_viewer' },
+      });
+
+      if (financeViewerRole) {
+        await userHasRoleRepo.insert({
+          role_id: financeViewerRole.id,
+          user_id: Number(financeViewer.id),
+        });
+      }
+    }
+
+    // Ad Approver
+    const adApprover = await userRepo.findOne({
+      where: { email: 'ad.approver@must.services' },
+    });
+
+    if (adApprover) {
+      const adApproverRole = await dataSource.getRepository('Role').findOne({
+        where: { name: 'ad_approver' },
+      });
+
+      if (adApproverRole) {
+        await userHasRoleRepo.insert({
+          role_id: adApproverRole.id,
+          user_id: Number(adApprover.id),
+        });
+      }
+    }
+
+    // Support Staff
+    const supportStaff = await userRepo.findOne({
+      where: { email: 'support.staff@must.services' },
+    });
+
+    if (supportStaff) {
+      const supportStaffRole = await dataSource.getRepository('Role').findOne({
+        where: { name: 'support_staff' },
+      });
+
+      if (supportStaffRole) {
+        await userHasRoleRepo.insert({
+          role_id: supportStaffRole.id,
+          user_id: Number(supportStaff.id),
+        });
+      }
     }
 
     // Create standalone customer (customers don't have user accounts)

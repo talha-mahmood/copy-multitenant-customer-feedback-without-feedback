@@ -6,6 +6,7 @@ import { UpdateMerchantSettingDto } from './dto/update-merchant-setting.dto';
 import { uploadFile } from 'src/common/helpers/file-upload.helper';
 import { FileUploadStorageType } from 'src/common/enums/file-upload-storage-type.enum';
 import { Merchant } from '../merchants/entities/merchant.entity';
+import { CouponBatch } from '../coupon-batches/entities/coupon-batch.entity';
 import { WalletService } from '../wallets/wallet.service';
 import { ApprovalService } from '../approvals/approval.service';
 
@@ -16,6 +17,8 @@ export class MerchantSettingService {
     private merchantSettingRepository: Repository<MerchantSetting>,
     @Inject('MERCHANT_REPOSITORY')
     private merchantRepository: Repository<Merchant>,
+    @Inject('COUPON_BATCH_REPOSITORY')
+    private couponBatchRepository: Repository<CouponBatch>,
     private walletService: WalletService,
     private approvalService: ApprovalService,
   ) { }
@@ -31,6 +34,38 @@ export class MerchantSettingService {
         message: 'Settings already exist for this merchant. Use update instead.',
         data: existing,
       };
+    }
+
+    // Validate whatsapp_enabled_for_batch_id belongs to merchant
+    if (createMerchantSettingDto.whatsapp_enabled_for_batch_id) {
+      const whatsappBatch = await this.couponBatchRepository.findOne({
+        where: { 
+          id: createMerchantSettingDto.whatsapp_enabled_for_batch_id,
+          merchant_id: createMerchantSettingDto.merchant_id,
+        },
+      });
+
+      if (!whatsappBatch) {
+        throw new BadRequestException(
+          `Coupon batch ID ${createMerchantSettingDto.whatsapp_enabled_for_batch_id} does not exist or does not belong to merchant ID ${createMerchantSettingDto.merchant_id}`
+        );
+      }
+    }
+
+    // Validate birthday_coupon_batch_id belongs to merchant
+    if (createMerchantSettingDto.birthday_coupon_batch_id) {
+      const birthdayBatch = await this.couponBatchRepository.findOne({
+        where: { 
+          id: createMerchantSettingDto.birthday_coupon_batch_id,
+          merchant_id: createMerchantSettingDto.merchant_id,
+        },
+      });
+
+      if (!birthdayBatch) {
+        throw new BadRequestException(
+          `Coupon batch ID ${createMerchantSettingDto.birthday_coupon_batch_id} does not exist or does not belong to merchant ID ${createMerchantSettingDto.merchant_id}`
+        );
+      }
     }
 
     const setting = this.merchantSettingRepository.create({
@@ -79,6 +114,78 @@ export class MerchantSettingService {
       throw new NotFoundException(`Settings for merchant ID ${merchantId} not found`);
     }
 
+    // Validate whatsapp_enabled_for_batch_id belongs to merchant
+    if (updateMerchantSettingDto.whatsapp_enabled_for_batch_id !== undefined) {
+      if (updateMerchantSettingDto.whatsapp_enabled_for_batch_id !== null) {
+        const whatsappBatch = await this.couponBatchRepository.findOne({
+          where: { 
+            id: updateMerchantSettingDto.whatsapp_enabled_for_batch_id,
+            merchant_id: merchantId,
+          },
+        });
+
+        if (!whatsappBatch) {
+          throw new BadRequestException(
+            `Coupon batch ID ${updateMerchantSettingDto.whatsapp_enabled_for_batch_id} does not exist or does not belong to merchant ID ${merchantId}`
+          );
+        }
+      }
+    }
+
+    // Validate birthday_coupon_batch_id belongs to merchant
+    if (updateMerchantSettingDto.birthday_coupon_batch_id !== undefined) {
+      if (updateMerchantSettingDto.birthday_coupon_batch_id !== null) {
+        const birthdayBatch = await this.couponBatchRepository.findOne({
+          where: { 
+            id: updateMerchantSettingDto.birthday_coupon_batch_id,
+            merchant_id: merchantId,
+          },
+        });
+
+        if (!birthdayBatch) {
+          throw new BadRequestException(
+            `Coupon batch ID ${updateMerchantSettingDto.birthday_coupon_batch_id} does not exist or does not belong to merchant ID ${merchantId}`
+          );
+        }
+      }
+    }
+
+    // Validate inactive_recall_coupon_batch_id belongs to merchant
+    if (updateMerchantSettingDto.inactive_recall_coupon_batch_id !== undefined) {
+      if (updateMerchantSettingDto.inactive_recall_coupon_batch_id !== null) {
+        const inactiveBatch = await this.couponBatchRepository.findOne({
+          where: { 
+            id: updateMerchantSettingDto.inactive_recall_coupon_batch_id,
+            merchant_id: merchantId,
+          },
+        });
+
+        if (!inactiveBatch) {
+          throw new BadRequestException(
+            `Coupon batch ID ${updateMerchantSettingDto.inactive_recall_coupon_batch_id} does not exist or does not belong to merchant ID ${merchantId}`
+          );
+        }
+      }
+    }
+
+    // Validate festival_coupon_batch_id belongs to merchant
+    if (updateMerchantSettingDto.festival_coupon_batch_id !== undefined) {
+      if (updateMerchantSettingDto.festival_coupon_batch_id !== null) {
+        const festivalBatch = await this.couponBatchRepository.findOne({
+          where: { 
+            id: updateMerchantSettingDto.festival_coupon_batch_id,
+            merchant_id: merchantId,
+          },
+        });
+
+        if (!festivalBatch) {
+          throw new BadRequestException(
+            `Coupon batch ID ${updateMerchantSettingDto.festival_coupon_batch_id} does not exist or does not belong to merchant ID ${merchantId}`
+          );
+        }
+      }
+    }
+
     // Check if paid_ads is being turned on (from false to true)
     if (updateMerchantSettingDto.paid_ads === true && setting.paid_ads === false) {
       // Check if merchant has paid ad credits
@@ -117,6 +224,11 @@ export class MerchantSettingService {
       days_before_birthday: updateMerchantSettingDto.days_before_birthday ?? setting.days_before_birthday,
       days_after_birthday: updateMerchantSettingDto.days_after_birthday ?? setting.days_after_birthday,
       birthday_coupon_batch_id: updateMerchantSettingDto.birthday_coupon_batch_id ?? setting.birthday_coupon_batch_id,
+      inactive_recall_enabled: updateMerchantSettingDto.inactive_recall_enabled ?? setting.inactive_recall_enabled,
+      inactive_recall_days: updateMerchantSettingDto.inactive_recall_days ?? setting.inactive_recall_days,
+      inactive_recall_coupon_batch_id: updateMerchantSettingDto.inactive_recall_coupon_batch_id ?? setting.inactive_recall_coupon_batch_id,
+      festival_campaign_enabled: updateMerchantSettingDto.festival_campaign_enabled ?? setting.festival_campaign_enabled,
+      festival_coupon_batch_id: updateMerchantSettingDto.festival_coupon_batch_id ?? setting.festival_coupon_batch_id,
     });
 
     const updated = await this.merchantSettingRepository.save(setting);

@@ -18,7 +18,12 @@ export class CreateMerchantWalletsTable1747600000002 implements MigrationInterfa
             type: 'int',
           },
           {
-            name: 'whatsapp_message_credits',
+            name: 'whatsapp_ui_credits',
+            type: 'int',
+            default: 0,
+          },
+          {
+            name: 'whatsapp_bi_credits',
             type: 'int',
             default: 0,
           },

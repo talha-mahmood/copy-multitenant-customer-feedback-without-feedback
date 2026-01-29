@@ -7,6 +7,7 @@ import { NestjsFormDataModule } from 'nestjs-form-data';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { DataSource } from 'typeorm';
 import { merchantProviders } from '../merchants/merchant.provider';
+import { couponBatchProvider } from '../coupon-batches/coupon-batch.provider';
 import { WalletModule } from '../wallets/wallet.module';
 import { ApprovalModule } from '../approvals/approval.module';
 
@@ -16,8 +17,8 @@ import { ApprovalModule } from '../approvals/approval.module';
   providers: [
     MerchantSettingService,
     ...merchantSettingProviders,
-    ...merchantProviders
-
+    ...merchantProviders,
+    ...couponBatchProvider,
   ],
   exports: [MerchantSettingService],
 })

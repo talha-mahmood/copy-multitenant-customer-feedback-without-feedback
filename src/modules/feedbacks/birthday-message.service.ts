@@ -10,6 +10,7 @@ import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { WalletService } from '../wallets/wallet.service';
 import { SystemLogService } from '../system-logs/system-log.service';
 import { SystemLogAction, SystemLogLevel } from 'src/common/enums/system-log.enum';
+import { WhatsAppMessageType, WhatsAppCampaignType } from 'src/common/enums/whatsapp-message-type.enum';
 
 @Injectable()
 export class BirthdayMessageService {
@@ -31,7 +32,8 @@ export class BirthdayMessageService {
     private systemLogService: SystemLogService,
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_9AM) // Run daily at 9 AM
+  // @Cron(CronExpression.EVERY_DAY_AT_9AM) // Run daily at 9 AM
+    @Cron(CronExpression.EVERY_10_SECONDS) // Run every 10 seconds for testing
   async sendBirthdayMessages() {
     this.logger.log('Starting birthday message cron job...');
 
@@ -117,12 +119,25 @@ export class BirthdayMessageService {
     const diffTime = thisYearBirthday.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+    console.log(`Birthday check for ${birthMonth}/${birthDay}:`, {
+      today: `${todayMonth}/${todayDay}`,
+      thisYearBirthday: thisYearBirthday.toDateString(),
+      diffDays,
+      days_before_birthday: settings.days_before_birthday,
+      days_after_birthday: settings.days_after_birthday,
+      rangeMin: -settings.days_after_birthday,
+      rangeMax: settings.days_before_birthday,
+      isInRange: diffDays >= -settings.days_after_birthday && diffDays <= settings.days_before_birthday,
+    });
+
     // Check if birthday is within the configured range
     // Negative diffDays means birthday has passed
     if (diffDays >= -settings.days_after_birthday && diffDays <= settings.days_before_birthday) {
+      console.log(`✓ Birthday condition MET for ${birthMonth}/${birthDay} (diffDays: ${diffDays})`);
       return true;
     }
 
+    console.log(`✗ Birthday condition NOT MET for ${birthMonth}/${birthDay} (diffDays: ${diffDays})`);
     return false;
   }
 
@@ -154,16 +169,16 @@ export class BirthdayMessageService {
         }
       }
 
-      // Check if merchant has WhatsApp credits
+      // Check if merchant has WhatsApp BI credits (birthday is BI campaign)
       const creditCheck = await this.walletService.checkMerchantCredits(
         merchant.id,
-        'whatsapp message',
+        'whatsapp_bi',
         1,
       );
 
       if (!creditCheck.hasCredits) {
         this.logger.warn(
-          `Merchant ${merchant.id} has insufficient WhatsApp credits for birthday message`,
+          `Merchant ${merchant.id} has insufficient WhatsApp BI credits for birthday message`,
         );
         return;
       }
@@ -213,24 +228,27 @@ export class BirthdayMessageService {
         day: 'numeric',
       });
 
-      // Send WhatsApp birthday message (no newlines allowed in WhatsApp template parameters)
+      // Send WhatsApp birthday message as BI campaign (automated)
       const message = `Happy Birthday ${customer.name}! From all of us at ${merchant.business_name}, we wish you a wonderful day! Here's a special birthday gift for you: Coupon Code: ${coupon.coupon_code} Valid until: ${expiryDate}. Visit us at ${merchant.address || 'our location'} to redeem your gift!`;
 
-      const whatsappResult = await this.whatsappService.sendGeneralMessage(
-        customer.phone,
-        message,
-      );
+      try {
+        const whatsappMessage = await this.whatsappService.sendWhatsAppMessageWithCredits(
+          merchant.id,
+          customer.phone,
+          message,
+          WhatsAppMessageType.BUSINESS_INITIATED,
+          WhatsAppCampaignType.BIRTHDAY,
+          coupon.id,
+          customer.id,
+        );
 
-      if (whatsappResult.success) {
+        // Message sent successfully and credits deducted
         coupon.whatsapp_sent = true;
         await this.couponRepository.save(coupon);
 
         // Increment batch issued_quantity
         batch.issued_quantity += 1;
         await this.couponBatchRepository.save(batch);
-
-        // Deduct WhatsApp credit
-        await this.walletService.deductWhatsAppCredit(merchant.id, 1);
 
         // Log birthday campaign trigger
         await this.systemLogService.logCampaign(
@@ -250,7 +268,7 @@ export class BirthdayMessageService {
         this.logger.log(
           `Birthday message sent to customer ${customer.id} for merchant ${merchant.id}`,
         );
-      } else {
+      } catch (whatsappError) {
         // Log failed WhatsApp message
         await this.systemLogService.logWhatsApp(
           SystemLogAction.MESSAGE_FAILED,
@@ -260,13 +278,13 @@ export class BirthdayMessageService {
             campaign_type: 'birthday',
             customer_id: customer.id,
             merchant_id: merchant.id,
-            error: whatsappResult.error,
+            error: whatsappError.message,
             phone: customer.phone,
           },
         );
 
         this.logger.error(
-          `Failed to send birthday message to customer ${customer.id}: ${whatsappResult.error}`,
+          `Failed to send birthday message to customer ${customer.id}: ${whatsappError.message}`,
         );
       }
     } catch (error) {

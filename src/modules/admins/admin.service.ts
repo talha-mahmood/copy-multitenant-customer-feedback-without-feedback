@@ -422,6 +422,25 @@ export class AdminService {
       ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
     `, hasDateFilter ? [start, end] : []);
 
+    // WhatsApp UI/BI Statistics from whatsapp_messages table
+    const whatsappMessageStats = await dataSource.query(`
+      SELECT 
+        COUNT(*) as total_messages,
+        COUNT(*) FILTER (WHERE message_type = 'UI') as ui_messages,
+        COUNT(*) FILTER (WHERE message_type = 'BI') as bi_messages,
+        COUNT(*) FILTER (WHERE message_type = 'UI' AND campaign_type = 'feedback') as ui_feedback,
+        COUNT(*) FILTER (WHERE message_type = 'UI' AND campaign_type = 'luckydraw') as ui_luckydraw,
+        COUNT(*) FILTER (WHERE message_type = 'UI' AND campaign_type = 'custom') as ui_homepage,
+        COUNT(*) FILTER (WHERE message_type = 'BI' AND campaign_type = 'birthday') as bi_birthday,
+        COUNT(*) FILTER (WHERE message_type = 'BI' AND campaign_type = 'inactive_recall') as bi_inactive,
+        COUNT(*) FILTER (WHERE message_type = 'BI' AND campaign_type = 'festival') as bi_festival,
+        COUNT(*) FILTER (WHERE status = 'sent' OR status = 'delivered') as successful_messages,
+        COUNT(*) FILTER (WHERE status = 'failed') as failed_messages,
+        SUM(credits_deducted) as total_credits_used
+      FROM whatsapp_messages
+      ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
+    `, hasDateFilter ? [start, end] : []);
+
     // WhatsApp by Merchant
     const whatsappByMerchant = await dataSource.query(`
       SELECT 
@@ -477,6 +496,20 @@ export class AdminService {
 
     const totalMessagesSent = parseInt(whatsappStats[0].total_messages_sent) || 0;
     const estimatedWhatsappCost = totalMessagesSent * 0.05; // $0.05 per message
+    
+    // WhatsApp message stats from whatsapp_messages table
+    const totalWhatsAppMessages = parseInt(whatsappMessageStats[0]?.total_messages) || 0;
+    const uiMessages = parseInt(whatsappMessageStats[0]?.ui_messages) || 0;
+    const biMessages = parseInt(whatsappMessageStats[0]?.bi_messages) || 0;
+    const uiFeedback = parseInt(whatsappMessageStats[0]?.ui_feedback) || 0;
+    const uiLuckydraw = parseInt(whatsappMessageStats[0]?.ui_luckydraw) || 0;
+    const uiHomepage = parseInt(whatsappMessageStats[0]?.ui_homepage) || 0;
+    const biBirthday = parseInt(whatsappMessageStats[0]?.bi_birthday) || 0;
+    const biInactive = parseInt(whatsappMessageStats[0]?.bi_inactive) || 0;
+    const biFestival = parseInt(whatsappMessageStats[0]?.bi_festival) || 0;
+    const successfulMessages = parseInt(whatsappMessageStats[0]?.successful_messages) || 0;
+    const failedMessages = parseInt(whatsappMessageStats[0]?.failed_messages) || 0;
+    const totalCreditsUsed = parseInt(whatsappMessageStats[0]?.total_credits_used) || 0;
 
     const totalRevenue = parseFloat(revenueStats[0].total_commissions) || 0;
     const annualRevenue = parseFloat(revenueStats[0].annual_subscription_revenue) || 0;
@@ -584,6 +617,27 @@ export class AdminService {
           totalMessagesSent,
           totalCost: estimatedWhatsappCost,
           averageCostPerMessage: 0.05,
+          // Detailed UI/BI breakdown from whatsapp_messages table
+          messageBreakdown: {
+            total: totalWhatsAppMessages,
+            uiMessages: {
+              count: uiMessages,
+              percentage: totalWhatsAppMessages > 0 ? ((uiMessages / totalWhatsAppMessages) * 100).toFixed(2) : '0.00',
+              feedback: uiFeedback,
+              luckydraw: uiLuckydraw,
+              homepage: uiHomepage,
+            },
+            biMessages: {
+              count: biMessages,
+              percentage: totalWhatsAppMessages > 0 ? ((biMessages / totalWhatsAppMessages) * 100).toFixed(2) : '0.00',
+              birthday: biBirthday,
+              inactiveRecall: biInactive,
+              festival: biFestival,
+            },
+            successful: successfulMessages,
+            failed: failedMessages,
+            creditsUsed: totalCreditsUsed,
+          },
           byMerchant: whatsappByMerchant.map(w => ({
             merchantId: w.merchant_id,
             businessName: w.business_name,

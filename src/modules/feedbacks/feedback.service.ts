@@ -14,6 +14,7 @@ import { WalletService } from '../wallets/wallet.service';
 import { randomBytes } from 'crypto';
 import { SystemLogService } from '../system-logs/system-log.service';
 import { SystemLogAction, SystemLogLevel, SystemLogCategory } from 'src/common/enums/system-log.enum';
+import { WhatsAppMessageType, WhatsAppCampaignType } from 'src/common/enums/whatsapp-message-type.enum';
 
 @Injectable()
 export class FeedbackService {
@@ -168,6 +169,8 @@ export class FeedbackService {
       // 8. Check luckydraw_enabled and send coupon if needed
       let coupon: Coupon | null = null;
       let whatsappSent = false;
+      let whatsappCreditsInsufficient = false;
+      let availableWhatsappCredits = 0;
 
       // Only send coupon directly if luckydraw is NOT enabled and whatsapp_enabled_for_batch_id is set
       if (!merchantSettings.luckydraw_enabled) {
@@ -208,7 +211,7 @@ export class FeedbackService {
               // Check if merchant has WhatsApp credits before sending
               const creditCheck = await this.walletService.checkMerchantCredits(
                 merchant.id,
-                'whatsapp message',
+                'whatsapp_ui',
                 1,
               );
 
@@ -221,17 +224,20 @@ export class FeedbackService {
 
                 const message = `Hello ${savedCustomer.name}, thank you for your feedback at ${merchant.business_name}! Here's your coupon code ${coupon.coupon_code} valid until ${expiryDate}. Visit ${merchant.address || 'our location'} to redeem.`;
 
-                const whatsappResult = await this.whatsappService.sendGeneralMessage(
-                  savedCustomer.phone,
-                  message,
-                );
+                try {
+                  // Feedback submission is UI message (user-initiated)
+                  const whatsappMessage = await this.whatsappService.sendWhatsAppMessageWithCredits(
+                    merchant.id,
+                    savedCustomer.phone,
+                    message,
+                    WhatsAppMessageType.USER_INITIATED,
+                    WhatsAppCampaignType.FEEDBACK, // Feedback campaign type
+                    coupon.id,
+                    savedCustomer.id,
+                  );
 
-                if (whatsappResult.success) {
                   whatsappSent = true;
                   coupon.whatsapp_sent = true;
-                  
-                  // Deduct WhatsApp credit after successful send
-                  await this.walletService.deductWhatsAppCredit(merchant.id, 1);
 
                   // Log successful WhatsApp message
                   await this.systemLogService.logWhatsApp(
@@ -246,7 +252,7 @@ export class FeedbackService {
                       context: 'feedback_submission',
                     },
                   );
-                } else {
+                } catch (whatsappError) {
                   // Log failed WhatsApp message
                   await this.systemLogService.logWhatsApp(
                     SystemLogAction.MESSAGE_FAILED,
@@ -256,15 +262,34 @@ export class FeedbackService {
                       customer_id: savedCustomer.id,
                       merchant_id: merchant.id,
                       phone: savedCustomer.phone,
-                      error: whatsappResult.error,
+                      error: whatsappError.message,
                       context: 'feedback_submission',
                     },
                   );
                 }
               } else {
-                // Log warning but don't block the feedback creation
-                console.warn(`Merchant ${merchant.id} has insufficient WhatsApp credits. Available: ${creditCheck.availableCredits}`);
-                throw new HttpException(`Merchant with business name ${merchant.business_name} has insufficient WhatsApp credits. Available: ${creditCheck.availableCredits}`, 500);
+                // Log warning but DON'T block the feedback creation
+                whatsappCreditsInsufficient = true;
+                availableWhatsappCredits = creditCheck.availableCredits;
+                console.warn(`Merchant ${merchant.id} has insufficient WhatsApp UI credits. Available: ${creditCheck.availableCredits}. Feedback will be submitted without WhatsApp notification.`);
+                
+                // Log the insufficient credits issue in system logs
+                await this.systemLogService.logWallet(
+                  SystemLogAction.WARNING,
+                  `Insufficient WhatsApp UI credits for feedback coupon. Merchant: ${merchant.business_name}, Available: ${creditCheck.availableCredits}`,
+                  merchant.id,
+                  'merchant',
+                  0,
+                  {
+                    merchant_id: merchant.id,
+                    customer_id: savedCustomer.id,
+                    customer_phone: savedCustomer.phone,
+                    available_credits: creditCheck.availableCredits,
+                    required_credits: 1,
+                    context: 'feedback_submission_coupon',
+                    action: 'insufficient_credits',
+                  },
+                );
               }
             }
 
@@ -330,6 +355,11 @@ export class FeedbackService {
           } : null,
           luckydraw_enabled: merchantSettings.luckydraw_enabled,
           isNewCustomer,
+          whatsapp_notification: {
+            sent: whatsappSent,
+            credits_insufficient: whatsappCreditsInsufficient,
+            available_credits: whatsappCreditsInsufficient ? availableWhatsappCredits : undefined,
+          },
         },
       };
     } catch (error) {

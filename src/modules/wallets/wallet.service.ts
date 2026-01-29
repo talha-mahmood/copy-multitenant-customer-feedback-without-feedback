@@ -12,12 +12,14 @@ import {
   SUPER_ADMIN_WALLET_REPOSITORY,
   WALLET_TRANSACTION_REPOSITORY,
   CREDIT_PACKAGE_REPOSITORY,
+  CREDITS_LEDGER_REPOSITORY,
 } from './wallet.provider';
 import { AdminWallet } from './entities/admin-wallet.entity';
 import { MerchantWallet } from './entities/merchant-wallet.entity';
 import { SuperAdminWallet } from './entities/super-admin-wallet.entity';
 import { WalletTransaction } from './entities/wallet-transaction.entity';
 import { CreditPackage } from './entities/credit-package.entity';
+import { CreditsLedger } from './entities/credits-ledger.entity';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { CreateCreditPackageDto } from './dto/create-credit-package.dto';
 import { UpdateCreditPackageDto } from './dto/update-credit-package.dto';
@@ -38,6 +40,8 @@ export class WalletService {
     private transactionRepository: Repository<WalletTransaction>,
     @Inject(CREDIT_PACKAGE_REPOSITORY)
     private creditPackageRepository: Repository<CreditPackage>,
+    @Inject(CREDITS_LEDGER_REPOSITORY)
+    private creditsLedgerRepository: Repository<CreditsLedger>,
     @Inject('DATA_SOURCE')
     private dataSource: DataSource,
     private systemLogService: SystemLogService,
@@ -87,7 +91,8 @@ export class WalletService {
 
     const wallet = this.merchantWalletRepository.create({
       merchant_id: merchantId,
-      whatsapp_message_credits: 0,
+      whatsapp_ui_credits: 0,
+      whatsapp_bi_credits: 0,
       paid_ad_credits: 0,
       coupon_credits: 0,
       total_credits_purchased: 0,
@@ -298,13 +303,39 @@ export class WalletService {
    */
   async addMerchantCredits(
     merchantId: number,
+    packageId: number,
     credits: number,
-    creditType: string, // e.g., "whatsapp message", "paid ads", "coupon"
+    creditType: string, // e.g., "whatsapp ui message", "whatsapp bi message", "paid ads", "coupon"
     amount: number,
     adminId: number,
     description: string,
     metadata?: any,
   ): Promise<{ merchantTransaction: WalletTransaction; adminTransaction: WalletTransaction; commission: number }> {
+    // Validate credit type
+    const validCreditTypes = ['whatsapp ui message', 'whatsapp bi message', 'paid ads', 'coupon'];
+    if (!validCreditTypes.includes(creditType)) {
+      throw new BadRequestException(
+        `Invalid credit type: "${creditType}". Valid types are: ${validCreditTypes.join(', ')}`
+      );
+    }
+
+    // Verify credit package exists and is active
+    const creditPackage = await this.creditPackageRepository.findOne({
+      where: { id: packageId },
+    });
+
+    if (!creditPackage) {
+      throw new NotFoundException(
+        `Credit package with ID ${packageId} not found. Please select a valid credit package.`
+      );
+    }
+
+    if (!creditPackage.is_active) {
+      throw new BadRequestException(
+        `Credit package "${creditPackage.name}" is not active and cannot be purchased.`
+      );
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -328,6 +359,29 @@ export class WalletService {
         throw new NotFoundException('Merchant not found');
       }
 
+      // Verify package is compatible with merchant type
+      if (creditPackage.merchant_type && 
+          creditPackage.merchant_type !== 'all' && 
+          creditPackage.merchant_type !== merchant.merchant_type) {
+        throw new BadRequestException(
+          `Credit package "${creditPackage.name}" is only available for ${creditPackage.merchant_type} merchants. Your merchant type is ${merchant.merchant_type}.`
+        );
+      }
+
+      // Verify package credit type matches requested credit type
+      if (creditPackage.credit_type !== creditType) {
+        throw new BadRequestException(
+          `Credit package type mismatch. Package "${creditPackage.name}" is for "${creditPackage.credit_type}" but you requested "${creditType}".`
+        );
+      }
+
+      // Temporary merchants CANNOT purchase WhatsApp BI message credits
+      if (merchant.merchant_type === 'temporary' && creditType === 'whatsapp bi message') {
+        throw new BadRequestException(
+          'Temporary merchants cannot purchase WhatsApp BI (Business-Initiated) message credits. Only annual merchants can access automated campaign features. Please upgrade to annual subscription.'
+        );
+      }
+
       // Get commission rates from settings
       const settings = await this.superAdminSettingsService.getSettings();
       const commissionRate = merchant.merchant_type === 'temporary' 
@@ -341,15 +395,17 @@ export class WalletService {
         total_credits_purchased: wallet.total_credits_purchased + credits,
       };
 
-      if (creditType === 'whatsapp message') {
-        updates.whatsapp_message_credits = wallet.whatsapp_message_credits + credits;
+      if (creditType === 'whatsapp ui message') {
+        updates.whatsapp_ui_credits = wallet.whatsapp_ui_credits + credits;
+      } else if (creditType === 'whatsapp bi message') {
+        updates.whatsapp_bi_credits = wallet.whatsapp_bi_credits + credits;
       } else if (creditType === 'paid ads') {
         updates.paid_ad_credits = wallet.paid_ad_credits + credits;
       } else if (creditType === 'coupon') {
         updates.coupon_credits = wallet.coupon_credits + credits;
       } else {
-        // Default to message credits if type is not recognized
-        updates.whatsapp_message_credits = wallet.whatsapp_message_credits + credits;
+        // Default to UI credits if type is not recognized
+        updates.whatsapp_ui_credits = wallet.whatsapp_ui_credits + credits;
       }
 
       await queryRunner.manager.update(MerchantWallet, wallet.id, updates);
@@ -363,7 +419,18 @@ export class WalletService {
         amount,
         status: 'completed',
         description,
-        metadata: metadata ? JSON.stringify({ ...metadata, commission_rate: commissionRate, platform_amount: platformAmount }) : JSON.stringify({ commission_rate: commissionRate, platform_amount: platformAmount }),
+        metadata: metadata ? JSON.stringify({ 
+          ...metadata, 
+          commission_rate: commissionRate, 
+          platform_amount: platformAmount,
+          package_id: creditPackage.id,
+          package_name: creditPackage.name,
+        }) : JSON.stringify({ 
+          commission_rate: commissionRate, 
+          platform_amount: platformAmount,
+          package_id: creditPackage.id,
+          package_name: creditPackage.name,
+        }),
         completed_at: new Date(),
       });
 
@@ -399,6 +466,8 @@ export class WalletService {
           commission_rate: commissionRate,
           credits,
           credit_type: creditType,
+          package_id: creditPackage.id,
+          package_name: creditPackage.name,
         }),
         balance_before: adminBalanceBefore,
         balance_after: newAdminBalance,
@@ -412,7 +481,7 @@ export class WalletService {
       // Log wallet credit addition
       await this.systemLogService.logWallet(
         SystemLogAction.CREDIT_ADD,
-        `Added ${credits} ${creditType} credits to merchant wallet`,
+        `Added ${credits} ${creditType} credits to merchant wallet from package "${creditPackage.name}"`,
         merchantId,
         'merchant',
         amount,
@@ -424,6 +493,8 @@ export class WalletService {
           admin_id: adminId,
           commission: adminCommission,
           commission_rate: commissionRate,
+          package_id: creditPackage.id,
+          package_name: creditPackage.name,
         },
       );
 
@@ -446,7 +517,7 @@ export class WalletService {
   async deductMerchantCredits(
     merchantId: number,
     credits: number,
-    creditType: 'paid ads' | 'coupon' | 'whatsapp message',
+    creditType: 'paid ads' | 'coupon' | 'whatsapp ui message' | 'whatsapp bi message',
     description: string,
     metadata?: any,
   ): Promise<WalletTransaction> {
@@ -472,21 +543,28 @@ export class WalletService {
         throw new BadRequestException('Insufficient coupon credits');
       }
 
-      if (creditType === 'whatsapp message' && wallet.whatsapp_message_credits < credits) {
-        throw new BadRequestException('Insufficient WhatsApp message credits');
+      if (creditType === 'whatsapp ui message' && wallet.whatsapp_ui_credits < credits) {
+        throw new BadRequestException('Insufficient WhatsApp UI message credits');
+      } else if (creditType === 'whatsapp bi message' && wallet.whatsapp_bi_credits < credits) {
+        throw new BadRequestException('Insufficient WhatsApp BI message credits');
       }
 
       // Update appropriate credit balance
       const updates: any = {
-        whatsapp_message_credits: wallet.whatsapp_message_credits - credits,
         total_credits_used: wallet.total_credits_used + credits,
       };
 
-      if (creditType === 'paid ads') {
+      if (creditType === 'whatsapp ui message') {
+        updates.whatsapp_ui_credits = wallet.whatsapp_ui_credits - credits;
+      } else if (creditType === 'whatsapp bi message') {
+        updates.whatsapp_bi_credits = wallet.whatsapp_bi_credits - credits;
+      } else if (creditType === 'paid ads') {
         updates.paid_ad_credits = wallet.paid_ad_credits - credits;
       } else if (creditType === 'coupon') {
         updates.coupon_credits = wallet.coupon_credits - credits;
       }
+
+  
 
       await queryRunner.manager.update(MerchantWallet, wallet.id, updates);
 
@@ -580,6 +658,7 @@ export class WalletService {
 
   /**
    * Get all credit packages (managed by super admin)
+   * Temporary merchants cannot see WhatsApp BI packages
    */
   async getCreditPackages(merchantType?: string) {
     const query: any = { is_active: true };
@@ -588,16 +667,30 @@ export class WalletService {
       query.merchant_type = merchantType;
     }
 
-    return await this.creditPackageRepository.find({
+    const packages = await this.creditPackageRepository.find({
       where: query,
       order: { sort_order: 'ASC', price: 'ASC' },
     });
+
+    // Filter out WhatsApp BI packages for temporary merchants
+    if (merchantType === 'temporary') {
+      return packages.filter(pkg => pkg.credit_type !== 'whatsapp bi message');
+    }
+
+    return packages;
   }
 
   /**
    * Create a new credit package (super admin only)
    */
   async createCreditPackage(createDto: CreateCreditPackageDto) {
+    // Validate: WhatsApp BI packages cannot be created for temporary merchants
+    if (createDto.credit_type === 'whatsapp bi message' && createDto.merchant_type === 'temporary') {
+      throw new BadRequestException(
+        'WhatsApp BI (Business-Initiated) message packages cannot be created for temporary merchants.'
+      );
+    }
+
     const creditPackage = this.creditPackageRepository.create({
       name: createDto.name,
       description: createDto.description,
@@ -662,6 +755,13 @@ export class WalletService {
     if (updateDto.is_active !== undefined) creditPackage.is_active = updateDto.is_active;
     if (updateDto.sort_order !== undefined) creditPackage.sort_order = updateDto.sort_order;
     if (updateDto.bonus_credits !== undefined) creditPackage.bonus_credits = updateDto.bonus_credits;
+
+    // Validate: WhatsApp BI packages cannot be for temporary merchants
+    if (creditPackage.credit_type === 'whatsapp bi message' && creditPackage.merchant_type === 'temporary') {
+      throw new BadRequestException(
+        'WhatsApp BI (Business-Initiated) message packages cannot be assigned to temporary merchants.'
+      );
+    }
 
     const updated = await this.creditPackageRepository.save(creditPackage);
 
@@ -779,13 +879,13 @@ export class WalletService {
         throw new NotFoundException('Merchant wallet not found');
       }
 
-      if (wallet.whatsapp_message_credits < messageCount) {
-        throw new BadRequestException('Insufficient WhatsApp message credits');
+      if (wallet.whatsapp_ui_credits < messageCount) {
+        throw new BadRequestException('Insufficient WhatsApp UI message credits');
       }
 
       // Deduct credits
       await queryRunner.manager.update(MerchantWallet, wallet.id, {
-        whatsapp_message_credits: wallet.whatsapp_message_credits - messageCount,
+        whatsapp_ui_credits: wallet.whatsapp_ui_credits - messageCount,
         total_credits_used: wallet.total_credits_used + messageCount,
       });
 
@@ -797,9 +897,9 @@ export class WalletService {
         status: 'completed',
         description: `WhatsApp message sent (${messageCount} credit${messageCount > 1 ? 's' : ''} used)`,
         metadata: JSON.stringify({
-          credit_type: 'whatsapp message',
+          credit_type: 'whatsapp_ui',
           credits_used: messageCount,
-          credits_remaining: wallet.whatsapp_message_credits - messageCount,
+          credits_remaining: wallet.whatsapp_ui_credits - messageCount,
         }),
         completed_at: new Date(),
       });
@@ -922,12 +1022,16 @@ export class WalletService {
    */
   async checkMerchantCredits(
     merchantId: number,
-    creditType: 'whatsapp message' | 'paid ads' | 'coupon',
+    creditType: 'whatsapp_ui' | 'whatsapp_bi' | 'paid ads' | 'coupon',
     requiredCredits: number = 1,
   ): Promise<{ hasCredits: boolean; availableCredits: number }> {
+
+    console.log(`Checking credits for merchant ${merchantId}: type=${creditType}, required=${requiredCredits}`);
     const wallet = await this.merchantWalletRepository.findOne({
       where: { merchant_id: merchantId },
     });
+
+    console.log('Merchant wallet:', wallet);
 
     if (!wallet) {
       return { hasCredits: false, availableCredits: 0 };
@@ -937,9 +1041,14 @@ export class WalletService {
     let hasCredits = false;
 
     switch (creditType) {
-      case 'whatsapp message':
-        availableCredits = wallet.whatsapp_message_credits;
-        hasCredits = wallet.whatsapp_message_credits >= requiredCredits;
+      case 'whatsapp_ui':
+        availableCredits = wallet.whatsapp_ui_credits;
+        hasCredits = wallet.whatsapp_ui_credits >= requiredCredits;
+        console.log(`Available WhatsApp UI credits: ${availableCredits}, Has enough: ${hasCredits}`);
+        break;
+      case 'whatsapp_bi':
+        availableCredits = wallet.whatsapp_bi_credits;
+        hasCredits = wallet.whatsapp_bi_credits >= requiredCredits;
         break;
       case 'paid ads':
         availableCredits = wallet.paid_ad_credits;

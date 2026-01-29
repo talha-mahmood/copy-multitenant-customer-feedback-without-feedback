@@ -12,6 +12,7 @@ import { SpinWheelDto } from './dto/spin-wheel.dto';
 import { LUCKY_DRAW_PRIZE_REPOSITORY, LUCKY_DRAW_RESULT_REPOSITORY } from './lucky-draw.provider';
 import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { WalletService } from '../wallets/wallet.service';
+import { WhatsAppMessageType, WhatsAppCampaignType } from 'src/common/enums/whatsapp-message-type.enum';
 
 @Injectable()
 export class LuckyDrawService {
@@ -303,6 +304,8 @@ export class LuckyDrawService {
     // Find and send coupon if prize has batch_id
     let coupon: Coupon | null = null;
     let whatsappSent = false;
+    let whatsappCreditsInsufficient = false;
+    let availableWhatsappCredits = 0;
 
     if (wonPrize.batch_id && wonPrize.prize_type === 'coupon') {
       // Find an available coupon with status='created' from the prize's batch
@@ -378,7 +381,7 @@ export class LuckyDrawService {
             // Check if merchant has WhatsApp credits before sending
             const creditCheck = await this.walletService.checkMerchantCredits(
               merchant.id,
-              'whatsapp message',
+              'whatsapp_ui',
               1,
             );
 
@@ -391,23 +394,29 @@ export class LuckyDrawService {
 
               const message = `Hello ${customer.name}, congratulations on winning a coupon from ${merchant.business_name}! With coupon code ${coupon.coupon_code} valid until ${expiryDate}. Please visit ${merchant.address || 'the merchant location'} to redeem your coupon.`;
 
-              const whatsappResult = await this.whatsappService.sendGeneralMessage(
-                customer.phone,
-                message,
-              );
+              try {
+                // Lucky draw spin is UI message (user-initiated)
+                const whatsappMessage = await this.whatsappService.sendWhatsAppMessageWithCredits(
+                  merchant.id,
+                  customer.phone,
+                  message,
+                  WhatsAppMessageType.USER_INITIATED,
+                  WhatsAppCampaignType.LUCKYDRAW, // Lucky draw campaign type
+                  coupon.id,
+                  customer.id,
+                );
 
-              if (whatsappResult.success) {
                 whatsappSent = true;
                 coupon.whatsapp_sent = true;
-                
-                // Deduct WhatsApp credit after successful send
-                await this.walletService.deductWhatsAppCredit(merchant.id, 1);
+              } catch (whatsappError) {
+                // Log error but don't block the lucky draw
+                console.error(`Failed to send WhatsApp message: ${whatsappError.message}`);
               }
             } else {
-              // Log warning but don't block the lucky draw
-              console.warn(`Merchant ${merchant.id} has insufficient WhatsApp credits. Available: ${creditCheck.availableCredits}`);
-              throw new HttpException(`Merchant with business name ${merchant.business_name} has insufficient WhatsApp credits. Available: ${creditCheck.availableCredits}`, 500);
-              
+              // Log warning but DON'T block the lucky draw
+              whatsappCreditsInsufficient = true;
+              availableWhatsappCredits = creditCheck.availableCredits;
+              console.warn(`Merchant ${merchant.id} has insufficient WhatsApp UI credits. Available: ${creditCheck.availableCredits}. Lucky draw will proceed without WhatsApp notification.`);
             }
           }
 
@@ -431,6 +440,11 @@ export class LuckyDrawService {
               whatsapp_sent: coupon.whatsapp_sent,
             } : null,
             whatsapp_sent: whatsappSent,
+            whatsapp_notification: {
+              sent: whatsappSent,
+              credits_insufficient: whatsappCreditsInsufficient,
+              available_credits: whatsappCreditsInsufficient ? availableWhatsappCredits : undefined,
+            },
           },
         };
       }

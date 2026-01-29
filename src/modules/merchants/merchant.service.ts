@@ -558,46 +558,23 @@ export class MerchantService {
       LIMIT 10
     `, [merchantId]);
 
-    // Daily Timeline - COMMENTED OUT FOR NOW
-    // let timeline;
-    // if (hasDateFilter) {
-    //   timeline = await dataSource.query(`
-    //     SELECT 
-    //       DATE(date_series) as date,
-    //       COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'issued'), 0) as coupons_issued,
-    //       COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'redeemed'), 0) as coupons_redeemed,
-    //       COALESCE(COUNT(DISTINCT f.id), 0) as feedbacks_received,
-    //       COALESCE(COUNT(DISTINCT l.id), 0) as lucky_draw_spins
-    //     FROM generate_series($2::date, $3::date, '1 day'::interval) date_series
-    //     LEFT JOIN coupons c ON DATE(c.created_at) = DATE(date_series) AND c.merchant_id = $1
-    //     LEFT JOIN feedbacks f ON DATE(f.created_at) = DATE(date_series) AND f.merchant_id = $1
-    //     LEFT JOIN lucky_draw_results l ON DATE(l.spin_date) = DATE(date_series) AND l.merchant_id = $1
-    //     GROUP BY date_series
-    //     ORDER BY date_series ASC
-    //   `, [merchantId, start, end]);
-    // } else {
-    //   // For all-time, group by date from actual data
-    //   timeline = await dataSource.query(`
-    //     SELECT 
-    //       DATE(date_series) as date,
-    //       COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'issued'), 0) as coupons_issued,
-    //       COALESCE(COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'redeemed'), 0) as coupons_redeemed,
-    //       COALESCE(COUNT(DISTINCT f.id), 0) as feedbacks_received,
-    //       COALESCE(COUNT(DISTINCT l.id), 0) as lucky_draw_spins
-    //     FROM (
-    //       SELECT DISTINCT DATE(created_at) as date_series FROM coupons WHERE merchant_id = $1
-    //       UNION
-    //       SELECT DISTINCT DATE(created_at) FROM feedbacks WHERE merchant_id = $1
-    //       UNION
-    //       SELECT DISTINCT DATE(spin_date) FROM lucky_draw_results WHERE merchant_id = $1
-    //     ) dates
-    //     LEFT JOIN coupons c ON DATE(c.created_at) = dates.date_series AND c.merchant_id = $1
-    //     LEFT JOIN feedbacks f ON DATE(f.created_at) = dates.date_series AND f.merchant_id = $1
-    //     LEFT JOIN lucky_draw_results l ON DATE(l.spin_date) = dates.date_series AND l.merchant_id = $1
-    //     GROUP BY dates.date_series
-    //     ORDER BY dates.date_series ASC
-    //   `, [merchantId]);
-    // }
+    // WhatsApp UI/BI Statistics from whatsapp_messages table
+    const whatsappMessageStats = await dataSource.query(`
+      SELECT 
+        COUNT(*) as total_messages,
+        COUNT(*) FILTER (WHERE message_type = 'UI') as ui_messages,
+        COUNT(*) FILTER (WHERE message_type = 'BI') as bi_messages,
+        COUNT(*) FILTER (WHERE message_type = 'UI' AND campaign_type = 'feedback') as ui_feedback,
+        COUNT(*) FILTER (WHERE message_type = 'UI' AND campaign_type = 'luckydraw') as ui_luckydraw,
+        COUNT(*) FILTER (WHERE message_type = 'UI' AND campaign_type = 'custom') as ui_homepage,
+        COUNT(*) FILTER (WHERE message_type = 'BI' AND campaign_type = 'birthday') as bi_birthday,
+        COUNT(*) FILTER (WHERE message_type = 'BI' AND campaign_type = 'inactive_recall') as bi_inactive,
+        COUNT(*) FILTER (WHERE message_type = 'BI' AND campaign_type = 'festival') as bi_festival,
+        SUM(credits_deducted) as total_credits_used
+      FROM whatsapp_messages
+      WHERE merchant_id = $1
+      ${hasDateFilter ? 'AND created_at BETWEEN $2 AND $3' : ''}
+    `, hasDateFilter ? [merchantId, start, end] : [merchantId]);
 
     const totalIssued = parseInt(couponStats[0].issued) || 0;
     const totalRedeemed = parseInt(couponStats[0].redeemed) || 0;
@@ -606,6 +583,18 @@ export class MerchantService {
     const totalCoupons = totalCreated + totalIssued + totalRedeemed + totalExpired;
     const totalWhatsappSent = parseInt(couponStats[0].whatsapp_sent) || 0;
     const redemptionRate = totalIssued > 0 ? ((totalRedeemed / totalIssued) * 100).toFixed(2) : '0.00';
+    
+    // WhatsApp message stats from whatsapp_messages table
+    const totalWhatsAppMessages = parseInt(whatsappMessageStats[0]?.total_messages) || 0;
+    const uiMessages = parseInt(whatsappMessageStats[0]?.ui_messages) || 0;
+    const biMessages = parseInt(whatsappMessageStats[0]?.bi_messages) || 0;
+    const uiFeedback = parseInt(whatsappMessageStats[0]?.ui_feedback) || 0;
+    const uiLuckydraw = parseInt(whatsappMessageStats[0]?.ui_luckydraw) || 0;
+    const uiHomepage = parseInt(whatsappMessageStats[0]?.ui_homepage) || 0;
+    const biBirthday = parseInt(whatsappMessageStats[0]?.bi_birthday) || 0;
+    const biInactive = parseInt(whatsappMessageStats[0]?.bi_inactive) || 0;
+    const biFestival = parseInt(whatsappMessageStats[0]?.bi_festival) || 0;
+    const whatsappCreditsUsed = parseInt(whatsappMessageStats[0]?.total_credits_used) || 0;
     
     const totalReviews = parseInt(feedbackStats[0].total_reviews) || 0;
     const completedRedirects = parseInt(feedbackStats[0].completed_redirects) || 0;
@@ -620,6 +609,14 @@ export class MerchantService {
 
     return {
       message: 'Dashboard analytics retrieved successfully',
+      data: {
+        overview: {
+          totalCoupons,
+          totalCouponsCreated: totalCreated,
+          totalCouponsIssued: totalIssued,
+          totalCouponsRedeemed: totalRedeemed,
+          totalCouponsExpired: totalExpired,
+
       data: {
         overview: {
           totalCoupons,
@@ -683,22 +680,30 @@ export class MerchantService {
         whatsappStats: {
           totalMessagesSent: totalWhatsappSent,
           couponDeliverySent: totalWhatsappSent, // Approximation - can be refined
-          luckyDrawNotificationsSent: 0, // Track separately if needed
-          birthdayCouponsSent: 0, // Track separately
-          inactiveRemindersSent: 0, // Track separately
-          campaignMessagesSent: 0, // Track separately
-          estimatedCost: totalWhatsappSent * 0.05, // $0.05 per message estimate
+          birthdayCouponsSent: biBirthday,
+          inactiveRemindersSent: biInactive,
+          campaignMessagesSent: biMessages,
+          estimatedCost: totalWhatsAppMessages * 0.05, // $0.05 per message estimate
+          creditsUsed: whatsappCreditsUsed,
+          // UI/BI Breakdown from whatsapp_messages table
+          uiMessages: {
+            total: uiMessages, // User-initiated messages (feedback, lucky draw, homepage)
+            feedbackCoupons: uiFeedback, // Feedback form submissions
+            luckyDrawWins: uiLuckydraw, // Lucky draw spin wins
+            homepageCoupons: uiHomepage, // Homepage coupon claims
+          },
+          biMessages: {
+            total: biMessages, // Business-initiated messages (campaigns)
+            birthdayCampaigns: biBirthday,
+            inactiveRecalls: biInactive,
+            festivalCampaigns: biFestival,
+          },
         },
-        // timeline: {
-        //   daily: timeline.map(day => ({
-        //     date: day.date,
-        //     couponsIssued: parseInt(day.coupons_issued) || 0,
-        //     couponsRedeemed: parseInt(day.coupons_redeemed) || 0,
-        //     feedbacksReceived: parseInt(day.feedbacks_received) || 0,
-        //     luckyDrawSpins: parseInt(day.lucky_draw_spins) || 0,
-        //   })),
-        // },
+    
+        
       },
-    };
+    }
+  }
+}
   }
 }
