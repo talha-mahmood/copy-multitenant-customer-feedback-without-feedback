@@ -65,6 +65,10 @@ export { SystemLogModule } from './system-logs/system-log.module';
 // Approval
 export { ApprovalModule } from './approvals/approval.module';
 
+
+// Chat
+export { ChatModule } from './chat/chat.module';
+
 // Scheduled Campaigns
 export { ScheduledCampaignModule } from './scheduled-campaigns/scheduled-campaign.module';
 

@@ -94,7 +94,7 @@ async function bootstrap() {
     }),
   );
 
-  if (configService.get('APP_ENV') === 'local') {
+    if (configService.get('APP_ENV') === 'local') {
     app.setGlobalPrefix('api');
   }
 
