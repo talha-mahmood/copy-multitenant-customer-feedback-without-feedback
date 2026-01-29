@@ -1,0 +1,4537 @@
+{
+  "info": {
+    "_postman_id": "9ad5861f-e55b-44fb-83ab-a8cf23ea5926",
+    "name": "43QR Review & Coupon SaaS API - With Campaigns",
+    "description": "Complete API collection including wallet system, automated campaigns (inactive recall, festival broadcasts, scheduled campaigns)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "22622973"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('jwt_token', jsonData.access_token);",
+                  "    console.log('JWT Token saved:', jsonData.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "// Super Admin Login\n// {\n//   \"email\": \"superadmin@must.services\",\n//   \"password\": \"Pakistan@123\"\n// }\n\n// Admin/Agent Login\n// {\n//   \"email\": \"agent1@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Staff Login (Finance Viewer)\n// {\n//   \"email\": \"finance@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Staff Login (Ad Approver)\n// {\n//   \"email\": \"adapprover@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Staff Login (Support Staff)\n{\n  \"email\": \"support@example.com\",\n  \"password\": \"password123\"\n}\n"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admins",
+      "item": [
+        {
+          "name": "Create Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('admin_id', jsonData.data.id);",
+                  "    console.log('Admin ID saved:', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Agent\",\n  \"email\": \"agent1@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456789\",\n  \"address\": \"123 Agent Street, KL\"\n\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admins",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admins"
+              ]
+            },
+            "description": "Create a new admin/agent. Optionally specify subscription_type ('annual' or 'monthly') and subscription_expires_at date."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Admins",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admins?page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admins"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "isActive",
+                  "value": "false",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Admin by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admins/{{admin_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admins",
+                "{{admin_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Admin",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "// {\n//   \"department\": \"HR\"\n// }\n\n{\n    \"is_active\":true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admins/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admins",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Admin",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admins/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admins",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Admin Dashboard Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admins/{{admin_id}}/dashboard?startDate=2025-01-01&endDate=2026-01-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admins",
+                "{{admin_id}}",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2025-01-01",
+                  "description": "Start date (YYYY-MM-DD) - Optional, defaults to 3 months ago"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-01-31",
+                  "description": "End date (YYYY-MM-DD) - Optional, defaults to today"
+                }
+              ]
+            },
+            "description": "Get comprehensive admin dashboard analytics including:\n- Platform overview (merchants by type/status)\n- Merchant statistics (recent, top performers)\n- Revenue tracking (annual fees, credit sales, commissions)\n- Wallet statistics\n- Coupon performance platform-wide\n- WhatsApp usage and costs\n- Customer engagement metrics\n- Platform growth timeline\n\nDefault: Last 3 months"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Staff",
+      "item": [
+        {
+          "name": "Create Staff",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('staff_id', jsonData.data.id);",
+                  "    console.log('Staff ID saved:', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Finance\",\n  \"email\": \"finance@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456789\",\n  \"staff_role\": \"finance_viewer\",\n  \"department\": \"Finance\",\n  \"address\": \"123 Finance Street\",\n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/staff",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "staff"
+              ]
+            },
+            "description": "Create a new staff member. Roles: finance_viewer, ad_approver, support_staff"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Staff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/staff?page=1&pageSize=20&staffRole=finance_viewer",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "staff"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "staffRole",
+                  "value": "finance_viewer",
+                  "description": "Filter by role: finance_viewer, ad_approver, support_staff"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all staff members with optional filters"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Staff by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/staff/{{staff_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "staff",
+                "{{staff_id}}"
+              ]
+            },
+            "description": "Get a specific staff member by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Staff",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Finance Updated\",\n  \"department\": \"Finance & Accounting\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/staff/{{staff_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "staff",
+                "{{staff_id}}"
+              ]
+            },
+            "description": "Update staff member details"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Staff",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/staff/{{staff_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "staff",
+                "{{staff_id}}"
+              ]
+            },
+            "description": "Delete (soft delete) a staff member"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Merchants",
+      "item": [
+        {
+          "name": "Create Merchant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('merchant_id', jsonData.data.id);",
+                  "    console.log('Merchant ID saved:', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"admin_id\": 1,\n  \"name\": \"John's Restaurant23\",\n  \"email\": \"restaurantannual@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"merchant\",\n  \"business_name\": \"John's Fine Dining\",\n  \"business_type\": \"Restaurant\",\n  \"merchant_type\": \"annual\",\n  \"address\": \"123 Main St\", \n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"map_link\": \"https://maps.google.com/?q=3.139,101.687\",\n  \"latitude\": 3.139003,\n  \"longitude\": 101.686855,\n  \"tax_id\": \"TX123456\",\n  \"is_active\":true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchants",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchants"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Merchants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/merchants?page=1&pageSize=20&isActive=false",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchants"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "isActive",
+                  "value": "false"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Merchant by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/merchants/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchants",
+                "{{merchant_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Merchant QR Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/merchants/{{merchant_id}}/qr-code",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchants",
+                "{{merchant_id}}",
+                "qr-code"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Merchant",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "// {\n//   \"businessName\": \"Updated Business Name\",\n//   \"merchantType\": \"temporary\"\n// }\n\n{\n    \"is_active\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchants/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchants",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Merchant",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/merchants/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchants",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Merchant Dashboard Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/merchants/{{merchant_id}}/dashboard?startDate=2025-01-01&endDate=2026-01-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchants",
+                "{{merchant_id}}",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2025-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-01-31"
+                }
+              ]
+            },
+            "description": "Get comprehensive merchant dashboard analytics including:\n- Coupon statistics (issued, redeemed, expired, redemption rate)\n- Coupon breakdown by batch\n- Feedback/review statistics by platform (Google, Facebook, Instagram, XiaoHongShu)\n- Lucky draw participation and prize distribution\n- Customer statistics (total, new, returning, top 10 customers)\n- WhatsApp message tracking and cost estimation\n- Daily timeline trends for all metrics\n\nDefault: Last 30 days"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Wallets",
+      "item": [
+        {
+          "name": "Admin Wallet",
+          "item": [
+            {
+              "name": "Get Admin Wallet",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/wallets/admin/{{admin_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "admin",
+                    "{{admin_id}}"
+                  ]
+                },
+                "description": "Get admin wallet details including balance, total earnings, and total spent"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Admin Transactions",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/wallets/admin/{{admin_id}}/transactions?page=1&limit=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "admin",
+                    "{{admin_id}}",
+                    "transactions"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Get paginated list of admin wallet transactions"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Admin Subscription Fee",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": ""
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Merchant Wallet",
+          "item": [
+            {
+              "name": "Get Merchant Wallet",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/wallets/merchant/{{merchant_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "merchant",
+                    "{{merchant_id}}"
+                  ]
+                },
+                "description": "Get merchant wallet details including credits, subscription type, and expiry"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Merchant Transactions",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/wallets/merchant/{{merchant_id}}/transactions?page=1&limit=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "merchant",
+                    "{{merchant_id}}",
+                    "transactions"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Get paginated list of merchant wallet transactions"
+              },
+              "response": []
+            },
+            {
+              "name": "Add Credits to Merchant",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"package_id\": {{credit_package_id}},\n  \"credits\": 100,\n  \"credit_type\": \"whatsapp ui message\",\n  \"amount\": 50.00,\n  \"admin_id\": {{admin_id}},\n  \"description\": \"WhatsApp UI Credits Package Purchase\"\n}\n\n// WhatsApp BI Package (Annual merchants only):\n// {\n//   \"package_id\": {{credit_package_id}},\n//   \"credits\": 200,\n//   \"credit_type\": \"whatsapp bi message\",\n//   \"amount\": 100.00,\n//   \"admin_id\": {{admin_id}},\n//   \"description\": \"WhatsApp BI Credits Package Purchase\"\n// }\n\n// Coupon Credits Package:\n// {\n//   \"package_id\": {{credit_package_id}},\n//   \"credits\": 500,\n//   \"credit_type\": \"coupon\",\n//   \"amount\": 75.00,\n//   \"admin_id\": {{admin_id}},\n//   \"description\": \"Coupon Credits Package Purchase\"\n// }\n\n// Paid Ads Package:\n// {\n//   \"package_id\": {{credit_package_id}},\n//   \"credits\": 10,\n//   \"credit_type\": \"paid ads\",\n//   \"amount\": 50.00,\n//   \"admin_id\": {{admin_id}},\n//   \"description\": \"Paid Ads Package Purchase\"\n// }"
+                },
+                "url": {
+                  "raw": "{{base_url}}/wallets/merchant/{{merchant_id}}/add-credits",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "merchant",
+                    "{{merchant_id}}",
+                    "add-credits"
+                  ]
+                },
+                "description": "Add credits to merchant wallet from a credit package. REQUIRED: package_id must be provided and package must exist. System verifies package compatibility with merchant type (temporary merchants cannot purchase WhatsApp BI packages). Automatically credits admin with commission."
+              },
+              "response": []
+            },
+            {
+              "name": "Upgrade to Annual Subscription",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"admin_id\": {{admin_id}}\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/wallets/merchant/{{merchant_id}}/upgrade-to-annual",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "merchant",
+                    "{{merchant_id}}",
+                    "upgrade-to-annual"
+                  ]
+                },
+                "description": "Upgrade merchant from temporary to annual subscription. Credits admin wallet with 75% commission (RM900)"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Super Admin Wallet",
+          "item": [
+            {
+              "name": "Get Super Admin Wallet",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/wallets/super-admin",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "super-admin"
+                  ]
+                },
+                "description": "Get super admin wallet details including balance and total earnings (Super Admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Process Admin Subscription Payment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/wallets/admin/{{admin_id}}/subscribe",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "admin",
+                    "{{admin_id}}",
+                    "subscribe"
+                  ]
+                },
+                "description": "Process admin annual subscription payment. Credits super admin wallet and extends admin subscription by 1 year."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Credit Packages",
+          "item": [
+            {
+              "name": "Get All Credit Packages",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/wallets/credit-packages",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "credit-packages"
+                  ],
+                  "query": [
+                    {
+                      "key": "merchant_type",
+                      "value": "temporary",
+                      "description": "Filter by merchant type: temporary or annual",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Get all available credit packages. Managed by super admin only."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Annual Packages",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/wallets/credit-packages?merchant_type=annual",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "credit-packages"
+                  ],
+                  "query": [
+                    {
+                      "key": "merchant_type",
+                      "value": "annual"
+                    }
+                  ]
+                },
+                "description": "Get credit packages for annual merchants only"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Temporary Packages",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/wallets/credit-packages?merchant_type=temporary",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "credit-packages"
+                  ],
+                  "query": [
+                    {
+                      "key": "merchant_type",
+                      "value": "temporary"
+                    }
+                  ]
+                },
+                "description": "Get credit packages for temporary merchants only"
+              },
+              "response": []
+            },
+            {
+              "name": "Get One Credit Package",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/wallets/credit-packages/{{credit_package_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "credit-packages",
+                    "{{credit_package_id}}"
+                  ]
+                },
+                "description": "Get a specific credit package by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "Create Credit Package (Super Admin Only)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.collectionVariables.set('credit_package_id', jsonData.data.id);",
+                      "    console.log('Credit Package ID saved:', jsonData.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Starter Package\",\n  \"description\": \"Perfect for small businesses\",\n  \"credits\": 100,\n  \"credit_type\": \"whatsapp bi message\",\n  \"price\": 50.00,\n  \"price_per_credit\": 0.50,\n  \"currency\": \"USD\",\n  \"merchant_type\": \"annual\",\n  \"is_active\": true,\n  \"sort_order\": 1,\n  \"bonus_credits\": 0\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/wallets/credit-packages",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "credit-packages"
+                  ]
+                },
+                "description": "Create a new credit package (Super Admin only). No longer requires admin_id."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Credit Package (Super Admin Only)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated Starter Package\",\n  \"description\": \"Updated description for small businesses\",\n  \"credits\": 150,\n  \"price\": 60.00,\n  \"price_per_credit\": 0.40,\n  \"is_active\": true,\n  \"bonus_credits\": 15\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/wallets/credit-packages/{{credit_package_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "credit-packages",
+                    "{{credit_package_id}}"
+                  ]
+                },
+                "description": "Update an existing credit package (Super Admin only). No longer requires admin_id."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Credit Package (Super Admin Only)",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/wallets/credit-packages/{{credit_package_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "credit-packages",
+                    "{{credit_package_id}}"
+                  ]
+                },
+                "description": "Delete a credit package (Super Admin only). Performs soft delete. No longer requires admin_id."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Super Admin Settings",
+      "item": [
+        {
+          "name": "Get All Settings (Super Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/super-admin-settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "super-admin-settings"
+              ]
+            },
+            "description": "Get all super admin settings including commission rates, fees, and currency (Super Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Settings (Super Admin Only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"admin_annual_subscription_fee\": 1499.00,\n  \"temporary_merchant_packages_admin_commission_rate\": 0.25,\n  \"annual_merchant_packages_admin_commission_rate\": 0.03,\n  \"merchant_annual_fee\": 1499.00,\n  \"annual_merchant_subscription_admin_commission_rate\": 0.80,\n  \"currency\": \"USD\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/super-admin-settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "super-admin-settings"
+              ]
+            },
+            "description": "Update super admin settings. All fields are optional. Rates are decimal values (e.g., 0.20 = 20%, 0.02 = 2%). Fields:\n- admin_annual_subscription_fee: Admin annual subscription fee\n- temporary_merchant_packages_admin_commission_rate: Commission for temporary merchant packages\n- annual_merchant_packages_admin_commission_rate: Commission for annual merchant packages\n- merchant_annual_fee: Merchant annual subscription fee\n- annual_merchant_subscription_admin_commission_rate: Admin commission for merchant annual subscriptions"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Admin Subscription Fee (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/super-admin-settings/admin-subscription-fee",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "super-admin-settings",
+                "admin-subscription-fee"
+              ]
+            },
+            "description": "Get the current admin subscription fee. No authentication required. Returns fee amount and currency."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Commission Settings (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/super-admin-settings/commission-settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "super-admin-settings",
+                "commission-settings"
+              ]
+            },
+            "description": "Get all commission rates and fees. No authentication required. Returns:\n- temporaryMerchantCommissionRate (default: 0.20 = 20%)\n- annualMerchantCommissionRate (default: 0.02 = 2%)\n- merchantAnnualFee (default: 1199.00)\n- adminAnnualCommissionRate (default: 0.75 = 75%)\n- currency"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "Create Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('customer_id', jsonData.data.id);",
+                  "    console.log('Customer ID saved:', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane\",\n  \"email\": \"customer1@example.com\",\n  \"phone\": \"+60123456789\",\n  \"date_of_birth\": \"1990-05-15\",\n  \"gender\":\"male\"\n  \n}   "
+            },
+            "url": {
+              "raw": "{{base_url}}/customers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "customers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Customers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customers?page=1&pageSize=20&isActive=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customers/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "customers",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Customer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"1111111111\",\n  \"address\": \"Updated Address\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/customers/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "customers",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Customer",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customers/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "customers",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Coupon Batches",
+      "item": [
+        {
+          "name": "Create Coupon Batch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('batch_id', jsonData.data.id);",
+                  "    console.log('Batch ID saved:', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"batch_name\": \"Winter Sale 2029\",\n  \"batch_type\": \"temporary\",\n  \"total_quantity\": 3,\n  \"start_date\": \"2026-01-01\",\n  \"end_date\": \"2026-02-05\",\n  \"is_active\": true,\n//   \"whatsapp_enabled\": false,\n//   \"lucky_draw_enabled\": false,\n  \"template_id\": 2,\n  \"header\": \"Special Offer\",\n  \"title\": \"50% Off\",\n  \"description\": \"Use this coupon to get 50% off your next purchase.\",\n  \"ishalal\": true\n\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/coupon-batches",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupon-batches"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Coupon Batches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupon-batches?page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupon-batches"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Coupon Batch by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupon-batches/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupon-batches",
+                "1"
+              ]
+            },
+            "description": "Get a specific coupon batch by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Coupon Batch",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchName\": \"Updated Batch Name\",\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/coupon-batches/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupon-batches",
+                "1"
+              ]
+            },
+            "description": "Update a coupon batch. All fields are optional."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Coupon Batch",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupon-batches/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupon-batches",
+                "1"
+              ]
+            },
+            "description": "Soft delete a coupon batch (sets deleted_at timestamp)."
+          },
+          "response": []
+        },
+        {
+          "name": "PDF Export Coupon Batch",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupon-batches/export/pdf/2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupon-batches",
+                "export",
+                "pdf",
+                "2"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get super admin homepage",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/coupons/super-admin-feed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupons",
+                "super-admin-feed"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get agent homepage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupons/public-feed?adminId=2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupons",
+                "public-feed"
+              ],
+              "query": [
+                {
+                  "key": "adminId",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "System Logs",
+      "item": [
+        {
+          "name": "Get All System Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-logs?page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "category",
+                  "value": "auth",
+                  "description": "Filter by category: auth, merchant, admin, customer, coupon, whatsapp, wallet, campaign, payment, system",
+                  "disabled": true
+                },
+                {
+                  "key": "action",
+                  "value": "login",
+                  "description": "Filter by action: login, logout, register, create, update, delete, redeem, etc.",
+                  "disabled": true
+                },
+                {
+                  "key": "level",
+                  "value": "info",
+                  "description": "Filter by level: info, warning, error, critical",
+                  "disabled": true
+                },
+                {
+                  "key": "userId",
+                  "value": "",
+                  "description": "Filter by user ID",
+                  "disabled": true
+                },
+                {
+                  "key": "userType",
+                  "value": "merchant",
+                  "description": "Filter by user type: super_admin, admin, merchant, customer",
+                  "disabled": true
+                },
+                {
+                  "key": "entityType",
+                  "value": "coupon",
+                  "description": "Filter by entity type: merchant, coupon, campaign, etc.",
+                  "disabled": true
+                },
+                {
+                  "key": "entityId",
+                  "value": "",
+                  "description": "Filter by entity ID",
+                  "disabled": true
+                },
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01",
+                  "description": "Filter from date (ISO 8601)",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-12-31",
+                  "description": "Filter to date (ISO 8601)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all system logs with optional filtering. Super admins can see all logs, admins can only see their own operations."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single System Log",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-logs/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs",
+                "1"
+              ]
+            },
+            "description": "Get a single system log by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Auth Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-logs?category=auth&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "auth"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all authentication logs (login, logout, register)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Merchant Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-logs?category=merchant&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "merchant"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all merchant operation logs"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Agent (Admin) Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-logs?category=admin&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "admin"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all agent (admin) operation logs"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Coupon Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-logs?category=coupon&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "coupon"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all coupon operation logs (create, issue, redeem, batch_create, expire)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get WhatsApp Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-logs?category=whatsapp&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "whatsapp"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all WhatsApp message logs (sent/failed)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get WhatsApp UI Message Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-logs?category=whatsapp_ui&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "whatsapp_ui"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "action",
+                  "value": "ui_feedback_sent",
+                  "disabled": true
+                },
+                {
+                  "key": "action",
+                  "value": "ui_luckydraw_sent",
+                  "disabled": true
+                },
+                {
+                  "key": "action",
+                  "value": "ui_homepage_sent",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get WhatsApp UI message logs (user-initiated: feedback, lucky draw, homepage)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get WhatsApp BI Message Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-logs?category=whatsapp_bi&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "whatsapp_bi"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "action",
+                  "value": "bi_birthday_sent",
+                  "disabled": true
+                },
+                {
+                  "key": "action",
+                  "value": "bi_inactive_recall_sent",
+                  "disabled": true
+                },
+                {
+                  "key": "action",
+                  "value": "bi_festival_sent",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get WhatsApp BI message logs (business-initiated: birthday, inactive recall, festival campaigns)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Wallet Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-logs?category=wallet&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "wallet"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all wallet transaction logs (credit_add, credit_deduct, topup, refund)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Campaign Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-logs?category=campaign&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "campaign"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all automated campaign logs (birthday, inactive customer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-logs?category=customer&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "customer"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all customer activity logs (feedback submissions, etc.)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Logs by Date Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-logs?startDate=2026-01-01&endDate=2026-01-31&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-01-31"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get logs within a specific date range"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Critical Error Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-logs?level=critical&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs"
+              ],
+              "query": [
+                {
+                  "key": "level",
+                  "value": "critical"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all critical error logs"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Logs for Specific Merchant",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/system-logs?entityType=merchant&entityId={{merchant_id}}&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs"
+              ],
+              "query": [
+                {
+                  "key": "entityType",
+                  "value": "merchant"
+                },
+                {
+                  "key": "entityId",
+                  "value": "{{merchant_id}}"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all logs related to a specific merchant"
+          },
+          "response": []
+        },
+        {
+          "name": "New Request",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchantId\": {{merchant_id}},\n//   \"email\": \"talhamahmood1261@gmail.com\",\n//   \"password\": \"password123\",\n  \"name\": \"Talha Mahmood\",\n  \"phoneNumber\": \"+923351968117\",\n  \"date_of_birth\": \"17-01-1990\",\n  \"address\": \"123 Main St\",\n  \"gender\": \"male\",\n  \"rating\": 5,\n  \"reviewType\": \"preset\",\n  \"presetReviewId\": 3,\n  \"selectedPlatform\": \"google\",\n  \"redirectCompleted\": false,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n\n//old feedback\n// {\n//   \"merchantId\": 1,\n//   \"email\": \"newuser@must.services\",\n//   \"password\": \"Password@123\",\n//    \"name\":\"John Doe\",\n//   \"phoneNumber\": \"9876543210\",\n//   \"address\": \"456 Customer St\",\n//   \"date_of_birth\": \"21-10-2001\",\n//   \"gender\": \"male\",\n//   \"rating\": 5,\n//   \"comment\": \"Great service!\"\n// }"
+            },
+            "url": {
+              "raw": "{{base_url}}/system-logs?category=whatsapp_ui",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "system-logs"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "whatsapp_ui"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Coupons",
+      "item": [
+        {
+          "name": "Create Coupon",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "// {\n//   \"batch_id\": {{batch_id}},\n//   \"merchant_id\": {{merchant_id}},\n//   \"customer_id\": {{customer_id}},\n//   \"coupon_code\": \"SUMMER2025-001\",\n//   \"qr_hash\": \"abc123def456\",\n//   \"status\": \"active\"\n// }\n\n{\n  \"batch_id\": 1,\n  \"merchant_id\": 1,\n  \"coupon_code\": \"YOUR_CODE2\",\n  \"template_id\": 2,\n  \"header\": \"Special Offer\",\n  \"title\": \"50% Off\",\n  \"description\": \"Use this coupon to get 50% off your next purchase.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/coupons",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupons"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Coupons",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupons?page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupons"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Coupon by Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupons/by-code/MERC-ABC12345",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupons",
+                "by-code",
+                "MERC-ABC12345"
+              ]
+            },
+            "description": "Find a coupon by its unique code."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Coupon by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupons?batchId=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupons"
+              ],
+              "query": [
+                {
+                  "key": "batchId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Get a specific coupon by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Coupon",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"redeemed\",\n  \"customerId\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/coupons/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupons",
+                "1"
+              ]
+            },
+            "description": "Update a coupon. Typically used to change status or assign to a customer."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Coupon Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"issued\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/coupons/1/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupons",
+                "1",
+                "status"
+              ]
+            },
+            "description": "Update a coupon. Typically used to change status or assign to a customer."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Coupon",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupons/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupons",
+                "1"
+              ]
+            },
+            "description": "Soft delete a coupon (sets deleted_at timestamp)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Lucky Draw",
+      "item": [
+        {
+          "name": "Create Prize",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('prize_id', jsonData.data.id);",
+                  "    console.log('Prize ID saved:', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"batch_id\": {{batch_id}},\n  \"prize_name\": \"70% Off Coupon\",\n  \"prize_description\": \"Get 50% off your next purchase\",\n  \"prize_type\": \"coupon\",\n  \"probability\": 25.00,\n  \"daily_limit\": 10,\n  \"total_limit\": 100,\n  \"is_active\": true,\n  \"sort_order\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/lucky-draw/prizes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lucky-draw",
+                "prizes"
+              ]
+            },
+            "description": "Create a new lucky draw prize. Probability must not exceed 100% total across all prizes for the batch."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Prize",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prize_name\": \"Updated Prize Name\",\n  \"probability\": 30.00,\n  \"daily_limit\": 20,\n  \"is_active\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/lucky-draw/prizes/{{prize_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lucky-draw",
+                "prizes",
+                "{{prize_id}}"
+              ]
+            },
+            "description": "Update an existing prize configuration."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Prizes by Merchant",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/lucky-draw/prizes/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lucky-draw",
+                "prizes",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Get all prizes configured for a merchant."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Prizes by Merchant and Batch",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/lucky-draw/prizes/merchant/{{merchant_id}}?batchId={{batch_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lucky-draw",
+                "prizes",
+                "merchant",
+                "{{merchant_id}}"
+              ],
+              "query": [
+                {
+                  "key": "batchId",
+                  "value": "{{batch_id}}"
+                }
+              ]
+            },
+            "description": "Get prizes for a specific batch."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Prize",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/lucky-draw/prizes/{{prize_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lucky-draw",
+                "prizes",
+                "{{prize_id}}"
+              ]
+            },
+            "description": "Soft delete a prize."
+          },
+          "response": []
+        },
+        {
+          "name": "Spin Lucky Draw",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('result_id', jsonData.data.id);",
+                  "    console.log('Result ID saved:', jsonData.data.id);",
+                  "    console.log('Won prize:', jsonData.data.prize.prize_name);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": {{customer_id}},\n  \"merchant_id\": {{merchant_id}}\n}   "
+            },
+            "url": {
+              "raw": "{{base_url}}/lucky-draw/spin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lucky-draw",
+                "spin"
+              ]
+            },
+            "description": "Spin the lucky draw wheel and receive a random prize based on configured probabilities."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer Results",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/lucky-draw/results/customer/{{customer_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lucky-draw",
+                "results",
+                "customer",
+                "{{customer_id}}"
+              ]
+            },
+            "description": "Get all lucky draw spin results for a specific customer."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer Results by Merchant",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/lucky-draw/results/customer/{{customer_id}}?merchantId={{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lucky-draw",
+                "results",
+                "customer",
+                "{{customer_id}}"
+              ],
+              "query": [
+                {
+                  "key": "merchantId",
+                  "value": "{{merchant_id}}"
+                }
+              ]
+            },
+            "description": "Filter customer results by merchant."
+          },
+          "response": []
+        },
+        {
+          "name": "Claim Prize",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/lucky-draw/results/{{result_id}}/claim",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lucky-draw",
+                "results",
+                "{{result_id}}",
+                "claim"
+              ]
+            },
+            "description": "Mark a prize as claimed by the customer."
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Daily Counts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/lucky-draw/reset-daily-counts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lucky-draw",
+                "reset-daily-counts"
+              ]
+            },
+            "description": "Reset daily prize count for all prizes (typically called by cron job at midnight)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get One Prize",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/lucky-draw/prizes/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lucky-draw",
+                "prizes",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Prize",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/lucky-draw/prizes/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "lucky-draw",
+                "prizes",
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users?page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@must.services\",\n  \"password\": \"Password@123\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Name\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Coupon Redemption",
+      "item": [
+        {
+          "name": "Coupon Redemption",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"couponCode\": \"CPN-5KHTBL6U\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/coupons/redeem",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupons",
+                "redeem"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Roles",
+      "item": [
+        {
+          "name": "Get All Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/roles?page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "roles"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Role by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/roles/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "roles",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Manager\",\n  \"description\": \"Manager role\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/roles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "roles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Role\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/roles/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "roles",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/roles/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "roles",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "Get All Customers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customers?page=1&pageSize=20&search=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customers/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "customers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Alice Customer\",\n    // \"email\": \"alice@example.com\",\n    \"phone\": \"+1234567890\"\n    // \"password\": \"customer123\",\n    // \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/customers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "customers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Customer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Alice Smith\",\n    \"phone\": \"+1987654321\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/customers/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "customers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Customer",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customers/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "customers",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer By Phone",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchantId\": {{merchant_id}},\n//   \"email\": \"talhamahmood1261@gmail.com\",\n//   \"password\": \"password123\",\n  \"name\": \"Talha Mahmood\",\n  \"phoneNumber\": \"+923351968117\",\n  \"date_of_birth\": \"21-10-2001\",\n  \"address\": \"123 Main St\",\n  \"gender\": \"male\",\n  \"rating\": 5,\n  \"reviewType\": \"preset\",\n  \"presetReviewId\": 3,\n  \"selectedPlatform\": \"google\",\n  \"redirectCompleted\": false,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n\n//old feedback\n// {\n//   \"merchantId\": 1,\n//   \"email\": \"newuser@must.services\",\n//   \"password\": \"Password@123\",\n//    \"name\":\"John Doe\",\n//   \"phoneNumber\": \"9876543210\",\n//   \"address\": \"456 Customer St\",\n//   \"date_of_birth\": \"21-10-2001\",\n//   \"gender\": \"male\",\n//   \"rating\": 5,\n//   \"comment\": \"Great service!\"\n// }"
+            },
+            "url": {
+              "raw": "{{base_url}}/feedbacks/check-customer-by-phone?phone=+1234567890",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "feedbacks",
+                "check-customer-by-phone"
+              ],
+              "query": [
+                {
+                  "key": "phone",
+                  "value": "+1234567890"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Enums",
+      "item": [
+        {
+          "name": "Get User Role Enum",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/enums/user-role",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "enums",
+                "user-role"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Preset Reviews",
+      "item": [
+        {
+          "name": "Get All Preset Reviews (System Defaults)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/preset-reviews",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "preset-reviews"
+              ]
+            },
+            "description": "Retrieve all system default preset reviews (10 default sentences)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Preset Reviews for Merchant",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/preset-reviews?merchantId=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "preset-reviews"
+              ],
+              "query": [
+                {
+                  "key": "merchantId",
+                  "value": "1",
+                  "description": "Merchant ID"
+                }
+              ]
+            },
+            "description": "Get all preset reviews available for a specific merchant (system defaults + merchant custom)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Preset Review by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/preset-reviews/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "preset-reviews",
+                "1"
+              ]
+            },
+            "description": "Get a specific preset review by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Merchant Preset Review",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviews\": [\n    {\n      \"id\": 1,\n      \"reviewText\": \"Updated - Best coffee shop in town!!!\",\n      \"isActive\": true,\n      \"displayOrder\": 1,\n      \"merchant_id\": 3\n    },\n    {\n      \"id\": 2,\n      \"reviewText\": \"Updated - Outstanding service!!!\",\n      \"isActive\": true,\n      \"displayOrder\": 2,\n      \"merchant_id\": 3\n      \n    },\n    {\n      \"id\": 3,\n      \"reviewText\": \"Updated - Perfect ambiance!!!\",\n      \"isActive\": true,\n      \"displayOrder\": 3,\n      \"merchant_id\": 3\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/preset-reviews/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "preset-reviews",
+                ""
+              ]
+            },
+            "description": "Update a merchant's custom preset review (cannot edit system defaults)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Feedbacks (Enhanced)",
+      "item": [
+        {
+          "name": "Create Feedback with Preset Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchantId\": {{merchant_id}},\n//   \"email\": \"talhamahmood1261@gmail.com\",\n//   \"password\": \"password123\",\n  \"name\": \"Talha Mahmood2\",\n  \"phoneNumber\": \"+923351968117\",\n  \"date_of_birth\": \"27-01-1990\",\n  \"address\": \"123 Main St\",\n  \"gender\": \"male\",\n  \"rating\": 5,\n  \"reviewType\": \"preset\",\n  \"presetReviewId\": 2,\n  \"selectedPlatform\": \"google\",\n  \"redirectCompleted\": false,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n\n//old feedback\n// {\n//   \"merchantId\": 1,\n//   \"email\": \"newuser@must.services\",\n//   \"password\": \"Password@123\",\n//    \"name\":\"John Doe\",\n//   \"phoneNumber\": \"9876543210\",\n//   \"address\": \"456 Customer St\",\n//   \"date_of_birth\": \"21-10-2001\",\n//   \"gender\": \"male\",\n//   \"rating\": 5,\n//   \"comment\": \"Great service!\"\n// }"
+            },
+            "url": {
+              "raw": "{{base_url}}/feedbacks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "feedbacks"
+              ]
+            },
+            "description": "Create feedback using a preset review. Customer selects from available preset sentences."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Feedback with Custom Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchantId\": 1,\n  \"email\": \"jane.smith@example.com\",\n  \"password\": \"password456\",\n  \"name\": \"Jane Smith\",\n  \"phoneNumber\": \"+1234567891\",\n  \"date_of_birth\": \"20-08-1992\",\n  \"address\": \"456 Oak Ave\",\n  \"gender\": \"female\",\n  \"rating\": 5,\n  \"comment\": \"Loved everything!\",\n  \"reviewType\": \"custom\",\n  \"customReviewText\": \"Amazing food and great atmosphere! The staff was incredibly friendly and the service was quick. Will definitely come back again!\",\n  \"selectedPlatform\": \"facebook\",\n  \"redirectCompleted\": false,\n  \"coupon_batch_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/feedbacks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "feedbacks"
+              ]
+            },
+            "description": "Create feedback with a custom review text written by the customer."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Redirect as Completed",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/feedbacks/1/complete-redirect",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "feedbacks",
+                "1",
+                "complete-redirect"
+              ]
+            },
+            "description": "Mark that the customer successfully completed the redirect to the review platform"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Review Analytics for Merchant",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/feedbacks/analytics/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "feedbacks",
+                "analytics",
+                "1"
+              ]
+            },
+            "description": "Get comprehensive review analytics for a merchant including:\n- Total reviews\n- Preset vs custom breakdown\n- Platform statistics\n- Redirect completion rate"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Feedbacks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/feedbacks?page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "feedbacks"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "merchantId",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "customerId",
+                  "value": "1",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all feedbacks with pagination and optional filters"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Feedback by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/feedbacks/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "feedbacks",
+                "1"
+              ]
+            },
+            "description": "Get a specific feedback by ID with all relations"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Feedback",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Updated comment - Even better than I remembered!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/feedbacks/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "feedbacks",
+                "1"
+              ]
+            },
+            "description": "Update an existing feedback"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Feedback",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/feedbacks/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "feedbacks",
+                "1"
+              ]
+            },
+            "description": "Soft delete a feedback"
+          },
+          "response": []
+        },
+        {
+          "name": "New Request",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Agent\",\n  \"email\": \"agent1@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456789\",\n  \"address\": \"123 Agent Street, KL\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/feedbacks/check-customer-by-phone?phone=+1234567890",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "feedbacks",
+                "check-customer-by-phone"
+              ],
+              "query": [
+                {
+                  "key": "phone",
+                  "value": "+1234567890"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Merchant Settings Copy",
+      "item": [
+        {
+          "name": "Create Merchant Settings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchantId\": {{merchant_id}},\n  \"enablePresetReviews\": false,\n  \"enableGoogleReviews\": true,\n  \"enableFacebookReviews\": false,\n  \"enableInstagramReviews\": false,\n  \"enableXiaohongshuReviews\": false,\n  \"googleReviewUrl\": \"https://g.page/r/CdWC9gKqRRFdEBM/review\",\n  \"facebookPageUrl\": \"https://facebook.com/yourpage\",\n  \"instagramUrl\": \"https://instagram.com/yourprofile\",\n  \"xiaohongshuUrl\": \"https://xiaohongshu.com/yourprofile\",\n  \"birthday_message_enabled\": true,\n  \"days_before_birthday\": 3,\n  \"days_after_birthday\": 0,\n  \"birthday_coupon_batch_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchant-settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings"
+              ]
+            },
+            "description": "Create settings for a merchant. Usually done automatically when merchant is created."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Merchant Settings",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Get settings for a specific merchant. Public endpoint - no auth required."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Merchant Settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "// Basic Settings Example:\n// {\n//   \"enableGoogleReviews\": true,\n//   \"enableFacebookReviews\": true,\n//   \"googleReviewUrl\": \"https://g.page/r/updated-url\",\n//   \"facebookPageUrl\": \"https://facebook.com/updated-page\"\n// }\n\n// Full Settings with Campaigns:\n{\n    \"whatsapp_enabled_for_batch_id\": 2,\n    \"luckydraw_enabled\": false,\n    \"birthday_message_enabled\": true,\n    \"days_before_birthday\": 3,\n    \"days_after_birthday\": 0,\n    \"birthday_coupon_batch_id\": 1,\n    \"inactive_recall_enabled\": true,\n    \"inactive_recall_days\": 30,\n    \"inactive_recall_coupon_batch_id\": 2,\n    \"festival_campaign_enabled\": true,\n    \"festival_coupon_batch_id\": 3\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Update merchant settings. All fields are optional - only send fields you want to update."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Merchant Settings",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Soft delete merchant settings."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "WhatsApp",
+      "item": [
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+923351968117\",\n  \"otpCode\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/whatsapp/send-otp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "whatsapp",
+                "send-otp"
+              ]
+            },
+            "description": "Send OTP verification code via WhatsApp"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Welcome Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+923351968117\",\n  \"firstName\": \"TAlha\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/whatsapp/send-welcome",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "whatsapp",
+                "send-welcome"
+              ]
+            },
+            "description": "Send welcome message to new user"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Coupon Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+923001234567\",\n  \"customerName\": \"John Doe\",\n  \"couponCode\": \"SAVE20\",\n  \"merchantName\": \"ABC Restaurant\",\n  \"qrCodeUrl\": \"https://example.com/qr/SAVE20.png\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/whatsapp/send-coupon",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "whatsapp",
+                "send-coupon"
+              ]
+            },
+            "description": "Send coupon notification with QR code"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Custom Text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+923351968117\",\n  \"message\": \"Your custom message here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/whatsapp/send-text",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "whatsapp",
+                "send-text"
+              ]
+            },
+            "description": "Send custom text message"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Feedback Reminder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+923001234567\",\n  \"customerName\": \"John Doe\",\n  \"merchantName\": \"ABC Restaurant\",\n  \"feedbackLink\": \"https://example.com/feedback/123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/whatsapp/send-feedback-reminder",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "whatsapp",
+                "send-feedback-reminder"
+              ]
+            },
+            "description": "Send feedback reminder to customer"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Prize Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+923001234567\",\n  \"customerName\": \"John Doe\",\n  \"prizeName\": \"Free Coffee\",\n  \"prizeDetails\": \"Valid for 7 days at any location\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/whatsapp/send-prize",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "whatsapp",
+                "send-prize"
+              ]
+            },
+            "description": "Send prize won notification for lucky draw"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+923001234567\",\n  \"documentUrl\": \"https://example.com/invoice.pdf\",\n  \"filename\": \"invoice.pdf\",\n  \"caption\": \"Your invoice for January 2026\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/whatsapp/send-document",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "whatsapp",
+                "send-document"
+              ]
+            },
+            "description": "Send document (PDF, invoice, etc.) via WhatsApp"
+          },
+          "response": []
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/whatsapp/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "whatsapp",
+                "health"
+              ]
+            },
+            "description": "Health check endpoint for WhatsApp service"
+          },
+          "response": []
+        },
+        {
+          "name": "New Request",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"phoneNumber\":\"+923351968117\",\n    \"invoiceLink\":\"BC\",\n    \"patientName\": \"patientName\",\n    \"formattedDate\": \"formattedDate\",\n    \"formattedTime\":\"formattedTime\",\n    \"practitionerName\":\"practitionerName\",\n    \"appointmentType\":\"appointmentType\"\n\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/whatsapp/send-appointment-booked",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "whatsapp",
+                "send-appointment-booked"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "New Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+923351968117\",\n  \"message\": \"hello\"\n}   "
+            },
+            "url": {
+              "raw": "{{base_url}}/whatsapp/send-general-message",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "whatsapp",
+                "send-general-message"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Templates",
+      "item": [
+        {
+          "name": "List Annual Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupons/templates/annual",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupons",
+                "templates",
+                "annual"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Temporary Template",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/coupons/templates/temporary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coupons",
+                "templates",
+                "temporary"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Super Admin Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/super-admins/dashboard?startDate=2025-01-01&endDate=2025-12-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "super-admins",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2025-01-01",
+                  "description": "Start date for filtering (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-12-31",
+                  "description": "End date for filtering (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Get comprehensive platform analytics for super admin including:\n- Admin stats (total, active, inactive)\n- Merchant stats (total, active, inactive, annual, temporary)\n- Customer stats\n- Feedback submissions\n- Coupon stats (issued, redeemed, expired, active)\n- Revenue totals (commission, annual fees, credit purchases)\n- Monthly revenue breakdown\n- Merchant and customer growth\n- Top 10 merchants by coupons redeemed\n\nAll metrics support date filtering via startDate and endDate query parameters."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard Analytics Copy",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/super-admins/dashboard?startDate=2025-01-01&endDate=2025-12-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "super-admins",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2025-01-01",
+                  "description": "Start date for filtering (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-12-31",
+                  "description": "End date for filtering (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Get comprehensive platform analytics for super admin including:\n- Admin stats (total, active, inactive)\n- Merchant stats (total, active, inactive, annual, temporary)\n- Customer stats\n- Feedback submissions\n- Coupon stats (issued, redeemed, expired, active)\n- Revenue totals (commission, annual fees, credit purchases)\n- Monthly revenue breakdown\n- Merchant and customer growth\n- Top 10 merchants by coupons redeemed\n\nAll metrics support date filtering via startDate and endDate query parameters."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Scheduled Campaigns",
+      "item": [
+        {
+          "name": "Create Scheduled Campaign",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set('campaign_id', jsonData.data.id);",
+                  "        console.log('Campaign ID saved:', jsonData.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"campaign_name\": \"Grand Opening Special\",\n  \"campaign_message\": \"Hi {customer_name}, we're excited to invite you to our grand opening at {business_name}! Don't miss out on exclusive offers!\",\n  \"scheduled_date\": \"2026-02-01T10:00:00Z\",\n  \"target_audience\": \"all\",\n  \"send_coupons\": true,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n// Target Audience Options:\n// \"all\" - All customers\n// \"active\" - Customers with feedback in last 30 days\n// \"inactive\" - Customers without feedback in last 90 days\n// \"first_time\" - Customers with only 1 feedback\n// \"returning\" - Customers with more than 1 feedback"
+            },
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns"
+              ]
+            },
+            "description": "Create a new scheduled campaign. Only available for annual merchants.\n\nPlaceholders in message:\n- {customer_name} - Replaced with customer's name\n- {business_name} - Replaced with merchant's business name\n\nTarget audiences:\n- all: All customers\n- active: Feedback in last 30 days\n- inactive: No feedback in last 90 days\n- first_time: Only 1 feedback\n- returning: More than 1 feedback"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns?merchant_id={{merchant_id}}&status=scheduled",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns"
+              ],
+              "query": [
+                {
+                  "key": "merchant_id",
+                  "value": "{{merchant_id}}",
+                  "description": "Filter by merchant ID"
+                },
+                {
+                  "key": "status",
+                  "value": "scheduled",
+                  "description": "Filter by status: scheduled, processing, completed, cancelled, failed"
+                }
+              ]
+            },
+            "description": "Get all scheduled campaigns. Merchants can only see their own campaigns. Super admins can see all campaigns."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Campaign by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns/{{campaign_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns",
+                "{{campaign_id}}"
+              ]
+            },
+            "description": "Get details of a specific campaign including merchant and coupon batch information."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Campaign",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaign_name\": \"Updated Campaign Name\",\n  \"campaign_message\": \"Updated message for {customer_name} from {business_name}\",\n  \"scheduled_date\": \"2026-02-15T14:00:00Z\",\n  \"target_audience\": \"active\",\n  \"send_coupons\": true,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n// Note: Can only update campaigns with status \"scheduled\"\n// Cannot update campaigns that are processing or completed"
+            },
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns/{{campaign_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns",
+                "{{campaign_id}}"
+              ]
+            },
+            "description": "Update a scheduled campaign. Only campaigns with status 'scheduled' can be updated. All fields are optional."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Campaign",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns/{{campaign_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns",
+                "{{campaign_id}}"
+              ]
+            },
+            "description": "Cancel a scheduled campaign. Only campaigns with status 'scheduled' can be cancelled. Sets status to 'cancelled'."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Scheduled Campaigns (All)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns"
+              ]
+            },
+            "description": "Get all campaigns without filters. Merchants see only their campaigns, super admins see all."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Completed Campaigns",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns?merchant_id={{merchant_id}}&status=completed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns"
+              ],
+              "query": [
+                {
+                  "key": "merchant_id",
+                  "value": "{{merchant_id}}"
+                },
+                {
+                  "key": "status",
+                  "value": "completed"
+                }
+              ]
+            },
+            "description": "Get all completed campaigns with statistics (total customers, messages sent, messages failed)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Festival Messages",
+      "item": [
+        {
+          "name": "Enable Festival Campaign",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"festival_campaign_enabled\": true,\n  \"festival_coupon_batch_id\": {{batch_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Enable festival campaigns for a merchant. The system will automatically send WhatsApp messages on festival dates (New Year, Valentine's Day, Chinese New Year, Christmas) to all active customers.\n\n**Requirements:**\n- Only available for annual merchants\n- Must specify a valid coupon batch ID\n- System checks WhatsApp BI credits before sending\n- Automatically assigns coupons from the specified batch\n\n**Supported Festivals:**\n- New Year (January 1)\n- Valentine's Day (February 14)\n- Chinese New Year (February 10)\n- Christmas (December 25)\n\n**Note:** This is an automated background service (cron job). Messages are sent automatically on festival dates at 8 AM."
+          },
+          "response": []
+        },
+        {
+          "name": "Disable Festival Campaign",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"festival_campaign_enabled\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Disable festival campaigns for a merchant. No festival messages will be sent automatically."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Festival Campaign Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Get merchant settings including festival campaign configuration.\n\n**Response fields:**\n- festival_campaign_enabled (boolean): Whether festival campaigns are enabled\n- festival_coupon_batch_id (number): ID of the coupon batch to use for festival messages"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Festival Coupon Batch",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"festival_coupon_batch_id\": {{batch_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Update the coupon batch used for festival campaigns. The new batch will be used for all future festival messages.\n\n**Important:**\n- The coupon batch must belong to the merchant\n- The batch must be active\n- The batch should have sufficient coupons for all customers"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Festival Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set('festival_message_id', jsonData.data.id);",
+                  "        console.log('Festival Message ID saved:', jsonData.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"festival_name\": \"Eid Mubarak\",\n  \"festival_date\": \"2026-03-21\",\n  \"message\": \"Eid Mubarak! Celebrate this blessed occasion with special offers from us!\",\n  \"is_active\": true,\n  \"is_recurring\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/festival-messages",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages"
+              ]
+            },
+            "description": "Create a custom festival message for a merchant. The system will automatically send this message to all customers on the specified festival date.\n\n**Fields:**\n- festival_name: Name of the festival\n- festival_date: Date in YYYY-MM-DD format\n- message: Custom message to send (supports placeholders)\n- is_active: Whether this festival is active\n- is_recurring: If true, sends every year on the same date\n\n**Note:** Requires merchant to have festival campaigns enabled in settings."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Festival Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/festival-messages?merchant_id={{merchant_id}}&is_active=true&page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages"
+              ],
+              "query": [
+                {
+                  "key": "merchant_id",
+                  "value": "{{merchant_id}}",
+                  "description": "Filter by merchant ID"
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "description": "Filter by active status"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all festival messages with optional filtering by merchant and active status."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Festival Message by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/festival-messages/{{festival_message_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages",
+                "{{festival_message_id}}"
+              ]
+            },
+            "description": "Get a specific festival message by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Festival Message",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"festival_name\": \"Eid Mubarak (Updated)\",\n  \"message\": \"Eid Mubarak! Celebrate this blessed occasion with our special offers and discounts!\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/festival-messages/{{festival_message_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages",
+                "{{festival_message_id}}"
+              ]
+            },
+            "description": "Update an existing festival message. All fields are optional."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Festival Message",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/festival-messages/{{festival_message_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages",
+                "{{festival_message_id}}"
+              ]
+            },
+            "description": "Soft delete a festival message. The message will be marked as deleted but not removed from the database."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_id",
+      "value": ""
+    },
+    {
+      "key": "staff_id",
+      "value": ""
+    },
+    {
+      "key": "merchant_id",
+      "value": ""
+    },
+    {
+      "key": "batch_id",
+      "value": ""
+    },
+    {
+      "key": "prize_id",
+      "value": ""
+    },
+    {
+      "key": "result_id",
+      "value": ""
+    },
+    {
+      "key": "credit_package_id",
+      "value": ""
+    },
+    {
+      "key": "customer_id",
+      "value": ""
+    },
+    {
+      "key": "campaign_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "festival_message_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "finance_viewer_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ad_approver_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "support_staff_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
