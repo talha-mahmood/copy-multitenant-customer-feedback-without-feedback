@@ -11,8 +11,8 @@ export class MonthlyStatementController {
 
   @Post('generate')
   async generateAllStatements(@Query('year') year?: number, @Query('month') month?: number, @Req() req?: any) {
-    // Only superadmin can trigger generation
-    if (req.user.role !== 'superadmin') {
+    // Only super_admin can trigger generation
+    if (req.user.role !== 'super_admin') {
       throw new Error('Unauthorized');
     }
 
