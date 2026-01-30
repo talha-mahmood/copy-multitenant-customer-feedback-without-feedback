@@ -1,6 +1,10 @@
 import { IsNotEmpty, IsString, IsDateString, IsBoolean, IsOptional, IsInt, MaxLength } from 'class-validator';
+import { Exists } from 'src/common/decorators/exists.decorator';
+import { Merchant } from 'src/modules/merchants/entities/merchant.entity';
+import { CouponBatch } from 'src/modules/coupon-batches/entities/coupon-batch.entity';
 
 export class CreateFestivalMessageDto {
+  @Exists(() => Merchant, 'id', { message: 'Merchant must exist' })
   @IsNotEmpty()
   @IsInt()
   merchant_id: number;
@@ -26,6 +30,7 @@ export class CreateFestivalMessageDto {
   @IsBoolean()
   is_recurring?: boolean;
 
+  @Exists(() => CouponBatch, 'id', { message: 'Coupon Batch must exist' })
   @IsOptional()
   @IsInt()
   coupon_batch_id?: number;
