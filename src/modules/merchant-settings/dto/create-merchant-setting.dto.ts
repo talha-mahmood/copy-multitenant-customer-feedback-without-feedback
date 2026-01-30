@@ -102,8 +102,8 @@ export class CreateMerchantSettingDto {
   @IsBoolean()
   festival_campaign_enabled?: boolean;
 
-  @Exists(() => CouponBatch, 'id', { message: 'Coupon Batch must exist' })
+  // Scheduled Campaign Settings
   @IsOptional()
-  @IsInt()
-  festival_coupon_batch_id?: number;
+  @IsBoolean()
+  scheduled_campaign_enabled?: boolean;
 }

@@ -18,6 +18,7 @@ interface FestivalCampaign {
   date: Date;
   message: string;
   merchantId?: number;
+  couponBatchId?: number;
 }
 
 @Injectable()
@@ -64,7 +65,6 @@ export class FestivalCampaignService {
       const merchantSettings = await this.merchantSettingRepository
         .createQueryBuilder('settings')
         .where('settings.festival_campaign_enabled = :enabled', { enabled: true })
-        .andWhere('settings.festival_coupon_batch_id IS NOT NULL')
         .getMany();
 
       if (merchantSettings.length === 0) {
@@ -74,9 +74,9 @@ export class FestivalCampaignService {
 
       // Process each merchant with their festival messages
       for (const settings of merchantSettings) {
-        // Get merchant-specific festivals or use all festivals
+        // Get merchant-specific festivals or use all festivals (that have coupon batches)
         const merchantFestivals = todaysFestivals.filter(
-          f => !f.merchantId || f.merchantId === settings.merchant_id
+          f => (f.couponBatchId !== null && f.couponBatchId !== undefined) && (!f.merchantId || f.merchantId === settings.merchant_id)
         );
 
         for (const festival of merchantFestivals) {
@@ -107,6 +107,7 @@ export class FestivalCampaignService {
       date: f.festival_date,
       message: f.message,
       merchantId: f.merchant_id,
+      couponBatchId: f.coupon_batch_id,
     }));
   }
 
@@ -192,17 +193,17 @@ export class FestivalCampaignService {
         return;
       }
 
-      // Get coupon batch
+      // Get coupon batch from festival message
       const batch = await this.couponBatchRepository.findOne({
         where: {
-          id: settings.festival_coupon_batch_id,
+          id: festival.couponBatchId,
           merchant_id: merchant.id,
           is_active: true,
         },
       });
 
       if (!batch) {
-        this.logger.warn(`Festival coupon batch ${settings.festival_coupon_batch_id} not found`);
+        this.logger.warn(`Festival coupon batch ${festival.couponBatchId} not found for festival ${festival.name}`);
         return;
       }
 
