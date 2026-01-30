@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { Repository, Between } from 'typeorm';
 import { MonthlyStatement } from './entities/monthly-statement.entity';
 import { CreditLedgerService } from '../credits-ledger/credit-ledger.service';
@@ -364,7 +364,7 @@ export class MonthlyStatementService {
   async findOne(id: number) {
     const statement = await this.monthlyStatementRepository.findOne({ where: { id } });
     if (!statement) {
-      throw new Error('Statement not found');
+      throw new NotFoundException('Statement not found');
     }
 
     return {
@@ -376,7 +376,7 @@ export class MonthlyStatementService {
   async downloadPdf(id: number): Promise<string> {
     const statement = await this.monthlyStatementRepository.findOne({ where: { id } });
     if (!statement) {
-      throw new Error('Statement not found');
+      throw new NotFoundException('Statement not found');
     }
 
     // Generate PDF if not already generated

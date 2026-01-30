@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Query, UseGuards, Req, Res } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, UseGuards, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { MonthlyStatementService } from './monthly-statement.service';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { Response } from 'express';
@@ -13,7 +13,7 @@ export class MonthlyStatementController {
   async generateAllStatements(@Query('year') year?: number, @Query('month') month?: number, @Req() req?: any) {
     // Only super_admin can trigger generation
     if (req.user.role !== 'super_admin') {
-      throw new Error('Unauthorized');
+      throw new UnauthorizedException('Only super admins can generate all statements');
     }
 
     return this.monthlyStatementService.generateAllMonthlyStatements(year, month);
@@ -49,11 +49,11 @@ export class MonthlyStatementController {
 
     // Check permissions
     if (req.user.role === 'merchant' && statement.owner_id !== req.user.merchantId) {
-      throw new Error('Unauthorized');
+      throw new UnauthorizedException('You can only view your own statements');
     }
 
     if (req.user.role === 'admin' && statement.owner_id !== req.user.adminId && statement.owner_type === 'agent') {
-      throw new Error('Unauthorized');
+      throw new UnauthorizedException('You can only view your own statements');
     }
 
     return result;
@@ -66,11 +66,11 @@ export class MonthlyStatementController {
 
     // Check permissions
     if (req.user.role === 'merchant' && statement.owner_id !== req.user.merchantId) {
-      throw new Error('Unauthorized');
+      throw new UnauthorizedException('You can only download your own statements');
     }
 
     if (req.user.role === 'admin' && statement.owner_id !== req.user.adminId && statement.owner_type === 'agent') {
-      throw new Error('Unauthorized');
+      throw new UnauthorizedException('You can only download your own statements');
     }
 
     const pdfPath = await this.monthlyStatementService.downloadPdf(id);
