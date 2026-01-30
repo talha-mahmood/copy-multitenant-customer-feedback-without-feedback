@@ -26,6 +26,7 @@ import { UpdateCreditPackageDto } from './dto/update-credit-package.dto';
 import { SystemLogService } from '../system-logs/system-log.service';
 import { SystemLogAction } from 'src/common/enums/system-log.enum';
 import { SuperAdminSettingsService } from '../super-admin-settings/super-admin-settings.service';
+import { CreditLedgerService } from '../credits-ledger/credit-ledger.service';
 
 @Injectable()
 export class WalletService {
@@ -46,6 +47,7 @@ export class WalletService {
     private dataSource: DataSource,
     private systemLogService: SystemLogService,
     private superAdminSettingsService: SuperAdminSettingsService,
+    private creditLedgerService: CreditLedgerService,
   ) {}
 
   /**
@@ -478,6 +480,33 @@ export class WalletService {
 
       await queryRunner.commitTransaction();
 
+      // Create ledger entry for merchant credit purchase
+      const creditTypeMap = {
+        'whatsapp ui message': 'wa_ui',
+        'whatsapp bi message': 'wa_bi',
+        'paid ads': 'paid_ads',
+        'coupon': 'coupon',
+      };
+
+      await this.creditLedgerService.create({
+        owner_type: 'merchant',
+        owner_id: merchantId,
+        credit_type: creditTypeMap[creditType as keyof typeof creditTypeMap] || 'coupon',
+        action: 'purchase',
+        amount: credits,
+        balance_after: updates.whatsapp_ui_credits || updates.whatsapp_bi_credits || updates.paid_ad_credits || updates.coupon_credits,
+        related_object_type: 'package',
+        related_object_id: packageId,
+        description: `Purchased ${credits} ${creditType} credits from package "${creditPackage.name}"`,
+        metadata: {
+          package_id: creditPackage.id,
+          package_name: creditPackage.name,
+          amount,
+          admin_id: adminId,
+          commission: adminCommission,
+        },
+      });
+
       // Log wallet credit addition
       await this.systemLogService.logWallet(
         SystemLogAction.CREDIT_ADD,
@@ -583,6 +612,32 @@ export class WalletService {
       const savedTransaction = await queryRunner.manager.save(transaction);
 
       await queryRunner.commitTransaction();
+
+      // Create ledger entry for credit deduction
+      const creditTypeMap = {
+        'whatsapp ui message': 'wa_ui',
+        'whatsapp bi message': 'wa_bi',
+        'paid ads': 'paid_ads',
+        'coupon': 'coupon',
+      };
+
+      const balanceAfter = creditType === 'whatsapp ui message' ? updates.whatsapp_ui_credits :
+        creditType === 'whatsapp bi message' ? updates.whatsapp_bi_credits :
+        creditType === 'paid ads' ? updates.paid_ad_credits :
+        updates.coupon_credits;
+
+      await this.creditLedgerService.create({
+        owner_type: 'merchant',
+        owner_id: merchantId,
+        credit_type: creditTypeMap[creditType as keyof typeof creditTypeMap] || 'coupon',
+        action: 'deduct',
+        amount: -credits, // Negative for deduction
+        balance_after: balanceAfter,
+        related_object_type: metadata?.related_object_type,
+        related_object_id: metadata?.related_object_id,
+        description,
+        metadata,
+      });
 
       // Log wallet credit deduction
       await this.systemLogService.logWallet(
@@ -988,8 +1043,9 @@ export class WalletService {
       }
 
       // Deduct credits
+      const newCouponCredits = wallet.coupon_credits - couponCount;
       await queryRunner.manager.update(MerchantWallet, wallet.id, {
-        coupon_credits: wallet.coupon_credits - couponCount,
+        coupon_credits: newCouponCredits,
         total_credits_used: wallet.total_credits_used + couponCount,
       });
 
@@ -1003,12 +1059,29 @@ export class WalletService {
         metadata: JSON.stringify({
           credit_type: 'coupon',
           credits_used: couponCount,
-          credits_remaining: wallet.coupon_credits - couponCount,
+          credits_remaining: newCouponCredits,
         }),
         completed_at: new Date(),
       });
 
       await queryRunner.commitTransaction();
+
+      // Create ledger entry for coupon credit deduction
+      await this.creditLedgerService.create({
+        owner_type: 'merchant',
+        owner_id: merchantId,
+        credit_type: 'coupon',
+        action: 'deduct',
+        amount: -couponCount,
+        balance_after: newCouponCredits,
+        related_object_type: 'coupon_batch',
+        related_object_id: undefined, // Will be set by coupon batch service if needed
+        description: `Deducted ${couponCount} coupon credits for batch generation`,
+        metadata: {
+          credits_used: couponCount,
+          credits_remaining: newCouponCredits,
+        },
+      });
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
