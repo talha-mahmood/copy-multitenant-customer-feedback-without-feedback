@@ -6,11 +6,15 @@ import { ChatController } from './chat.controller';
 import { DatabaseModule } from 'src/database/database.module';
 import { chatProviders } from './chat.provider';
 import { JwtModule } from '@nestjs/jwt';
+import { AdminModule } from '../admins/admin.module';
+import { MerchantModule } from '../merchants/merchant.module';
 
 @Module({
     imports: [
         DatabaseModule,
         ConfigModule,
+        AdminModule,
+        MerchantModule,
         JwtModule.registerAsync({
             imports: [ConfigModule],
             useFactory: async (configService: ConfigService) => ({

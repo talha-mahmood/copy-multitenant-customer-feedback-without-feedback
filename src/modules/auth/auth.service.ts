@@ -111,14 +111,14 @@ export class AuthService {
       const admin = await this.adminRepository.findOne({ where: { user_id: Number(user.id) } });
       if (admin) {
         adminId = admin.id;
-        
+
         // Check admin subscription expiration
         const adminWallet = await this.adminWalletRepository.findOne({ where: { admin_id: admin.id } });
         console.log("i am checking this ----> adminWallet", adminWallet);
-        
+
         if (adminWallet) {
           let isExpired = false;
-          
+
           // If subscription_expires_at is null or expired, mark as expired
           if (!adminWallet.subscription_expires_at) {
             isExpired = true;
@@ -132,7 +132,7 @@ export class AuthService {
               console.log('Admin still has access to the subscription plan');
             }
           }
-          
+
           // Update is_subscription_expired if it doesn't match current state
           if (adminWallet.is_subscription_expired !== isExpired) {
             adminWallet.is_subscription_expired = isExpired;
@@ -159,7 +159,7 @@ export class AuthService {
       }
     }
     // Note: Customers don't have user accounts anymore
-    
+
     // Build payload and response with only relevant role ID
     const payload: any = {
       sub: user.id,
@@ -186,6 +186,9 @@ export class AuthService {
     } else if (roleName === 'admin' && adminId) {
       payload.adminId = adminId;
       userResponse.adminId = adminId;
+    } else if (roleName === 'super_admin') {
+      payload.superAdminId = 1; // Static ID for SuperAdmin
+      userResponse.superAdminId = 1;
     } else if (roleName === 'finance_viewer' && financeViewerId) {
       payload.financeViewerId = financeViewerId;
       userResponse.financeViewerId = financeViewerId;

@@ -18,7 +18,7 @@ import { SuperAdminDashboardQueryDto } from './dto/super-admin-dashboard.dto';
 
 @Controller('super-admins')
 export class SuperAdminController {
-  constructor(private readonly superAdminService: SuperAdminService) {}
+  constructor(private readonly superAdminService: SuperAdminService) { }
 
 
   @Get('dashboard')
@@ -46,7 +46,7 @@ export class SuperAdminController {
     return this.superAdminService.findAll(page, pageSize, search, isActive);
   }
 
- 
+
 
   @Get(':id')
   findOne(@Param('id') id: number) {
