@@ -1,7 +1,7 @@
 {
   "info": {
     "_postman_id": "9ad5861f-e55b-44fb-83ab-a8cf23ea5926",
-    "name": "43QR Review & Coupon SaaS API - With Campaigns",
+    "name": "44QR Review & Coupon SaaS API - With Campaigns",
     "description": "Complete API collection including wallet system, automated campaigns (inactive recall, festival broadcasts, scheduled campaigns)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "22622973"
@@ -3492,7 +3492,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "// Basic Settings Example:\n// {\n//   \"enableGoogleReviews\": true,\n//   \"enableFacebookReviews\": true,\n//   \"googleReviewUrl\": \"https://g.page/r/updated-url\",\n//   \"facebookPageUrl\": \"https://facebook.com/updated-page\"\n// }\n\n// Full Settings with Campaigns:\n{\n    \"whatsapp_enabled_for_batch_id\": 2,\n    \"luckydraw_enabled\": false,\n    \"birthday_message_enabled\": true,\n    \"days_before_birthday\": 3,\n    \"days_after_birthday\": 0,\n    \"birthday_coupon_batch_id\": 1,\n    \"inactive_recall_enabled\": true,\n    \"inactive_recall_days\": 30,\n    \"inactive_recall_coupon_batch_id\": 2,\n    \"festival_campaign_enabled\": true,\n    \"festival_coupon_batch_id\": 3\n}"
+              "raw": "// Basic Settings Example:\n// {\n//   \"enableGoogleReviews\": true,\n//   \"enableFacebookReviews\": true,\n//   \"googleReviewUrl\": \"https://g.page/r/updated-url\",\n//   \"facebookPageUrl\": \"https://facebook.com/updated-page\"\n// }\n\n// Full Settings with Campaigns:\n{\n    \"whatsapp_enabled_for_batch_id\": 2,\n    \"luckydraw_enabled\": false,\n    \"birthday_message_enabled\": true,\n    \"days_before_birthday\": 3,\n    \"days_after_birthday\": 0,\n    \"birthday_coupon_batch_id\": 1,\n    \"inactive_recall_enabled\": true,\n    \"inactive_recall_days\": 30,\n    \"inactive_recall_coupon_batch_id\": 2,\n    \"festival_campaign_enabled\": true,\n    \"scheduled_campaign_enabled\": true\n}"
             },
             "url": {
               "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
@@ -4173,7 +4173,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"festival_campaign_enabled\": true,\n  \"festival_coupon_batch_id\": {{batch_id}}\n}"
+              "raw": "{\n  \"festival_campaign_enabled\": true\n}"
             },
             "url": {
               "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
@@ -4186,7 +4186,7 @@
                 "{{merchant_id}}"
               ]
             },
-            "description": "Enable festival campaigns for a merchant. The system will automatically send WhatsApp messages on festival dates (New Year, Valentine's Day, Chinese New Year, Christmas) to all active customers.\n\n**Requirements:**\n- Only available for annual merchants\n- Must specify a valid coupon batch ID\n- System checks WhatsApp BI credits before sending\n- Automatically assigns coupons from the specified batch\n\n**Supported Festivals:**\n- New Year (January 1)\n- Valentine's Day (February 14)\n- Chinese New Year (February 10)\n- Christmas (December 25)\n\n**Note:** This is an automated background service (cron job). Messages are sent automatically on festival dates at 8 AM."
+            "description": "Enable festival campaigns for a merchant. The system will automatically send WhatsApp messages on festival dates to all active customers based on festival messages configured for the merchant.\n\n**Requirements:**\n- Only available for annual merchants\n- Festival messages must be created with coupon batch IDs\n- System checks WhatsApp BI credits before sending\n- Automatically assigns coupons from the batch specified in each festival message\n\n**Note:** This is an automated background service (cron job). Messages are sent automatically on festival dates at 8 AM. Create festival messages to define which festivals to celebrate."
           },
           "response": []
         },
@@ -4244,12 +4244,12 @@
                 "{{merchant_id}}"
               ]
             },
-            "description": "Get merchant settings including festival campaign configuration.\n\n**Response fields:**\n- festival_campaign_enabled (boolean): Whether festival campaigns are enabled\n- festival_coupon_batch_id (number): ID of the coupon batch to use for festival messages"
+            "description": "Get merchant settings including festival campaign configuration.\n\n**Response fields:**\n- festival_campaign_enabled (boolean): Whether festival campaigns are enabled\n- scheduled_campaign_enabled (boolean): Whether scheduled campaigns are enabled\n\n**Note:** Festival coupon batches are now configured per festival message, not globally in settings."
           },
           "response": []
         },
         {
-          "name": "Update Festival Coupon Batch",
+          "name": "Enable Scheduled Campaign",
           "request": {
             "method": "PATCH",
             "header": [
@@ -4264,7 +4264,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"festival_coupon_batch_id\": {{batch_id}}\n}"
+              "raw": "{\n  \"scheduled_campaign_enabled\": true\n}"
             },
             "url": {
               "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
@@ -4277,7 +4277,7 @@
                 "{{merchant_id}}"
               ]
             },
-            "description": "Update the coupon batch used for festival campaigns. The new batch will be used for all future festival messages.\n\n**Important:**\n- The coupon batch must belong to the merchant\n- The batch must be active\n- The batch should have sufficient coupons for all customers"
+            "description": "Enable scheduled campaigns for a merchant. Allows creating and sending scheduled WhatsApp messages to customers at specific dates and times.\n\n**Requirements:**\n- Only available for annual merchants\n- System checks WhatsApp BI credits before sending\n- Scheduled messages are processed by a background cron job"
           },
           "response": []
         },
@@ -4314,7 +4314,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"festival_name\": \"Eid Mubarak\",\n  \"festival_date\": \"2026-03-21\",\n  \"message\": \"Eid Mubarak! Celebrate this blessed occasion with special offers from us!\",\n  \"is_active\": true,\n  \"is_recurring\": true\n}"
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"festival_name\": \"Eid Mubarak\",\n  \"festival_date\": \"2026-03-21\",\n  \"message\": \"Eid Mubarak! Celebrate this blessed occasion with special offers from us!\",\n  \"coupon_batch_id\": {{batch_id}},\n  \"is_active\": true,\n  \"is_recurring\": true\n}"
             },
             "url": {
               "raw": "{{base_url}}/festival-messages",
@@ -4325,7 +4325,7 @@
                 "festival-messages"
               ]
             },
-            "description": "Create a custom festival message for a merchant. The system will automatically send this message to all customers on the specified festival date.\n\n**Fields:**\n- festival_name: Name of the festival\n- festival_date: Date in YYYY-MM-DD format\n- message: Custom message to send (supports placeholders)\n- is_active: Whether this festival is active\n- is_recurring: If true, sends every year on the same date\n\n**Note:** Requires merchant to have festival campaigns enabled in settings."
+            "description": "Create a custom festival message for a merchant. The system will automatically send this message to all customers on the specified festival date.\n\n**Fields:**\n- merchant_id: ID of the merchant (optional, system-wide if null)\n- festival_name: Name of the festival\n- festival_date: Date in YYYY-MM-DD format\n- message: Custom message to send (supports placeholders)\n- coupon_batch_id: ID of the coupon batch to use for this festival (optional)\n- is_active: Whether this festival is active\n- is_recurring: If true, sends every year on the same date\n\n**Note:** Requires merchant to have festival campaigns enabled in settings."
           },
           "response": []
         },
@@ -4412,7 +4412,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"festival_name\": \"Eid Mubarak (Updated)\",\n  \"message\": \"Eid Mubarak! Celebrate this blessed occasion with our special offers and discounts!\",\n  \"is_active\": true\n}"
+              "raw": "{\n  \"festival_name\": \"Eid Mubarak (Updated)\",\n  \"message\": \"Eid Mubarak! Celebrate this blessed occasion with our special offers and discounts!\",\n  \"coupon_batch_id\": {{batch_id}},\n  \"is_active\": true\n}"
             },
             "url": {
               "raw": "{{base_url}}/festival-messages/{{festival_message_id}}",

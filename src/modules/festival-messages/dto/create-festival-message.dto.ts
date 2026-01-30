@@ -25,4 +25,8 @@ export class CreateFestivalMessageDto {
   @IsOptional()
   @IsBoolean()
   is_recurring?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  coupon_batch_id?: number;
 }

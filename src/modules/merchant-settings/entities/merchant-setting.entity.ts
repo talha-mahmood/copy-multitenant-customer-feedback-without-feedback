@@ -76,8 +76,8 @@ export class MerchantSetting extends BaseEntity {
   @Column({ name: 'festival_campaign_enabled', type: 'boolean', default: false })
   festival_campaign_enabled: boolean;
 
-  @Column({ name: 'festival_coupon_batch_id', type: 'int', nullable: true })
-  festival_coupon_batch_id: number;
+  @Column({ name: 'scheduled_campaign_enabled', type: 'boolean', default: false })
+  scheduled_campaign_enabled: boolean;
 
   @OneToOne(() => Merchant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'merchant_id' })

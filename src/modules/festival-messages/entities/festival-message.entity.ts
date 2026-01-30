@@ -1,6 +1,7 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from 'src/common/entities/base.entity';
 import { Merchant } from 'src/modules/merchants/entities/merchant.entity';
+import { CouponBatch } from 'src/modules/coupon-batches/entities/coupon-batch.entity';
 
 @Entity('festival_messages')
 export class FestivalMessage extends BaseEntity {
@@ -25,4 +26,11 @@ export class FestivalMessage extends BaseEntity {
 
   @Column({ name: 'is_recurring', type: 'boolean', default: true })
   is_recurring: boolean; // If true, repeats every year on the same date
+
+  @Column({ name: 'coupon_batch_id', type: 'int', nullable: true })
+  coupon_batch_id: number;
+
+  @ManyToOne(() => CouponBatch, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'coupon_batch_id' })
+  couponBatch: CouponBatch;
 }
