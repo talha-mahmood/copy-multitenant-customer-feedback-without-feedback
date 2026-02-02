@@ -9,7 +9,9 @@ import {
   Query,
   HttpException,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ScheduledCampaign, CampaignStatus } from './entities/scheduled-campaign.entity';
@@ -20,6 +22,7 @@ import { CurrentUser } from 'src/common/decorators/current-user';
 import { Inject } from '@nestjs/common';
 
 @Controller('scheduled-campaigns')
+@UseGuards(JwtAuthGuard)
 export class ScheduledCampaignController {
   constructor(
     @Inject('SCHEDULED_CAMPAIGN_REPOSITORY')
@@ -51,7 +54,7 @@ export class ScheduledCampaignController {
       }
 
       // Check if user is authorized to create campaign for this merchant
-      if (user.role === 'merchant' && user.id !== merchant.id) {
+      if (user.role === 'merchant' && user.merchantId !== merchant.id) {
         throw new HttpException('Unauthorized', HttpStatus.FORBIDDEN);
       }
 
@@ -89,12 +92,12 @@ export class ScheduledCampaignController {
         query.where('campaign.merchant_id = :merchantId', { merchantId });
 
         // If merchant user, ensure they can only see their own campaigns
-        if (user.role === 'merchant' && user.id !== merchantId) {
+        if (user.role === 'merchant' && user.merchantId !== Number(merchantId)) {
           throw new HttpException('Unauthorized', HttpStatus.FORBIDDEN);
         }
       } else if (user.role === 'merchant') {
         // Merchant users can only see their own campaigns
-        query.where('campaign.merchant_id = :merchantId', { merchantId: user.id });
+        query.where('campaign.merchant_id = :merchantId', { merchantId: user.merchantId });
       }
 
       // Filter by status if specified
@@ -131,7 +134,7 @@ export class ScheduledCampaignController {
       }
 
       // Check authorization
-      if (user.role === 'merchant' && user.id !== campaign.merchant_id) {
+      if (user.role === 'merchant' && user.merchantId !== campaign.merchant_id) {
         throw new HttpException('Unauthorized', HttpStatus.FORBIDDEN);
       }
 
@@ -163,7 +166,7 @@ export class ScheduledCampaignController {
       }
 
       // Check authorization
-      if (user.role === 'merchant' && user.id !== campaign.merchant_id) {
+      if (user.role === 'merchant' && user.merchantId !== campaign.merchant_id) {
         throw new HttpException('Unauthorized', HttpStatus.FORBIDDEN);
       }
 
@@ -206,7 +209,7 @@ export class ScheduledCampaignController {
       }
 
       // Check authorization
-      if (user.role === 'merchant' && user.id !== campaign.merchant_id) {
+      if (user.role === 'merchant' && user.merchantId !== campaign.merchant_id) {
         throw new HttpException('Unauthorized', HttpStatus.FORBIDDEN);
       }
 
