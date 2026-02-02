@@ -442,7 +442,6 @@ export class MonthlyStatementService {
   }
 
   private async generatePdf(statement: MonthlyStatement): Promise<string> {
-    const doc = new PDFDocument({ margin: 50 });
     const fileName = `statement_${statement.owner_type}_${statement.owner_id}_${statement.year}_${statement.month}.pdf`;
     const uploadsDir = path.join(process.cwd(), 'uploads', 'statements');
 
@@ -452,84 +451,372 @@ export class MonthlyStatementService {
     }
 
     const filePath = path.join(uploadsDir, fileName);
-    const stream = fs.createWriteStream(filePath);
-    doc.pipe(stream);
+    const monthStr = `${statement.year}-${String(statement.month).padStart(2, '0')}`;
+    
+    let pdfBuffer: Buffer;
 
-    // Header
-    doc.fontSize(20).text(statement.company_name, { align: 'center' });
-    doc.fontSize(16).text('Monthly Statement', { align: 'center' });
-    doc.fontSize(12).text(`Period: ${statement.year}-${String(statement.month).padStart(2, '0')}`, {
-      align: 'center',
-    });
-    doc.moveDown();
+    // Get ledger data for the statement period
+    const startDate = new Date(statement.year, statement.month - 1, 1);
+    const endDate = new Date(statement.year, statement.month, 0, 23, 59, 59);
+    const ledgers = await this.creditLedgerService.getLedgerForPeriod(
+      statement.owner_type,
+      statement.owner_id,
+      startDate,
+      endDate,
+    );
 
-    // Content based on owner type
+    // Generate PDF based on owner type
     if (statement.owner_type === 'merchant') {
-      this.addMerchantContent(doc, statement.statement_data);
+      const merchant = await this.merchantRepository.findOne({ where: { id: statement.owner_id } });
+      if (!merchant) throw new Error('Merchant not found');
+      pdfBuffer = await this.createMerchantPdf(merchant, monthStr, statement.statement_data, ledgers);
     } else if (statement.owner_type === 'agent') {
-      this.addAgentContent(doc, statement.statement_data);
+      const agent = await this.adminRepository.findOne({ where: { id: statement.owner_id }, relations: ['user'] });
+      if (!agent) throw new Error('Agent not found');
+      pdfBuffer = await this.createAgentPdf(agent, monthStr, statement.statement_data, ledgers);
     } else if (statement.owner_type === 'master') {
-      this.addMasterContent(doc, statement.statement_data);
+      pdfBuffer = await this.createMasterPdf(monthStr, statement.statement_data, ledgers);
+    } else {
+      throw new Error('Invalid owner type');
     }
 
-    doc.end();
+    // Write buffer to file
+    fs.writeFileSync(filePath, pdfBuffer);
 
-    return new Promise((resolve, reject) => {
-      stream.on('finish', () => resolve(filePath));
-      stream.on('error', reject);
+    return filePath;
+  }
+
+  private async createMerchantPdf(m: Merchant, month: string, s: any, l: any[]): Promise<Buffer> {
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+    const buffers: Buffer[] = [];
+    doc.on('data', buffers.push.bind(buffers));
+
+    // Header - Company Name and Period
+    this.renderStatementHeader(doc, m.business_name, 'MERCHANT MONTHLY STATEMENT', month);
+
+    // Financial Summary Highlight Box
+    this.drawSummaryBox(doc, [
+      { label: 'COUPON BAL', opening: s.credits.opening.coupon || 0, closing: s.credits.closing.coupon || 0 },
+      { label: 'WA-UI BAL', opening: s.credits.opening.wa_ui || 0, closing: s.credits.closing.wa_ui || 0 },
+      { label: 'WA-BI BAL', opening: s.credits.opening.wa_bi || 0, closing: s.credits.closing.wa_bi || 0 },
+      { label: 'AD-CRED BAL', opening: s.credits.opening.paid_ads || 0, closing: s.credits.closing.paid_ads || 0 },
+    ]);
+    doc.moveDown(0.5);
+
+    // Account Summary Section
+    this.drawSectionHeader(doc, 'CREDIT BALANCES(BANK-STYLE)');
+    const balanceData = [
+      ['Credit Type', 'Opening Balance', 'Closing Balance'],
+      ['Coupon Credits', s.credits.opening.coupon || 0, s.credits.closing.coupon || 0],
+      ['WhatsApp UI Credits', s.credits.opening.wa_ui || 0, s.credits.closing.wa_ui || 0],
+      ['WhatsApp BI Credits', s.credits.opening.wa_bi || 0, s.credits.closing.wa_bi || 0],
+      ['Ad Credits', s.credits.opening.paid_ads || 0, s.credits.closing.paid_ads || 0],
+    ];
+    this.drawTable(doc, balanceData, [210, 150, 150]);
+    doc.moveDown(0.5);
+
+    // Coupon Metrics Section
+    this.drawSectionHeader(doc, 'COUPON METRICS');
+    const couponData = [
+      ['Status', 'Count'],
+      ['Generated', s.coupons.generated || 0],
+      ['Taken', s.coupons.taken || 0],
+      ['Redeemed', s.coupons.redeemed || 0],
+      ['Expired/Refunded', s.coupons.expired_refunded || 0],
+    ];
+    this.drawTable(doc, couponData, [410, 100]);
+    doc.moveDown(0.5);
+
+    // WhatsApp Usage Section
+    this.drawSectionHeader(doc, 'WHATSAPP USAGE DETAILS');
+    const waData = [
+      ['Category', 'Success', 'Failed', 'Credits Used'],
+      ['User Initiated (UI)', s.whatsapp_credits_used?.ui_success || 0, s.whatsapp_credits_used?.ui_failed || 0, s.whatsapp_credits_used?.ui_credits_used || 0],
+      ['Business Initiated (BI)', s.whatsapp_credits_used?.bi_success || 0, s.whatsapp_credits_used?.bi_failed || 0, s.whatsapp_credits_used?.bi_credits_used || 0],
+    ];
+    this.drawTable(doc, waData, [160, 100, 100, 150]);
+    doc.moveDown(0.5);
+
+    // Paid Ads Section - Skip if no ads data
+    if (s.ads && s.ads.length > 0) {
+      this.drawSectionHeader(doc, 'PAID ADS PURCHASES');
+      const adData = [['Date', 'Amount', 'Duration', 'Targeting']];
+      s.ads.forEach(ad => {
+        const metadata = ad.metadata || {};
+        adData.push([
+          new Date(ad.date).toLocaleDateString(),
+          ad.amount + ' credits',
+          metadata.duration || 'N/A',
+          metadata.targeting || 'N/A'
+        ]);
+      });
+      this.drawTable(doc, adData, [100, 110, 150, 150]);
+      doc.moveDown(0.5);
+    }
+
+    // Ledger Snapshot
+    this.drawSectionHeader(doc, 'MONTHLY LEDGER SNAPSHOT');
+    const ledgerData = [['Date', 'Action', 'Type', 'Change', 'Balance After']];
+    l.slice(0, 20).forEach(entry => {
+      ledgerData.push([
+        new Date(entry.created_at).toLocaleDateString(),
+        entry.action.toUpperCase(),
+        entry.credit_type.replace(/_/g, ' ').toUpperCase(),
+        (entry.amount > 0 ? '+' : '') + entry.amount,
+        entry.balance_after
+      ]);
     });
+    if (l.length > 20) ledgerData.push(['...', '...', '...', '...', '...']);
+    this.drawTable(doc, ledgerData, [80, 100, 120, 100, 110]);
+
+    this.renderStatementFooter(doc);
+
+    doc.end();
+    return new Promise((res) => doc.on('end', () => res(Buffer.concat(buffers))));
   }
 
-  private addMerchantContent(doc: any, data: any) {
-    doc.fontSize(14).text('Coupon Summary', { underline: true });
-    doc.fontSize(10);
-    doc.text(`Generated: ${data.coupons.generated}`);
-    doc.text(`Taken: ${data.coupons.taken}`);
-    doc.text(`Redeemed: ${data.coupons.redeemed}`);
-    doc.text(`Expired: ${data.coupons.expired}`);
-    doc.moveDown();
+  private async createAgentPdf(a: Admin, month: string, s: any, l: any[]): Promise<Buffer> {
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+    const buffers: Buffer[] = [];
+    doc.on('data', buffers.push.bind(buffers));
 
-    doc.fontSize(14).text('WhatsApp Summary', { underline: true });
-    doc.fontSize(10);
-    doc.text(`UI Messages: ${data.whatsapp.ui_count} (Success: ${data.whatsapp.ui_success})`);
-    doc.text(`BI Messages: ${data.whatsapp.bi_count} (Success: ${data.whatsapp.bi_success})`);
-    doc.text(`Total Credits Used: ${data.whatsapp.total_credits_used}`);
-    doc.moveDown();
+    this.renderStatementHeader(doc, a.user.name, 'AGENT SETTLEMENT REPORT', month);
 
-    doc.fontSize(14).text('Credit Balances', { underline: true });
-    doc.fontSize(10);
-    doc.text(`Coupon Credits: Opening ${data.credits.opening.coupon} → Closing ${data.credits.closing.coupon}`);
-    doc.text(`WhatsApp UI Credits: Opening ${data.credits.opening.wa_ui} → Closing ${data.credits.closing.wa_ui}`);
-    doc.text(`WhatsApp BI Credits: Opening ${data.credits.opening.wa_bi} → Closing ${data.credits.closing.wa_bi}`);
+    // Get wallet opening/closing from credits (agent uses credits ledger)
+    const openingTotal = (s.credits.opening.coupon || 0) + (s.credits.opening.wa_ui || 0) + (s.credits.opening.wa_bi || 0);
+    const closingTotal = (s.credits.closing.coupon || 0) + (s.credits.closing.wa_ui || 0) + (s.credits.closing.wa_bi || 0);
+
+    // Performance & Financial Summary Box
+    this.drawSummaryBox(doc, [
+      { label: 'NEW MERCHANTS', opening: '-', closing: s.merchants.new_this_month || 0 },
+      { label: 'SETTLEMENT PROFIT', opening: '-', closing: '$' + (s.revenue.net_profit || 0).toFixed(2) },
+      { label: 'TOTAL CREDITS', opening: openingTotal, closing: closingTotal },
+    ]);
+    doc.moveDown(0.5);
+
+    // Financial Details
+    this.drawSectionHeader(doc, 'COMMISSION & COST BREAKDOWN');
+    const finData = [
+      ['Description', 'Debit', 'Credit', 'Balance'],
+      ['Opening Credits', '', '', openingTotal.toString()],
+      ['Annual Fee Income', '', '$' + (s.revenue.annual_fee || 0).toFixed(2), ''],
+      ['Package Commission Income', '', '$' + (s.revenue.package_income || 0).toFixed(2), ''],
+      ['System Costs Deducted', '$' + (s.revenue.costs_deducted || 0).toFixed(2), '', ''],
+      ['NET ACCRUED PROFIT', '', '', '$' + (s.revenue.net_profit || 0).toFixed(2)],
+    ];
+    this.drawTable(doc, finData, [210, 100, 100, 100]);
+    doc.moveDown(0.5);
+
+    // Ledger Details
+    this.drawSectionHeader(doc, 'DETAILED LEDGER ENTRIES');
+    const ledgerData = [['Date', 'Description', 'Type', 'Amount', 'Balance after']];
+    l.slice(0, 30).forEach(tx => {
+      ledgerData.push([
+        new Date(tx.created_at).toLocaleDateString(),
+        (tx.description || '').substring(0, 35),
+        (tx.action || 'N/A').toUpperCase(),
+        (tx.amount > 0 ? '+' : '') + tx.amount,
+        tx.balance_after || 'N/A'
+      ]);
+    });
+    if (l.length > 30) ledgerData.push(['...', '...', '...', '...', '...']);
+    this.drawTable(doc, ledgerData, [80, 160, 80, 90, 100]);
+
+    this.renderStatementFooter(doc);
+
+    doc.end();
+    return new Promise((res) => doc.on('end', () => res(Buffer.concat(buffers))));
   }
 
-  private addAgentContent(doc: any, data: any) {
-    doc.fontSize(14).text('Merchant Summary', { underline: true });
-    doc.fontSize(10);
-    doc.text(`Total Merchants: ${data.merchants.total}`);
-    doc.text(`New This Month: ${data.merchants.new_this_month}`);
-    doc.moveDown();
+  private async createMasterPdf(month: string, s: any, l: any[]): Promise<Buffer> {
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+    const buffers: Buffer[] = [];
+    doc.on('data', buffers.push.bind(buffers));
 
-    doc.fontSize(14).text('Revenue Summary', { underline: true });
-    doc.fontSize(10);
-    doc.text(`Annual Fee Income: $${data.revenue.annual_fee}`);
-    doc.text(`Package Income: $${data.revenue.package_income}`);
-    doc.text(`Costs Deducted: $${data.revenue.costs_deducted}`);
-    doc.text(`Net Profit: $${data.revenue.net_profit}`);
-    doc.moveDown();
+    this.renderStatementHeader(doc, 'MASTER PLATFORM', 'GLOBAL OPERATIONS STATEMENT', month);
 
-    doc.fontSize(14).text('Wallet Balances', { underline: true });
-    doc.fontSize(10);
-    doc.text(`Coupon Credits: Opening ${data.credits.opening.coupon} → Closing ${data.credits.closing.coupon}`);
-    doc.text(`WhatsApp UI Credits: Opening ${data.credits.opening.wa_ui} → Closing ${data.credits.closing.wa_ui}`);
-    doc.text(`WhatsApp BI Credits: Opening ${data.credits.opening.wa_bi} → Closing ${data.credits.closing.wa_bi}`);
+    // Global Metrics Summary Box
+    this.drawSummaryBox(doc, [
+      { label: 'TOTAL REVENUE', opening: '-', closing: '$' + (s.platform.total_revenue || 0).toFixed(2) },
+      { label: 'WA-UI USAGE', opening: '-', closing: (s.platform.total_whatsapp_ui || 0) + ' credits' },
+      { label: 'WA-BI USAGE', opening: '-', closing: (s.platform.total_whatsapp_bi || 0) + ' credits' },
+    ]);
+    doc.moveDown(0.5);
+
+    // Platform Summary
+    this.drawSectionHeader(doc, 'FINANCIAL OVERVIEW');
+    const finData = [
+      ['Metric', 'Amount'],
+      ['Total Platform Revenue', '$' + (s.platform.total_revenue || 0).toFixed(2)],
+      ['WhatsApp UI Credits Used', (s.platform.total_whatsapp_ui || 0).toString()],
+      ['WhatsApp BI Credits Used', (s.platform.total_whatsapp_bi || 0).toString()],
+    ];
+    this.drawTable(doc, finData, [360, 150]);
+    doc.moveDown(0.5);
+
+    // Top Agents - Skip if no data
+    if (s.topAgents && s.topAgents.length > 0) {
+      this.drawSectionHeader(doc, 'TOP PERFORMING AGENTS');
+      const agentData = [['Agent Name', 'Merchants', 'Total Commission Generated']];
+      s.topAgents.forEach(a => {
+        agentData.push([a.name, a.merchants, '$' + parseFloat(a.earnings).toFixed(2)]);
+      });
+      this.drawTable(doc, agentData, [260, 100, 150]);
+      doc.moveDown(0.5);
+    }
+
+    // Country Distribution - Skip if no data
+    if (s.countryDistribution && s.countryDistribution.length > 0) {
+      this.drawSectionHeader(doc, 'GLOBAL FOOTPRINT (SAMPLED)');
+      const geoData = [['Country', 'Merchant Count']];
+      s.countryDistribution.slice(0, 5).forEach(c => {
+        geoData.push([c.country || 'International', c.count]);
+      });
+      this.drawTable(doc, geoData, [360, 150]);
+      doc.moveDown(0.5);
+    }
+
+    // Ledger Overview
+    this.drawSectionHeader(doc, 'PLATFORM LEDGER OVERVIEW (SAMPLED)');
+    const ledgerData = [['Date', 'Action', 'Credit Type', 'Amount']];
+    l.slice(0, 20).forEach(tx => {
+      ledgerData.push([
+        new Date(tx.created_at).toLocaleDateString(),
+        (tx.action || 'N/A').toUpperCase(),
+        (tx.credit_type || 'N/A').toUpperCase(),
+        (tx.amount > 0 ? '+' : '') + tx.amount
+      ]);
+    });
+    this.drawTable(doc, ledgerData, [100, 120, 140, 150]);
+
+    this.renderStatementFooter(doc);
+
+    doc.end();
+    return new Promise((res) => doc.on('end', () => res(Buffer.concat(buffers))));
   }
 
-  private addMasterContent(doc: any, data: any) {
-    doc.fontSize(14).text('Platform Summary', { underline: true });
-    doc.fontSize(10);
-    doc.text(`Total Revenue: $${data.platform.total_revenue}`);
-    doc.text(`Total WhatsApp UI: ${data.platform.total_whatsapp_ui}`);
-    doc.text(`Total WhatsApp BI: ${data.platform.total_whatsapp_bi}`);
+  // --- Premium Styling Helpers ---
+
+  private renderStatementHeader(doc: PDFKit.PDFDocument, companyName: string, type: string, period: string) {
+    // Top accent bar
+    doc.save();
+    doc.rect(0, 0, 612, 40).fill('#1a365d');
+    doc.restore();
+
+    doc.y = 55; // Reset Y below accent bar
+    doc.fillColor('#1a365d').fontSize(22).font('Helvetica-Bold').text(companyName.toUpperCase(), { align: 'center' });
+    doc.fillColor('#4a5568').fontSize(14).font('Helvetica').text(type, { align: 'center' });
+    doc.fontSize(10).text(`Statement Period: ${period}`, { align: 'center' });
+    doc.moveDown(1);
+
+    // Divider
+    doc.moveTo(50, doc.y).lineTo(550, doc.y).strokeColor('#cbd5e0').lineWidth(0.5).stroke();
+    doc.moveDown(1.5);
+  }
+
+  private drawSummaryBox(doc: PDFKit.PDFDocument, items: { label: string, opening: any, closing: any }[]) {
+    const startX = 50;
+    const width = 500;
+    const boxHeight = 50;
+    const itemWidth = width / items.length;
+    const topY = doc.y;
+
+    doc.save();
+    // Background
+    doc.fillColor('#f8fafc').rect(startX, topY, width, boxHeight).fill();
+    // Border
+    doc.strokeColor('#e2e8f0').lineWidth(1).rect(startX, topY, width, boxHeight).stroke();
+
+    items.forEach((item, i) => {
+      const currentX = startX + (i * itemWidth);
+
+      // Labels and Values using fixed offsets from topY
+      doc.fillColor('#718096').fontSize(7).font('Helvetica-Bold').text(item.label, currentX, topY + 8, { width: itemWidth, align: 'center' });
+      doc.fillColor('#2d3748').fontSize(8).font('Helvetica').text(`Op: ${item.opening}`, currentX, topY + 22, { width: itemWidth, align: 'center' });
+      doc.fillColor('#1a365d').fontSize(9).font('Helvetica-Bold').text(`Cl: ${item.closing}`, currentX, topY + 34, { width: itemWidth, align: 'center' });
+
+      // Vertical Dividers
+      if (i > 0) {
+        doc.moveTo(currentX, topY).lineTo(currentX, topY + boxHeight).strokeColor('#e2e8f0').stroke();
+      }
+    });
+    doc.restore();
+    doc.y = topY + boxHeight + 10; // Explicitly move cursor past the box
+  }
+
+  private renderStatementFooter(doc: PDFKit.PDFDocument) {
+    const bottom = 780; // Absolute bottom safe for A4 (842h)
+    doc.save();
+    doc.moveTo(50, bottom).lineTo(562, bottom).strokeColor('#cbd5e0').lineWidth(0.5).stroke();
+    doc.fillColor('#7a8599').fontSize(7).font('Helvetica').text('This is a computer-generated statement and does not require a signature.', 50, bottom + 5, { width: 512, align: 'center' });
+    doc.text(`Generated on ${new Date().toLocaleString()}`, { width: 512, align: 'center' });
+    doc.restore();
+  }
+
+  private drawSectionHeader(doc: PDFKit.PDFDocument, title: string) {
+    const topY = doc.y;
+    doc.save();
+    doc.fillColor('#f0f4f8').rect(50, topY, 512, 14).fill();
+    doc.fillColor('#2d3748').fontSize(8).font('Helvetica-Bold').text(title.toUpperCase(), 60, topY + 3);
+    doc.restore();
+    doc.y = topY + 18;
+  }
+
+  private drawTable(doc: PDFKit.PDFDocument, rows: any[][], colWidths: number[]) {
+    const startX = 50;
+    let startY = doc.y;
+
+    // Determine alignment for each column based on its content (skipping header)
+    const colAlignments = colWidths.map((_, colIdx) => {
+      if (rows.length <= 1) return 'left';
+      const sampleRows = rows.slice(1, 10);
+      const isNumericCol = sampleRows.some(row => {
+        const cellVal = String(row[colIdx] || '').trim().toLowerCase().replace(' credits', '');
+        return cellVal !== '' && (/^[$\d+\-.,]+$/.test(cellVal) || typeof row[colIdx] === 'number');
+      });
+      return isNumericCol ? 'right' : 'left';
+    });
+
+    rows.forEach((row, i) => {
+      const isHeader = i === 0;
+      const rowHeight = 15; // Even tighter rows
+
+      // Threshold set to 760 to fit more content on Page 1
+      if (startY + rowHeight > 760) {
+        this.renderStatementFooter(doc);
+        doc.addPage();
+        startY = 40;
+      }
+
+      if (isHeader) {
+        doc.fillColor('#2d3748').rect(startX, startY, colWidths.reduce((a, b) => a + b, 0), rowHeight).fill();
+      } else if (i % 2 === 0) {
+        doc.fillColor('#f8fafc').rect(startX, startY, colWidths.reduce((a, b) => a + b, 0), rowHeight).fill();
+      }
+
+      let currentX = startX;
+      row.forEach((cell, cellIdx) => {
+        const cellStr = String(cell ?? '');
+        const align = colAlignments[cellIdx];
+
+        doc.fillColor(isHeader ? 'white' : '#4a5568')
+          .fontSize(isHeader ? 7.5 : 7)
+          .font(isHeader ? 'Helvetica-Bold' : 'Helvetica')
+          .text(cellStr, currentX + 5, startY + 4, {
+            width: colWidths[cellIdx] - 10,
+            align: align as any
+          });
+        currentX += colWidths[cellIdx];
+      });
+
+      if (isHeader) {
+        doc.moveTo(startX, startY + rowHeight).lineTo(startX + colWidths.reduce((a, b) => a + b, 0), startY + rowHeight).strokeColor('#2d3748').stroke();
+      }
+
+      startY += rowHeight;
+    });
+
+    doc.y = startY;
+    doc.moveDown(0.2);
   }
 }
