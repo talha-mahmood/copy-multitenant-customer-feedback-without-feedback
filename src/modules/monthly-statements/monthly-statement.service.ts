@@ -1,11 +1,12 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, DataSource } from 'typeorm';
 import { MonthlyStatement } from './entities/monthly-statement.entity';
 import { CreditLedgerService } from '../credits-ledger/credit-ledger.service';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { Admin } from '../admins/entities/admin.entity';
 import { Coupon } from '../coupons/entities/coupon.entity';
 import { CouponBatch } from '../coupon-batches/entities/coupon-batch.entity';
+import { WhatsAppMessage } from '../whatsapp/entities/whatsapp-message.entity';
 import PDFDocument from 'pdfkit';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -23,6 +24,10 @@ export class MonthlyStatementService {
     private couponRepository: Repository<Coupon>,
     @Inject('COUPON_BATCH_REPOSITORY')
     private couponBatchRepository: Repository<CouponBatch>,
+    @Inject('WHATSAPP_MESSAGE_REPOSITORY')
+    private whatsappMessageRepository: Repository<WhatsAppMessage>,
+    @Inject('DATA_SOURCE')
+    private dataSource: DataSource,
     private creditLedgerService: CreditLedgerService,
   ) {}
 
@@ -118,7 +123,7 @@ export class MonthlyStatementService {
         merchant_type: merchant.merchant_type,
       },
       coupons: couponStats,
-      whatsapp: whatsappStats,
+      whatsapp_credits_used: whatsappStats,
       credits: {
         opening: openingBalances,
         closing: closingBalances.data,
@@ -177,7 +182,7 @@ export class MonthlyStatementService {
       where: { admin_id: agentId },
     });
 
-    // Calculate revenue
+    // Calculate revenue dynamically
     const revenue = {
       annual_fee: 0,
       package_income: 0,
@@ -185,10 +190,36 @@ export class MonthlyStatementService {
       net_profit: 0,
     };
 
+    // Calculate annual subscription fees from merchants
+    const annualMerchants = merchants.filter(m => m.merchant_type === 'annual');
+    // Get wallet transactions for commission income
+    const walletTransactions = await this.dataSource.query(
+      `SELECT SUM(amount) as total FROM wallet_transactions 
+       WHERE admin_wallet_id IN (
+         SELECT id FROM admin_wallets WHERE admin_id = $1
+       ) 
+       AND type = 'commission' 
+       AND created_at BETWEEN $2 AND $3`,
+      [agentId, startDate, endDate]
+    );
+    revenue.annual_fee = Number(walletTransactions[0]?.total || 0);
+
+    // Calculate package income from commission transactions
+    const packageIncomeResult = await this.dataSource.query(
+      `SELECT COALESCE(SUM(amount), 0) as total 
+       FROM wallet_transactions 
+       WHERE admin_wallet_id IN (
+         SELECT id FROM admin_wallets WHERE admin_id = $1
+       ) 
+       AND type = 'commission' 
+       AND status = 'completed' 
+       AND created_at BETWEEN $2 AND $3`,
+      [agentId, startDate, endDate]
+    );
+    revenue.package_income = Number(packageIncomeResult[0]?.total || 0);
+
     ledgers.forEach((ledger) => {
-      if (ledger.action === 'purchase' && ledger.amount > 0) {
-        revenue.package_income += Number(ledger.amount);
-      } else if (ledger.action === 'deduct' && ledger.amount < 0) {
+      if (ledger.action === 'deduct' && ledger.amount < 0) {
         revenue.costs_deducted += Math.abs(Number(ledger.amount));
       }
     });
@@ -270,10 +301,19 @@ export class MonthlyStatementService {
       endDate,
     );
 
-    // Get platform statistics
+    // Get platform statistics from actual data
     const totalRevenue = allLedgers
       .filter((l) => l.action === 'purchase' && l.amount > 0)
       .reduce((sum, l) => sum + Number(l.amount), 0);
+
+    // Calculate WhatsApp credits usage from ledger
+    const whatsappUIUsage = allLedgers
+      .filter((l) => l.credit_type === 'wa_ui' && l.action === 'deduct')
+      .reduce((sum, l) => sum + Math.abs(Number(l.amount)), 0);
+
+    const whatsappBIUsage = allLedgers
+      .filter((l) => l.credit_type === 'wa_bi' && l.action === 'deduct')
+      .reduce((sum, l) => sum + Math.abs(Number(l.amount)), 0);
 
     const statementData = {
       period: {
@@ -284,8 +324,8 @@ export class MonthlyStatementService {
       },
       platform: {
         total_revenue: totalRevenue,
-        total_whatsapp_ui: 0,
-        total_whatsapp_bi: 0,
+        total_whatsapp_ui: whatsappUIUsage,
+        total_whatsapp_bi: whatsappBIUsage,
       },
       ledger: allLedgers,
     };
@@ -321,15 +361,24 @@ export class MonthlyStatementService {
   }
 
   private async getWhatsAppStats(merchantId: number, startDate: Date, endDate: Date) {
-    // This would need to query WhatsApp message logs when implemented
+    const messages = await this.whatsappMessageRepository.find({
+      where: {
+        merchant_id: merchantId,
+        created_at: Between(startDate, endDate),
+      },
+    });
+
+    const uiMessages = messages.filter(m => m.message_type === 'UI');
+    const biMessages = messages.filter(m => m.message_type === 'BI');
+
     return {
-      ui_count: 0,
-      ui_success: 0,
-      ui_failed: 0,
-      bi_count: 0,
-      bi_success: 0,
-      bi_failed: 0,
-      total_credits_used: 0,
+      ui_credits_used: uiMessages.reduce((sum, m) => sum + m.credits_deducted, 0),
+      ui_success: uiMessages.filter(m => m.status === 'sent' || m.status === 'delivered').length,
+      ui_failed: uiMessages.filter(m => m.status === 'failed').length,
+      bi_credits_used: biMessages.reduce((sum, m) => sum + m.credits_deducted, 0),
+      bi_success: biMessages.filter(m => m.status === 'sent' || m.status === 'delivered').length,
+      bi_failed: biMessages.filter(m => m.status === 'failed').length,
+      total_credits_used: messages.reduce((sum, m) => sum + m.credits_deducted, 0),
     };
   }
 
