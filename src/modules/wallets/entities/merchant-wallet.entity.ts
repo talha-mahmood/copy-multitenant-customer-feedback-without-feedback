@@ -36,6 +36,9 @@ export class MerchantWallet extends BaseEntity {
   @Column({ name: 'subscription_expires_at', type: 'timestamp', nullable: true })
   subscription_expires_at: Date;
 
+  @Column({ name: 'is_subscription_expired', type: 'boolean', default: false })
+  is_subscription_expired: boolean;
+
   @Column({ name: 'annual_fee_paid', type: 'boolean', default: false })
   annual_fee_paid: boolean;
 

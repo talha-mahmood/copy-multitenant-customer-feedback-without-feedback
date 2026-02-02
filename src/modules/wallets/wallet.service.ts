@@ -46,7 +46,7 @@ export class WalletService {
     private dataSource: DataSource,
     private systemLogService: SystemLogService,
     private superAdminSettingsService: SuperAdminSettingsService,
-  ) {}
+  ) { }
 
   /**
    * Create admin wallet when admin is created
@@ -133,6 +133,30 @@ export class WalletService {
 
     if (!wallet) {
       throw new NotFoundException('Merchant wallet not found');
+    }
+
+    // Auto-downgrade if expired
+    if (
+      wallet.subscription_type === 'annual' &&
+      wallet.subscription_expires_at &&
+      wallet.subscription_expires_at < new Date()
+    ) {
+      wallet.subscription_type = 'temporary';
+      wallet.is_subscription_expired = true;
+      await this.merchantWalletRepository.save(wallet);
+
+      if (wallet.merchant) {
+        wallet.merchant.merchant_type = 'temporary';
+        await this.dataSource.getRepository(Merchant).save(wallet.merchant);
+      }
+      console.log(`Merchant ${merchantId} subscription auto-downgraded in getMerchantWallet.`);
+    } else if (
+      wallet.subscription_expires_at &&
+      wallet.subscription_expires_at < new Date() &&
+      !wallet.is_subscription_expired
+    ) {
+      wallet.is_subscription_expired = true;
+      await this.merchantWalletRepository.save(wallet);
     }
 
     return wallet;
@@ -360,9 +384,9 @@ export class WalletService {
       }
 
       // Verify package is compatible with merchant type
-      if (creditPackage.merchant_type && 
-          creditPackage.merchant_type !== 'all' && 
-          creditPackage.merchant_type !== merchant.merchant_type) {
+      if (creditPackage.merchant_type &&
+        creditPackage.merchant_type !== 'all' &&
+        creditPackage.merchant_type !== merchant.merchant_type) {
         throw new BadRequestException(
           `Credit package "${creditPackage.name}" is only available for ${creditPackage.merchant_type} merchants. Your merchant type is ${merchant.merchant_type}.`
         );
@@ -384,7 +408,7 @@ export class WalletService {
 
       // Get commission rates from settings
       const settings = await this.superAdminSettingsService.getSettings();
-      const commissionRate = merchant.merchant_type === 'temporary' 
+      const commissionRate = merchant.merchant_type === 'temporary'
         ? parseFloat(settings.temporary_merchant_packages_admin_commission_rate.toString())
         : parseFloat(settings.annual_merchant_packages_admin_commission_rate.toString());
       const adminCommission = amount * commissionRate;
@@ -419,14 +443,14 @@ export class WalletService {
         amount,
         status: 'completed',
         description,
-        metadata: metadata ? JSON.stringify({ 
-          ...metadata, 
-          commission_rate: commissionRate, 
+        metadata: metadata ? JSON.stringify({
+          ...metadata,
+          commission_rate: commissionRate,
           platform_amount: platformAmount,
           package_id: creditPackage.id,
           package_name: creditPackage.name,
-        }) : JSON.stringify({ 
-          commission_rate: commissionRate, 
+        }) : JSON.stringify({
+          commission_rate: commissionRate,
           platform_amount: platformAmount,
           package_id: creditPackage.id,
           package_name: creditPackage.name,
@@ -564,7 +588,7 @@ export class WalletService {
         updates.coupon_credits = wallet.coupon_credits - credits;
       }
 
-  
+
 
       await queryRunner.manager.update(MerchantWallet, wallet.id, updates);
 
