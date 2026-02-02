@@ -69,16 +69,19 @@ export class CreditLedgerService {
       coupon: 0,
       wa_ui: 0,
       wa_bi: 0,
+      paid_ads: 0,
     };
 
     // Get latest balance for each credit type
     const couponLedger = ledgers.find((l) => l.credit_type === 'coupon');
     const waUiLedger = ledgers.find((l) => l.credit_type === 'wa_ui');
     const waBiLedger = ledgers.find((l) => l.credit_type === 'wa_bi');
+    const paidAdsLedger = ledgers.find((l) => l.credit_type === 'paid_ads');
 
     if (couponLedger) balances.coupon = Number(couponLedger.balance_after);
     if (waUiLedger) balances.wa_ui = Number(waUiLedger.balance_after);
     if (waBiLedger) balances.wa_bi = Number(waBiLedger.balance_after);
+    if (paidAdsLedger) balances.paid_ads = Number(paidAdsLedger.balance_after);
 
     return {
       message: 'Success',

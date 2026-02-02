@@ -105,6 +105,7 @@ export class MonthlyStatementService {
       coupon: await this.creditLedgerService.getOpeningBalance('merchant', merchantId, 'coupon', startDate),
       wa_ui: await this.creditLedgerService.getOpeningBalance('merchant', merchantId, 'wa_ui', startDate),
       wa_bi: await this.creditLedgerService.getOpeningBalance('merchant', merchantId, 'wa_bi', startDate),
+      paid_ads: await this.creditLedgerService.getOpeningBalance('merchant', merchantId, 'paid_ads', startDate),
     };
 
     // Get closing balances
