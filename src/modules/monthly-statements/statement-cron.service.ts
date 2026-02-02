@@ -12,7 +12,8 @@ export class StatementCronService {
     console.log('Starting monthly statement generation...');
     
     const now = new Date();
-    const lastMonth = now.getMonth() === 0 ? 12 : now.getMonth();
+    // Get previous month (1-12 indexed). getMonth() returns 0-11, so we add 1 then subtract 1 for previous
+    const lastMonth = now.getMonth() === 0 ? 12 : now.getMonth(); // Jan(0)->12, Feb(1)->1, Mar(2)->2, etc = previous month
     const year = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
 
     try {

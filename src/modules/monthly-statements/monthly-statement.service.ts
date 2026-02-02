@@ -29,7 +29,8 @@ export class MonthlyStatementService {
   async generateAllMonthlyStatements(year?: number, month?: number) {
     const now = new Date();
     const targetYear = year || now.getFullYear();
-    const targetMonth = month || (now.getMonth() === 0 ? 12 : now.getMonth()); // Previous month
+    // If month provided, use it (1-12). Otherwise use current month+1 (getMonth is 0-11)
+    const targetMonth = month ?? now.getMonth() + 1;
 
     // Generate for all merchants
     const merchants = await this.merchantRepository.find();
