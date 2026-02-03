@@ -11,6 +11,6 @@ import { SystemLogModule } from '../system-logs/system-log.module';
   imports: [DatabaseModule, WalletModule, MerchantSettingModule, SystemLogModule],
   controllers: [MerchantController],
   providers: [MerchantService, ...merchantProviders],
-  exports: [MerchantService],
+  exports: [MerchantService, 'MERCHANT_REPOSITORY'],
 })
-export class MerchantModule {}
+export class MerchantModule { }

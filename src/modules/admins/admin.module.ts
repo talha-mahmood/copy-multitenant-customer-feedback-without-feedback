@@ -11,6 +11,6 @@ import { ApprovalModule } from '../approvals/approval.module';
   imports: [DatabaseModule, WalletModule, SystemLogModule, ApprovalModule],
   controllers: [AdminController],
   providers: [AdminService, ...adminProviders],
-  exports: [AdminService],
+  exports: [AdminService, 'ADMIN_REPOSITORY'],
 })
 export class AdminModule { }

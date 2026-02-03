@@ -2,6 +2,8 @@ import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nest
 import { Repository, IsNull } from 'typeorm';
 import { Conversation, ConversationType } from './entities/conversation.entity';
 import { Message } from './entities/message.entity';
+import { Admin } from '../admins/entities/admin.entity';
+import { Merchant } from '../merchants/entities/merchant.entity';
 
 @Injectable()
 export class ChatService {
@@ -10,7 +12,70 @@ export class ChatService {
         private conversationRepository: Repository<Conversation>,
         @Inject('MESSAGE_REPOSITORY')
         private messageRepository: Repository<Message>,
+        @Inject('ADMIN_REPOSITORY')
+        private adminRepository: Repository<Admin>,
+        @Inject('MERCHANT_REPOSITORY')
+        private merchantRepository: Repository<Merchant>,
     ) { }
+
+    async getContacts(userId: number, role: string, superAdminId?: number, adminId?: number, merchantId?: number) {
+        if (role === 'super_admin') {
+            // Fetch all agents
+            const agents = await this.adminRepository.find({
+                relations: ['user'],
+                where: { user: { is_active: true } }
+            });
+            return agents.map(agent => ({
+                id: agent.id,
+                name: agent.user.name,
+                role: 'admin',
+                avatar: agent.user.avatar,
+                type: ConversationType.SUPERADMIN_AGENT
+            }));
+        } else if (role === 'admin' || role === 'agent') {
+            // Fetch super admin (static) and own merchants
+            const merchants = await this.merchantRepository.find({
+                where: { admin_id: adminId }, // Fixed: agent_id -> admin_id
+                relations: ['user']
+            });
+
+            const contacts = [
+                {
+                    id: 1, // Static SuperAdmin ID
+                    name: "Super Admin",
+                    role: 'super_admin',
+                    type: ConversationType.SUPERADMIN_AGENT
+                },
+                ...merchants.map(m => ({
+                    id: m.id,
+                    name: m.user.name,
+                    role: 'merchant',
+                    avatar: m.user.avatar,
+                    type: ConversationType.AGENT_MERCHANT
+                }))
+            ];
+            return contacts;
+        } else if (role === 'merchant') {
+            // Fetch own agent (admin)
+            const merchant = await this.merchantRepository.findOne({
+                where: { id: merchantId },
+                relations: ['admin', 'admin.user'] // Fixed: agent -> admin
+            });
+
+            if (merchant?.admin) {
+                return [{
+                    id: merchant.admin.id,
+                    name: merchant.admin.user.name, // Fixed: agent -> admin
+                    role: 'admin',
+                    avatar: merchant.admin.user.avatar, // Fixed: agent -> admin
+                    type: ConversationType.AGENT_MERCHANT
+                }];
+            }
+            return [];
+        }
+        return [];
+    }
+
 
     async findUserConversations(userId: number, role: string, superAdminId?: number, adminId?: number, merchantId?: number) {
         const query = this.conversationRepository.createQueryBuilder('conversation')
