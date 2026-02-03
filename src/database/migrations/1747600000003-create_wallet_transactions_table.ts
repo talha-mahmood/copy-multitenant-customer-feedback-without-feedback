@@ -26,7 +26,7 @@ export class CreateWalletTransactionsTable1747600000003 implements MigrationInte
           {
             name: 'type',
             type: 'varchar',
-            length: '20',
+            length: '100',
           },
           {
             name: 'amount',

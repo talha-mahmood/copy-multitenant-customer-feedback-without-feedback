@@ -458,7 +458,7 @@ export class WalletService {
       // Create admin transaction
       const adminTransaction = queryRunner.manager.create(WalletTransaction, {
         admin_wallet_id: adminWallet.id,
-        type: 'commission',
+        type: 'merchant_package_commission',
         amount: adminCommission,
         status: 'completed',
         description: `Commission from merchant credit purchase (${commissionRate * 100}%)`,
@@ -897,7 +897,7 @@ export class WalletService {
         // Create admin transaction
         await queryRunner.manager.save(WalletTransaction, {
           admin_wallet_id: adminWallet.id,
-          type: 'commission',
+          type: 'merchant_annual_subscription_commission',
           amount: commission,
           status: 'completed',
           description: `Annual subscription commission from merchant #${merchantId}`,
@@ -1167,6 +1167,17 @@ export class WalletService {
       await queryRunner.manager.update(AdminWallet, adminWallet.id, {
         subscription_expires_at: oneYearFromNow,
         is_subscription_expired: false,
+      });
+
+      // Create debit transaction for admin wallet
+      await queryRunner.manager.save(WalletTransaction, {
+        admin_wallet_id: adminWallet.id,
+        type: 'agent_subscription_fee',
+        amount: subscriptionFee,
+        status: 'completed',
+        description: `Annual subscription payment to platform`,
+        metadata: JSON.stringify({ subscription_expires_at: oneYearFromNow }),
+        completed_at: new Date(),
       });
 
       // Get super admin wallet within transaction

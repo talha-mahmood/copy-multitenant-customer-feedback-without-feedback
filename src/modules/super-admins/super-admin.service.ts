@@ -195,9 +195,9 @@ export class SuperAdminService {
 
     const revenueTotals = await dataSource.query(`
       SELECT 
-        COALESCE(SUM(amount) FILTER (WHERE type = 'commission'), 0) AS total_commissions,
-        COALESCE(SUM(amount) FILTER (WHERE type = 'commission' AND description ILIKE '%Annual subscription%'), 0) AS annual_subscription_revenue,
-        COALESCE(SUM(amount) FILTER (WHERE type = 'commission' AND description ILIKE '%credit purchase%'), 0) AS credit_purchase_revenue
+        COALESCE(SUM(amount) FILTER (WHERE type IN ('merchant_annual_subscription_commission', 'merchant_package_commission')), 0) AS total_commissions,
+        COALESCE(SUM(amount) FILTER (WHERE type = 'merchant_annual_subscription_commission'), 0) AS annual_subscription_revenue,
+        COALESCE(SUM(amount) FILTER (WHERE type = 'merchant_package_commission'), 0) AS credit_purchase_revenue
       FROM wallet_transactions
       ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
     `, hasDateFilter ? [start, end] : []);
@@ -206,7 +206,7 @@ export class SuperAdminService {
       SELECT 
         TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') AS month,
         COALESCE(SUM(amount), 0) AS revenue,
-        COALESCE(SUM(amount) FILTER (WHERE type = 'commission'), 0) AS commissions
+        COALESCE(SUM(amount) FILTER (WHERE type IN ('merchant_annual_subscription_commission', 'merchant_package_commission')), 0) AS commissions
       FROM wallet_transactions
       ${hasDateFilter ? 'WHERE created_at BETWEEN $1 AND $2' : ''}
       GROUP BY DATE_TRUNC('month', created_at)

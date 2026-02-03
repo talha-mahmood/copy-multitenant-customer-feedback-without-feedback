@@ -160,7 +160,7 @@ export class MerchantService {
           // Create admin transaction
           await queryRunner.manager.save(WalletTransaction, {
             admin_wallet_id: adminWallet.id,
-            type: 'commission',
+            type: 'merchant_annual_subscription_commission',
             amount: commission,
             status: 'completed',
             description: `Annual subscription commission from new merchant #${savedMerchant.id}`,

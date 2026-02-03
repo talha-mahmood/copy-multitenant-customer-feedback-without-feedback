@@ -224,39 +224,55 @@ export class MonthlyStatementService {
       net_profit: 0,
     };
 
-    // Calculate annual subscription fees from merchants
-    const annualMerchants = merchants.filter(m => m.merchant_type === 'annual');
-    // Get wallet transactions for commission income
-    const walletTransactions = await this.dataSource.query(
-      `SELECT SUM(amount) as total FROM wallet_transactions 
+    // Calculate annual subscription fees from merchants (from merchant registration)
+    const annualFeeResult = await this.dataSource.query(
+      `SELECT COALESCE(SUM(amount), 0) as total 
+       FROM wallet_transactions 
        WHERE admin_wallet_id IN (
          SELECT id FROM admin_wallets WHERE admin_id = $1
        ) 
-       AND type = 'commission' 
+       AND type = 'merchant_annual_subscription_commission'
        AND created_at BETWEEN $2 AND $3`,
       [agentId, startDate, endDate]
     );
-    revenue.annual_fee = Number(walletTransactions[0]?.total || 0);
+    revenue.annual_fee = Number(annualFeeResult[0]?.total || 0);
 
-    // Calculate package income from commission transactions
+    // Calculate package commission income (from package purchases)
     const packageIncomeResult = await this.dataSource.query(
       `SELECT COALESCE(SUM(amount), 0) as total 
        FROM wallet_transactions 
        WHERE admin_wallet_id IN (
          SELECT id FROM admin_wallets WHERE admin_id = $1
        ) 
-       AND type = 'commission' 
+       AND type = 'merchant_package_commission'
        AND status = 'completed' 
        AND created_at BETWEEN $2 AND $3`,
       [agentId, startDate, endDate]
     );
     revenue.package_income = Number(packageIncomeResult[0]?.total || 0);
 
+    // Calculate agent subscription costs paid to super admin
+    const subscriptionCostsResult = await this.dataSource.query(
+      `SELECT COALESCE(SUM(amount), 0) as total 
+       FROM wallet_transactions 
+       WHERE admin_wallet_id IN (
+         SELECT id FROM admin_wallets WHERE admin_id = $1
+       ) 
+       AND type = 'agent_subscription_fee'
+       AND status = 'completed' 
+       AND created_at BETWEEN $2 AND $3`,
+      [agentId, startDate, endDate]
+    );
+    const subscriptionCosts = Number(subscriptionCostsResult[0]?.total || 0);
+
     ledgers.forEach((ledger) => {
       if (ledger.action === 'deduct' && ledger.amount < 0) {
         revenue.costs_deducted += Math.abs(Number(ledger.amount));
       }
     });
+
+    // Add agent subscription costs to total costs
+    revenue.costs_deducted += subscriptionCosts;
 
     revenue.net_profit = revenue.annual_fee + revenue.package_income - revenue.costs_deducted;
 
@@ -279,7 +295,7 @@ export class MonthlyStatementService {
        LEFT JOIN admin_wallets aw ON wt.admin_wallet_id = aw.id
        LEFT JOIN merchants m ON m.id = (wt.metadata::json->>'merchant_id')::int
        WHERE aw.admin_id = $1
-       AND wt.type = 'commission'
+       AND wt.type IN ('merchant_annual_subscription_commission', 'merchant_package_commission')
        AND wt.created_at BETWEEN $2 AND $3
        ORDER BY wt.created_at DESC`,
       [agentId, startDate, endDate]

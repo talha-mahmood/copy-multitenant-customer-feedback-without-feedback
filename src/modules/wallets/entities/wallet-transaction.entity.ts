@@ -27,8 +27,8 @@ export class WalletTransaction extends BaseEntity {
   @JoinColumn({ name: 'super_admin_wallet_id' })
   super_admin_wallet: SuperAdminWallet;
 
-  @Column({ type: 'varchar', length: 20 })
-  type: string; // 'credit', 'debit', 'commission', 'refund', 'purchase'
+  @Column({ type: 'varchar', length: 100 })
+  type: string; // 'credit', 'debit', 'merchant_annual_subscription_commission', 'merchant_package_commission', 'refund', 'purchase'
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   amount: number;

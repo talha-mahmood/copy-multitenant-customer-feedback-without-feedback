@@ -368,9 +368,9 @@ export class AdminService {
     // Revenue Statistics
     const revenueStats = await dataSource.query(`
       SELECT 
-        COALESCE(SUM(amount) FILTER (WHERE type = 'commission' AND description LIKE '%Annual subscription%'), 0) as annual_subscription_revenue,
-        COALESCE(SUM(amount) FILTER (WHERE type = 'commission' AND description LIKE '%credit purchase%'), 0) as credit_purchase_revenue,
-        COALESCE(SUM(amount) FILTER (WHERE type = 'commission'), 0) as total_commissions
+        COALESCE(SUM(amount) FILTER (WHERE type = 'merchant_annual_subscription_commission'), 0) as annual_subscription_revenue,
+        COALESCE(SUM(amount) FILTER (WHERE type = 'merchant_package_commission'), 0) as credit_purchase_revenue,
+        COALESCE(SUM(amount) FILTER (WHERE type IN ('merchant_annual_subscription_commission', 'merchant_package_commission')), 0) as total_commissions
       FROM wallet_transactions
       WHERE admin_wallet_id IN (SELECT id FROM admin_wallets WHERE admin_id = $1)
       ${hasDateFilter ? 'AND created_at BETWEEN $2 AND $3' : ''}
@@ -381,7 +381,7 @@ export class AdminService {
       SELECT 
         TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') as month,
         COALESCE(SUM(amount), 0) as revenue,
-        COALESCE(SUM(amount) FILTER (WHERE type = 'commission'), 0) as commissions_earned
+        COALESCE(SUM(amount) FILTER (WHERE type IN ('merchant_annual_subscription_commission', 'merchant_package_commission')), 0) as commissions_earned
       FROM wallet_transactions
       WHERE admin_wallet_id IN (SELECT id FROM admin_wallets WHERE admin_id = $1)
       ${hasDateFilter ? 'AND created_at BETWEEN $2 AND $3' : ''}
