@@ -736,10 +736,17 @@ export class MonthlyStatementService {
       this.drawSectionHeader(doc, 'COMMISSION TRANSACTIONS');
       const commissionData = [['Date', 'Merchant', 'Type', 'Amount', 'Status']];
       s.commission_transactions.slice(0, 15).forEach(tx => {
+        // Format type: convert underscores to spaces and capitalize words
+        const formattedType = (tx.type || '')
+          .replace(/_/g, ' ')
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+        
         commissionData.push([
           new Date(tx.created_at).toLocaleDateString(),
-          tx.merchant_name || 'N/A',
-          tx.credit_type || 'commission',
+          tx.merchant_name || '',
+          formattedType,
           '$' + parseFloat(tx.amount || 0).toFixed(2),
           tx.status.toUpperCase()
         ]);
@@ -747,7 +754,7 @@ export class MonthlyStatementService {
       if (s.commission_transactions.length > 15) {
         commissionData.push(['...', '...', '...', '...', '...']);
       }
-      this.drawTable(doc, commissionData, [80, 140, 90, 90, 90]);
+      this.drawTable(doc, commissionData, [80, 120, 110, 90, 90], 20);
       doc.moveDown(0.5);
     }
 
@@ -891,7 +898,7 @@ export class MonthlyStatementService {
     doc.y = topY + 18;
   }
 
-  private drawTable(doc: PDFKit.PDFDocument, rows: any[][], colWidths: number[]) {
+  private drawTable(doc: PDFKit.PDFDocument, rows: any[][], colWidths: number[], customRowHeight?: number) {
     const startX = 50;
     let startY = doc.y;
 
@@ -908,7 +915,7 @@ export class MonthlyStatementService {
 
     rows.forEach((row, i) => {
       const isHeader = i === 0;
-      const rowHeight = 15; // Even tighter rows
+      const rowHeight = customRowHeight || 15; // Use custom row height if provided
 
       // Threshold set to 760 to fit more content on Page 1
       if (startY + rowHeight > 760) {
