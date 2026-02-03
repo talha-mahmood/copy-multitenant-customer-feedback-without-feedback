@@ -14,4 +14,4 @@ import { SuperAdminSettingsModule } from '../super-admin-settings/super-admin-se
   controllers: [WalletController],
   exports: [...walletProviders, WalletService],
 })
-export class WalletModule {}
+export class WalletModule { }

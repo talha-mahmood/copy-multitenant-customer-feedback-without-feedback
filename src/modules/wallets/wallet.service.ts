@@ -136,28 +136,29 @@ export class WalletService {
     }
 
     // Auto-downgrade if expired
-    if (
-      wallet.subscription_type === 'annual' &&
-      wallet.subscription_expires_at &&
-      wallet.subscription_expires_at < new Date()
-    ) {
-      wallet.subscription_type = 'temporary';
-      wallet.is_subscription_expired = true;
-      await this.merchantWalletRepository.save(wallet);
+    // if (
+    //   wallet.subscription_type === 'annual' &&
+    //   wallet.subscription_expires_at &&
+    //   wallet.subscription_expires_at < new Date()
+    // ) {
+    //   wallet.subscription_type = 'temporary';
+    //   wallet.is_subscription_expired = true;
+    //   await this.merchantWalletRepository.save(wallet);
 
-      if (wallet.merchant) {
-        wallet.merchant.merchant_type = 'temporary';
-        await this.dataSource.getRepository(Merchant).save(wallet.merchant);
-      }
-      console.log(`Merchant ${merchantId} subscription auto-downgraded in getMerchantWallet.`);
-    } else if (
-      wallet.subscription_expires_at &&
-      wallet.subscription_expires_at < new Date() &&
-      !wallet.is_subscription_expired
-    ) {
-      wallet.is_subscription_expired = true;
-      await this.merchantWalletRepository.save(wallet);
-    }
+    //   if (wallet.merchant) {
+    //     wallet.merchant.merchant_type = 'temporary';
+    //     await this.dataSource.getRepository(Merchant).save(wallet.merchant);
+    //   }
+    //   console.log(`Merchant ${merchantId} subscription auto-downgraded in getMerchantWallet.`);
+    // } 
+    // else if (
+    //   wallet.subscription_expires_at &&
+    //   wallet.subscription_expires_at < new Date() &&
+    //   !wallet.is_subscription_expired
+    // ) {
+    //   wallet.is_subscription_expired = true;
+    //   await this.merchantWalletRepository.save(wallet);
+    // }
 
     return wallet;
   }
@@ -849,6 +850,11 @@ export class WalletService {
         subscription_type: 'annual',
         annual_fee_paid: true,
         subscription_expires_at: expiresAt,
+      });
+
+      // Update merchant table
+      await queryRunner.manager.update(Merchant, { id: merchantId }, {
+        merchant_type: 'annual',
       });
 
       // Credit admin wallet with commission

@@ -79,49 +79,49 @@ export class SubscriptionGuard implements CanActivate {
             }
         }
         // Handle Merchant Subscription
-        else if (user.role === 'merchant') {
-            const merchantWallet = await this.dataSource.query(
-                `
-                SELECT id, subscription_expires_at, subscription_type 
-                FROM merchant_wallets 
-                WHERE merchant_id = $1
-                LIMIT 1
-                `,
-                [user.merchantId],
-            );
+        // else if (user.role === 'merchant') {
+        //     const merchantWallet = await this.dataSource.query(
+        //         `
+        //         SELECT id, subscription_expires_at, subscription_type 
+        //         FROM merchant_wallets 
+        //         WHERE merchant_id = $1
+        //         LIMIT 1
+        //         `,
+        //         [user.merchantId],
+        //     );
 
-            if (merchantWallet && merchantWallet.length > 0) {
-                const wallet = merchantWallet[0];
+        //     if (merchantWallet && merchantWallet.length > 0) {
+        //         const wallet = merchantWallet[0];
 
-                if (wallet.subscription_type === 'annual' && wallet.subscription_expires_at) {
-                    const expiryDate = new Date(wallet.subscription_expires_at);
-                    const now = new Date();
+        //         if (wallet.subscription_type === 'annual' && wallet.subscription_expires_at) {
+        //             const expiryDate = new Date(wallet.subscription_expires_at);
+        //             const now = new Date();
 
-                    if (expiryDate < now) {
-                        // Auto-downgrade logic
-                        await this.dataSource.query(
-                            `
-                            UPDATE merchant_wallets 
-                            SET subscription_type = 'temporary', is_subscription_expired = true 
-                            WHERE id = $1
-                            `,
-                            [wallet.id],
-                        );
+        //             if (expiryDate < now) {
+        //                 // Auto-downgrade logic
+        //                 await this.dataSource.query(
+        //                     `
+        //                     UPDATE merchant_wallets 
+        //                     SET subscription_type = 'temporary', is_subscription_expired = true 
+        //                     WHERE id = $1
+        //                     `,
+        //                     [wallet.id],
+        //                 );
 
-                        await this.dataSource.query(
-                            `
-                            UPDATE merchants 
-                            SET merchant_type = 'temporary' 
-                            WHERE id = $1
-                            `,
-                            [user.merchantId],
-                        );
+        //                 await this.dataSource.query(
+        //                     `
+        //                     UPDATE merchants 
+        //                     SET merchant_type = 'temporary' 
+        //                     WHERE id = $1
+        //                     `,
+        //                     [user.merchantId],
+        //                 );
 
-                        // Allow access as temporary merchant
-                    }
-                }
-            }
-        }
+        //                 // Allow access as temporary merchant
+        //             }
+        //         }
+        //     }
+        // }
 
         return true;
     }

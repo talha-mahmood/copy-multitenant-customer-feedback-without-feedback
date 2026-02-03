@@ -117,8 +117,8 @@ export class AuthService {
           }
           await this.merchantWalletRepository.save(merchantWallet);
 
-          // Store for response
-          adminWalletData = { is_subscription_expired: isExpired } as any;
+          // // Store for response
+          // adminWalletData = { is_subscription_expired: isExpired } as any;
         }
       }
     } else if (roleName === 'admin') {
