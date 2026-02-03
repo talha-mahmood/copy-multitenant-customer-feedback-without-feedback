@@ -329,4 +329,46 @@ export class AuthService {
       file: uploaded.relativePath,
     };
   }
+
+  async getProfile(userId: number) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const { data: userHasRole } = await this.userHasRoleService.findByUserId(
+      Number(user.id),
+    );
+
+    const roleName = userHasRole?.role?.name;
+    const response: any = {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: roleName,
+      }
+    };
+
+    if (roleName === 'merchant') {
+      const merchant = await this.merchantRepository.findOne({ where: { user_id: Number(user.id) } });
+      if (merchant) {
+        // Check wallet specifically for subscription status
+        const wallet = await this.merchantWalletRepository.findOne({ where: { merchant_id: merchant.id } });
+        response.merchant = {
+          ...merchant,
+          subscription_expires_at: wallet?.subscription_expires_at,
+          merchant_type: wallet?.subscription_type === 'annual' ? 'annual' : 'temporary' // Trust wallet as source of truth
+        };
+      }
+    } else if (roleName === 'admin') {
+      const admin = await this.adminRepository.findOne({ where: { user_id: Number(user.id) } });
+      if (admin) response.admin = admin;
+    }
+
+    return response;
+  }
 }
