@@ -685,15 +685,10 @@ export class MonthlyStatementService {
 
     this.renderStatementHeader(doc, a.user.name, 'AGENT SETTLEMENT REPORT', month);
 
-    // Get wallet opening/closing from credits (agent uses credits ledger)
-    const openingTotal = (s.credits.opening.coupon || 0) + (s.credits.opening.wa_ui || 0) + (s.credits.opening.wa_bi || 0);
-    const closingTotal = (s.credits.closing.coupon || 0) + (s.credits.closing.wa_ui || 0) + (s.credits.closing.wa_bi || 0);
-
     // Performance & Financial Summary Box
     this.drawSummaryBox(doc, [
       { label: 'NEW MERCHANTS', opening: s.merchants.total - s.merchants.new_this_month, closing: s.merchants.total },
       { label: 'SETTLEMENT PROFIT', opening: '-', closing: '$' + (s.revenue.net_profit || 0).toFixed(2) },
-      { label: 'TOTAL CREDITS', opening: openingTotal, closing: closingTotal },
     ]);
     doc.moveDown(0.5);
 
@@ -722,7 +717,6 @@ export class MonthlyStatementService {
     this.drawSectionHeader(doc, 'COMMISSION & COST BREAKDOWN');
     const finData = [
       ['Description', 'Debit', 'Credit', 'Balance'],
-      ['Opening Credits', '', '', (openingTotal || 0).toString()],
       ['Annual Fee Income', '', '$' + (s.revenue.annual_fee || 0).toFixed(2), ''],
       ['Package Commission Income', '', '$' + (s.revenue.package_income || 0).toFixed(2), ''],
       ['System Costs Deducted', '$' + (s.revenue.costs_deducted || 0).toFixed(2), '', ''],
