@@ -83,18 +83,18 @@ export class CreateMonthlyStatementsTable1738259500000 implements MigrationInter
       true,
     );
 
-    // Create indexes
-    await queryRunner.query(`
-      CREATE INDEX idx_monthly_statements_owner ON monthly_statements(owner_type, owner_id);
-    `);
+    // // Create indexes
+    // await queryRunner.query(`
+    //   CREATE INDEX idx_monthly_statements_owner ON monthly_statements(owner_type, owner_id);
+    // `);
 
-    await queryRunner.query(`
-      CREATE INDEX idx_monthly_statements_period ON monthly_statements(year, month);
-    `);
+    // await queryRunner.query(`
+    //   CREATE INDEX idx_monthly_statements_period ON monthly_statements(year, month);
+    // `);
 
-    await queryRunner.query(`
-      CREATE UNIQUE INDEX idx_monthly_statements_unique ON monthly_statements(owner_type, owner_id, year, month) WHERE deleted_at IS NULL;
-    `);
+    // await queryRunner.query(`
+    //   CREATE UNIQUE INDEX idx_monthly_statements_unique ON monthly_statements(owner_type, owner_id, year, month) WHERE deleted_at IS NULL;
+    // `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

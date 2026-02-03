@@ -49,7 +49,8 @@ export class MonthlyStatementService {
           message: `Generated statement for agent ${ownerId}`,
           data: statement,
         };
-      } else if (ownerType === 'master') {
+      }   
+      else if (ownerType === 'super_admin') {
         const statement = await this.generateMasterStatement(targetYear, targetMonth);
         return {
           message: `Generated master statement`,
@@ -389,9 +390,9 @@ export class MonthlyStatementService {
       },
     });
 
-    if (existing) {
-      return existing;
-    }
+    // if (existing) {
+    //   return existing;
+    // }
 
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
@@ -418,6 +419,89 @@ export class MonthlyStatementService {
       .filter((l) => l.credit_type === 'wa_bi' && l.action === 'deduct')
       .reduce((sum, l) => sum + Math.abs(Number(l.amount)), 0);
 
+    // Get revenue breakdown from wallet transactions
+    const revenueStats = await this.dataSource.query(`
+      SELECT 
+        COALESCE(SUM(amount) FILTER (WHERE type IN ('merchant_annual_subscription_commission', 'merchant_package_commission')), 0) AS total_commissions,
+        COALESCE(SUM(amount) FILTER (WHERE type = 'merchant_annual_subscription_commission'), 0) AS annual_subscription_revenue,
+        COALESCE(SUM(amount) FILTER (WHERE type = 'merchant_package_commission'), 0) AS package_commission_revenue,
+        COALESCE(SUM(amount) FILTER (WHERE type = 'agent_subscription_fee'), 0) AS agent_subscription_revenue
+      FROM wallet_transactions
+      WHERE created_at BETWEEN $1 AND $2
+    `, [startDate, endDate]);
+
+    // Get agent statistics
+    const agentStats = await this.dataSource.query(`
+      SELECT 
+        COUNT(*) AS total_agents,
+        COUNT(*) FILTER (WHERE u.is_active = TRUE) AS active_agents,
+        COUNT(*) FILTER (WHERE u.is_active = FALSE) AS inactive_agents
+      FROM admins a
+      LEFT JOIN users u ON u.id = a.user_id
+      WHERE a.deleted_at IS NULL
+    `);
+
+    // Get merchant statistics for the period
+    const merchantStats = await this.dataSource.query(`
+      SELECT 
+        COUNT(*) AS total_merchants,
+        COUNT(*) FILTER (WHERE u.is_active = TRUE) AS active_merchants,
+        COUNT(*) FILTER (WHERE u.is_active = FALSE) AS inactive_merchants,
+        COUNT(*) FILTER (WHERE m.merchant_type = 'annual') AS annual_merchants,
+        COUNT(*) FILTER (WHERE m.merchant_type = 'temporary') AS temporary_merchants,
+        COUNT(*) FILTER (WHERE m.created_at BETWEEN $1 AND $2) AS new_merchants
+      FROM merchants m
+      LEFT JOIN users u ON u.id = m.user_id
+      WHERE m.deleted_at IS NULL
+    `, [startDate, endDate]);
+
+    // Get customer and engagement statistics
+    const engagementStats = await this.dataSource.query(`
+      SELECT 
+        (SELECT COUNT(*) FROM customers WHERE created_at BETWEEN $1 AND $2) AS new_customers,
+        (SELECT COUNT(*) FROM customers) AS total_customers,
+        (SELECT COUNT(*) FROM coupons WHERE status = 'issued' AND created_at BETWEEN $1 AND $2) AS coupons_issued,
+        (SELECT COUNT(*) FROM coupons WHERE status = 'redeemed' AND created_at BETWEEN $1 AND $2) AS coupons_redeemed,
+        (SELECT COUNT(*) FROM feedbacks WHERE created_at BETWEEN $1 AND $2) AS feedbacks_submitted
+    `, [startDate, endDate]);
+
+    // Get top performing agents by commission
+    const topAgents = await this.dataSource.query(`
+      SELECT 
+        a.id,
+        u.name AS agent_name,
+        COUNT(DISTINCT m.id) AS total_merchants,
+        COALESCE(SUM(wt.amount), 0) AS total_commission_earned
+      FROM admins a
+      LEFT JOIN users u ON u.id = a.user_id
+      LEFT JOIN merchants m ON m.admin_id = a.id
+      LEFT JOIN admin_wallets aw ON aw.admin_id = a.id
+      LEFT JOIN wallet_transactions wt ON wt.admin_wallet_id = aw.id 
+        AND wt.type IN ('merchant_annual_subscription_commission', 'merchant_package_commission')
+        AND wt.created_at BETWEEN $1 AND $2
+      WHERE a.deleted_at IS NULL
+      GROUP BY a.id, u.name
+      HAVING COALESCE(SUM(wt.amount), 0) > 0
+      ORDER BY total_commission_earned DESC
+      LIMIT 5
+    `, [startDate, endDate]);
+
+    // Get top merchants by coupon activity
+    const topMerchants = await this.dataSource.query(`
+      SELECT 
+        m.id AS merchant_id,
+        m.business_name,
+        COUNT(*) FILTER (WHERE c.status = 'issued') AS coupons_issued,
+        COUNT(*) FILTER (WHERE c.status = 'redeemed') AS coupons_redeemed
+      FROM merchants m
+      LEFT JOIN coupons c ON c.merchant_id = m.id AND c.created_at BETWEEN $1 AND $2
+      WHERE m.deleted_at IS NULL
+      GROUP BY m.id, m.business_name
+      HAVING COUNT(c.id) > 0
+      ORDER BY coupons_redeemed DESC, coupons_issued DESC
+      LIMIT 5
+    `, [startDate, endDate]);
+
     const statementData = {
       period: {
         year,
@@ -430,6 +514,44 @@ export class MonthlyStatementService {
         total_whatsapp_ui: whatsappUIUsage,
         total_whatsapp_bi: whatsappBIUsage,
       },
+      revenue: {
+        total_commissions: Number(revenueStats[0].total_commissions),
+        annual_subscription_revenue: Number(revenueStats[0].annual_subscription_revenue),
+        package_commission_revenue: Number(revenueStats[0].package_commission_revenue),
+        agent_subscription_revenue: Number(revenueStats[0].agent_subscription_revenue),
+      },
+      agents: {
+        total: Number(agentStats[0].total_agents),
+        active: Number(agentStats[0].active_agents),
+        inactive: Number(agentStats[0].inactive_agents),
+      },
+      merchants: {
+        total: Number(merchantStats[0].total_merchants),
+        active: Number(merchantStats[0].active_merchants),
+        inactive: Number(merchantStats[0].inactive_merchants),
+        annual: Number(merchantStats[0].annual_merchants),
+        temporary: Number(merchantStats[0].temporary_merchants),
+        new_this_month: Number(merchantStats[0].new_merchants),
+      },
+      engagement: {
+        new_customers: Number(engagementStats[0].new_customers),
+        total_customers: Number(engagementStats[0].total_customers),
+        coupons_issued: Number(engagementStats[0].coupons_issued),
+        coupons_redeemed: Number(engagementStats[0].coupons_redeemed),
+        feedbacks_submitted: Number(engagementStats[0].feedbacks_submitted),
+      },
+      top_agents: topAgents.map(agent => ({
+        agent_id: agent.id,
+        agent_name: agent.agent_name,
+        total_merchants: Number(agent.total_merchants),
+        total_commission: Number(agent.total_commission_earned),
+      })),
+      top_merchants: topMerchants.map(merchant => ({
+        merchant_id: merchant.merchant_id,
+        business_name: merchant.business_name,
+        coupons_issued: Number(merchant.coupons_issued),
+        coupons_redeemed: Number(merchant.coupons_redeemed),
+      })),
       ledger: allLedgers,
     };
 
@@ -767,57 +889,120 @@ export class MonthlyStatementService {
 
     // Global Metrics Summary Box
     this.drawSummaryBox(doc, [
-      { label: 'TOTAL REVENUE', opening: '-', closing: '$' + (s.platform.total_revenue || 0).toFixed(2) },
-      { label: 'WA-UI USAGE', opening: '-', closing: (s.platform.total_whatsapp_ui || 0) + ' credits' },
-      { label: 'WA-BI USAGE', opening: '-', closing: (s.platform.total_whatsapp_bi || 0) + ' credits' },
+      { label: 'TOTAL COMMISSIONS', opening: '-', closing: '$' + ((s.revenue?.total_commissions || 0)).toFixed(2) },
+      { label: 'ACTIVE MERCHANTS', opening: '-', closing: (s.merchants?.active || 0).toString() },
+      { label: 'ACTIVE AGENTS', opening: '-', closing: (s.agents?.active || 0).toString() },
     ]);
     doc.moveDown(0.5);
 
-    // Platform Summary
-    this.drawSectionHeader(doc, 'FINANCIAL OVERVIEW');
-    const finData = [
-      ['Metric', 'Amount'],
-      ['Total Platform Revenue', '$' + (s.platform.total_revenue || 0).toFixed(2)],
-      ['WhatsApp UI Credits Used', (s.platform.total_whatsapp_ui || 0).toString()],
-      ['WhatsApp BI Credits Used', (s.platform.total_whatsapp_bi || 0).toString()],
+    // Revenue Breakdown
+    this.drawSectionHeader(doc, 'REVENUE BREAKDOWN');
+    const revenueData = [
+      ['Revenue Source', 'Amount'],
+      ['Annual Subscription Commissions', '$' + ((s.revenue?.annual_subscription_revenue || 0)).toFixed(2)],
+      ['Package Purchase Commissions', '$' + ((s.revenue?.package_commission_revenue || 0)).toFixed(2)],
+      ['Agent Subscription Fees', '$' + ((s.revenue?.agent_subscription_revenue || 0)).toFixed(2)],
+      ['Total Commissions', '$' + ((s.revenue?.total_commissions || 0)).toFixed(2)],
     ];
-    this.drawTable(doc, finData, [360, 150]);
+    this.drawTable(doc, revenueData, [360, 150]);
     doc.moveDown(0.5);
 
-    // Top Agents - Skip if no data
-    if (s.topAgents && s.topAgents.length > 0) {
+    // Agent Statistics
+    this.drawSectionHeader(doc, 'AGENT STATISTICS');
+    const agentStatsData = [
+      ['Metric', 'Count'],
+      ['Total Agents', (s.agents?.total || 0).toString()],
+      ['Active Agents', (s.agents?.active || 0).toString()],
+      ['Inactive Agents', (s.agents?.inactive || 0).toString()],
+    ];
+    this.drawTable(doc, agentStatsData, [360, 150]);
+    doc.moveDown(0.5);
+
+    // Merchant Statistics
+    this.drawSectionHeader(doc, 'MERCHANT STATISTICS');
+    const merchantStatsData = [
+      ['Metric', 'Count'],
+      ['Total Merchants', (s.merchants?.total || 0).toString()],
+      ['Active Merchants', (s.merchants?.active || 0).toString()],
+      ['Inactive Merchants', (s.merchants?.inactive || 0).toString()],
+      ['Annual Subscriptions', (s.merchants?.annual || 0).toString()],
+      ['Temporary Merchants', (s.merchants?.temporary || 0).toString()],
+      ['New This Month', (s.merchants?.new_this_month || 0).toString()],
+    ];
+    this.drawTable(doc, merchantStatsData, [360, 150]);
+    doc.moveDown(0.5);
+
+    // Customer & Engagement Statistics
+    this.drawSectionHeader(doc, 'CUSTOMER & ENGAGEMENT');
+    const engagementData = [
+      ['Metric', 'Count'],
+      ['Total Customers', (s.engagement?.total_customers || 0).toString()],
+      ['New Customers This Month', (s.engagement?.new_customers || 0).toString()],
+      ['Coupons Issued', (s.engagement?.coupons_issued || 0).toString()],
+      ['Coupons Redeemed', (s.engagement?.coupons_redeemed || 0).toString()],
+      ['Feedback Submissions', (s.engagement?.feedbacks_submitted || 0).toString()],
+    ];
+    this.drawTable(doc, engagementData, [360, 150]);
+    doc.moveDown(0.5);
+
+    // Top Performing Agents
+    if (s.top_agents && s.top_agents.length > 0) {
       this.drawSectionHeader(doc, 'TOP PERFORMING AGENTS');
-      const agentData = [['Agent Name', 'Merchants', 'Total Commission Generated']];
-      s.topAgents.forEach(a => {
-        agentData.push([a.name, a.merchants, '$' + parseFloat(a.earnings).toFixed(2)]);
+      const topAgentsData = [['Agent Name', 'Merchants', 'Commission Earned']];
+      s.top_agents.forEach(a => {
+        topAgentsData.push([
+          a.agent_name || 'N/A',
+          (a.total_merchants || 0).toString(),
+          '$' + parseFloat(a.total_commission || 0).toFixed(2)
+        ]);
       });
-      this.drawTable(doc, agentData, [260, 100, 150]);
+      this.drawTable(doc, topAgentsData, [260, 100, 150]);
       doc.moveDown(0.5);
     }
 
-    // Country Distribution - Skip if no data
-    if (s.countryDistribution && s.countryDistribution.length > 0) {
-      this.drawSectionHeader(doc, 'GLOBAL FOOTPRINT (SAMPLED)');
-      const geoData = [['Country', 'Merchant Count']];
-      s.countryDistribution.slice(0, 5).forEach(c => {
-        geoData.push([c.country || 'International', c.count]);
+    // Top Merchants by Coupon Activity
+    if (s.top_merchants && s.top_merchants.length > 0) {
+      this.drawSectionHeader(doc, 'TOP MERCHANTS (BY COUPON ACTIVITY)');
+      const topMerchantsData = [['Business Name', 'Issued', 'Redeemed']];
+      s.top_merchants.forEach(m => {
+        topMerchantsData.push([
+          m.business_name || 'N/A',
+          (m.coupons_issued || 0).toString(),
+          (m.coupons_redeemed || 0).toString()
+        ]);
       });
-      this.drawTable(doc, geoData, [360, 150]);
+      this.drawTable(doc, topMerchantsData, [310, 100, 100]);
       doc.moveDown(0.5);
     }
 
-    // Ledger Overview
-    this.drawSectionHeader(doc, 'PLATFORM LEDGER OVERVIEW (SAMPLED)');
-    const ledgerData = [['Date', 'Action', 'Credit Type', 'Amount']];
-    l.slice(0, 20).forEach(tx => {
-      ledgerData.push([
-        new Date(tx.created_at).toLocaleDateString(),
-        (tx.action || 'N/A').toUpperCase(),
-        (tx.credit_type || 'N/A').toUpperCase(),
-        (tx.amount > 0 ? '+' : '') + tx.amount
-      ]);
-    });
-    this.drawTable(doc, ledgerData, [100, 120, 140, 150]);
+    // WhatsApp Usage Statistics
+    this.drawSectionHeader(doc, 'WHATSAPP USAGE');
+    const whatsappData = [
+      ['Type', 'Credits Used'],
+      ['WhatsApp UI Messages', (s.platform?.total_whatsapp_ui || 0).toString()],
+      ['WhatsApp BI Messages', (s.platform?.total_whatsapp_bi || 0).toString()],
+      ['Total WhatsApp Credits', ((s.platform?.total_whatsapp_ui || 0) + (s.platform?.total_whatsapp_bi || 0)).toString()],
+    ];
+    this.drawTable(doc, whatsappData, [360, 150]);
+    doc.moveDown(0.5);
+
+    // Platform Ledger Sample (if space allows)
+    if (l && l.length > 0) {
+      this.drawSectionHeader(doc, 'PLATFORM LEDGER SAMPLE (RECENT TRANSACTIONS)');
+      const ledgerData = [['Date', 'Action', 'Type', 'Amount']];
+      l.slice(0, 10).forEach(tx => {
+        ledgerData.push([
+          new Date(tx.created_at).toLocaleDateString(),
+          (tx.action || 'N/A').toUpperCase(),
+          (tx.credit_type || 'N/A').replace(/_/g, ' ').toUpperCase(),
+          (tx.amount > 0 ? '+' : '') + tx.amount
+        ]);
+      });
+      if (l.length > 10) {
+        ledgerData.push(['...', '...', '...', '...']);
+      }
+      this.drawTable(doc, ledgerData, [100, 120, 140, 150]);
+    }
 
     this.renderStatementFooter(doc);
 
