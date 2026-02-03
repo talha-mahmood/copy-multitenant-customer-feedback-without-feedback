@@ -717,10 +717,10 @@ export class MonthlyStatementService {
     this.drawSectionHeader(doc, 'COMMISSION & COST BREAKDOWN');
     const finData = [
       ['Description', 'Debit', 'Credit', 'Balance'],
-      ['Annual Fee Income', '', '$' + (s.revenue.annual_fee || 0).toFixed(2), ''],
-      ['Package Commission Income', '', '$' + (s.revenue.package_income || 0).toFixed(2), ''],
-      ['System Costs Deducted', '$' + (s.revenue.costs_deducted || 0).toFixed(2), '', ''],
-      ['NET ACCRUED PROFIT', '', '', '$' + (s.revenue.net_profit || 0).toFixed(2)],
+      ['Annual Fee Income', '-', '$' + (s.revenue.annual_fee || 0).toFixed(2), '-'],
+      ['Package Commission Income', '-', '$' + (s.revenue.package_income || 0).toFixed(2), '-'],
+      ['System Costs Deducted', '$' + (s.revenue.costs_deducted || 0).toFixed(2), '-', '-'],
+      ['NET ACCRUED PROFIT', '-', '-', '$' + (s.revenue.net_profit || 0).toFixed(2)],
     ];
     this.drawTable(doc, finData, [210, 100, 100, 100]);
     doc.moveDown(0.5);
