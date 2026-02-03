@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Query, UseGuards, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { MonthlyStatementService } from './monthly-statement.service';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { Response } from 'express';
@@ -10,13 +10,21 @@ export class MonthlyStatementController {
   constructor(private readonly monthlyStatementService: MonthlyStatementService) {}
 
   @Post('generate')
-  async generateAllStatements(@Query('year') year?: number, @Query('month') month?: number, @Req() req?: any) {
+  async generateStatements(
+    @Body() body: { year: number; month: number; owner_type?: string; owner_id?: number },
+    @Req() req?: any
+  ) {
     // Only super_admin can trigger generation
     if (req.user.role !== 'super_admin') {
-      throw new UnauthorizedException('Only super admins can generate all statements');
+      throw new UnauthorizedException('Only super admins can generate statements');
     }
 
-    return this.monthlyStatementService.generateAllMonthlyStatements(year, month);
+    return this.monthlyStatementService.generateStatements(
+      body.year,
+      body.month,
+      body.owner_type,
+      body.owner_id
+    );
   }
 
   @Get()

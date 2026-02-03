@@ -31,25 +31,44 @@ export class MonthlyStatementService {
     private creditLedgerService: CreditLedgerService,
   ) {}
 
-  async generateAllMonthlyStatements(year?: number, month?: number) {
-    const now = new Date();
-    const targetYear = year || now.getFullYear();
-    // If month provided, use it (1-12). Otherwise use current month+1 (getMonth is 0-11)
-    const targetMonth = month ?? now.getMonth() + 1;
+  async generateStatements(year: number, month: number, ownerType?: string, ownerId?: number) {
+    const targetYear = year;
+    const targetMonth = month;
 
-    // Generate for all merchants
+    // If owner_type and owner_id specified, generate for specific owner
+    if (ownerType && ownerId) {
+      if (ownerType === 'merchant') {
+        const statement = await this.generateMerchantStatement(ownerId, targetYear, targetMonth);
+        return {
+          message: `Generated statement for merchant ${ownerId}`,
+          data: statement,
+        };
+      } else if (ownerType === 'agent') {
+        const statement = await this.generateAgentStatement(ownerId, targetYear, targetMonth);
+        return {
+          message: `Generated statement for agent ${ownerId}`,
+          data: statement,
+        };
+      } else if (ownerType === 'master') {
+        const statement = await this.generateMasterStatement(targetYear, targetMonth);
+        return {
+          message: `Generated master statement`,
+          data: statement,
+        };
+      }
+    }
+
+    // Otherwise, generate for all
     const merchants = await this.merchantRepository.find();
     for (const merchant of merchants) {
       await this.generateMerchantStatement(merchant.id, targetYear, targetMonth);
     }
 
-    // Generate for all agents
     const agents = await this.adminRepository.find();
     for (const agent of agents) {
       await this.generateAgentStatement(agent.id, targetYear, targetMonth);
     }
 
-    // Generate master statement
     await this.generateMasterStatement(targetYear, targetMonth);
 
     return {
@@ -62,6 +81,14 @@ export class MonthlyStatementService {
       },
     };
   }
+
+  // async generateAllMonthlyStatements(year?: number, month?: number) {
+  //   const now = new Date();
+  //   const targetYear = year || now.getFullYear();
+  //   const targetMonth = month ?? now.getMonth() + 1;
+
+  //   return this.generateStatements(targetYear, targetMonth);
+  // }
 
   async generateMerchantStatement(merchantId: number, year: number, month: number) {
     const merchant = await this.merchantRepository.findOne({ where: { id: merchantId } });
