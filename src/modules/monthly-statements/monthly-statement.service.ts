@@ -82,13 +82,13 @@ export class MonthlyStatementService {
     };
   }
 
-  // async generateAllMonthlyStatements(year?: number, month?: number) {
-  //   const now = new Date();
-  //   const targetYear = year || now.getFullYear();
-  //   const targetMonth = month ?? now.getMonth() + 1;
+  async generateAllMonthlyStatements(year?: number, month?: number) {
+    const now = new Date();
+    const targetYear = year || now.getFullYear();
+    const targetMonth = month ?? now.getMonth() + 1;
 
-  //   return this.generateStatements(targetYear, targetMonth);
-  // }
+    return this.generateStatements(targetYear, targetMonth);
+  }
 
   async generateMerchantStatement(merchantId: number, year: number, month: number) {
     const merchant = await this.merchantRepository.findOne({ where: { id: merchantId } });
@@ -175,7 +175,7 @@ export class MonthlyStatementService {
   }
 
   async generateAgentStatement(agentId: number, year: number, month: number) {
-    const agent = await this.adminRepository.findOne({ where: { id: agentId } });
+    const agent = await this.adminRepository.findOne({ where: { id: agentId }, relations: ['user'] });
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);
     }
@@ -191,6 +191,12 @@ export class MonthlyStatementService {
     });
 
     if (existing) {
+      // Generate PDF if not already generated
+      if (!existing.pdf_url) {
+        const pdfPath = await this.generatePdf(existing);
+        existing.pdf_url = pdfPath;
+        await this.monthlyStatementRepository.save(existing);
+      }
       return existing;
     }
 
@@ -259,9 +265,54 @@ export class MonthlyStatementService {
       coupon: await this.creditLedgerService.getOpeningBalance('agent', agentId, 'coupon', startDate),
       wa_ui: await this.creditLedgerService.getOpeningBalance('agent', agentId, 'wa_ui', startDate),
       wa_bi: await this.creditLedgerService.getOpeningBalance('agent', agentId, 'wa_bi', startDate),
+      paid_ads: await this.creditLedgerService.getOpeningBalance('agent', agentId, 'paid_ads', startDate),
     };
 
     const closingBalances = await this.creditLedgerService.getBalances('agent', agentId);
+
+    // Get commission transactions for detailed breakdown
+    const commissionTransactions = await this.dataSource.query(
+      `SELECT wt.*, 
+              m.business_name as merchant_name,
+              (wt.metadata::json->>'merchant_id')::int as merchant_id_from_metadata
+       FROM wallet_transactions wt
+       LEFT JOIN admin_wallets aw ON wt.admin_wallet_id = aw.id
+       LEFT JOIN merchants m ON m.id = (wt.metadata::json->>'merchant_id')::int
+       WHERE aw.admin_id = $1
+       AND wt.type = 'commission'
+       AND wt.created_at BETWEEN $2 AND $3
+       ORDER BY wt.created_at DESC`,
+      [agentId, startDate, endDate]
+    );
+
+    // Get merchant details with their package purchases this month
+    const merchantDetails = await Promise.all(
+      merchants.map(async (merchant) => {
+        const packages = await this.dataSource.query(
+          `SELECT 
+             COUNT(DISTINCT related_object_id) as count, 
+             SUM(CASE WHEN action = 'purchase' THEN 
+               CAST(metadata::json->>'amount' AS DECIMAL) 
+               ELSE 0 END) as total_amount
+           FROM credits_ledger
+           WHERE owner_type = 'merchant'
+           AND owner_id = $1
+           AND action = 'purchase'
+           AND related_object_type = 'package'
+           AND created_at BETWEEN $2 AND $3`,
+          [merchant.id, startDate, endDate]
+        );
+        return {
+          id: merchant.id,
+          business_name: merchant.business_name,
+          merchant_type: merchant.merchant_type,
+          created_at: merchant.created_at,
+          packages_purchased: parseInt(packages[0]?.count || 0),
+          total_spent: parseFloat(packages[0]?.total_amount || 0),
+          is_new: new Date(merchant.created_at) >= startDate && new Date(merchant.created_at) <= endDate,
+        };
+      })
+    );
 
     const statementData = {
       period: {
@@ -280,6 +331,7 @@ export class MonthlyStatementService {
           (m) =>
             new Date(m.created_at) >= startDate && new Date(m.created_at) <= endDate,
         ).length,
+        details: merchantDetails,
       },
       revenue,
       credits: {
@@ -287,6 +339,7 @@ export class MonthlyStatementService {
         closing: closingBalances.data,
       },
       ledger: ledgers,
+      commission_transactions: commissionTransactions,
     };
 
     const statement = this.monthlyStatementRepository.create({
@@ -300,7 +353,13 @@ export class MonthlyStatementService {
       status: 'generated',
     });
 
-    return await this.monthlyStatementRepository.save(statement);
+    const savedStatement = await this.monthlyStatementRepository.save(statement);
+    
+    // Generate PDF immediately
+    const pdfPath = await this.generatePdf(savedStatement);
+    savedStatement.pdf_url = pdfPath;
+    
+    return await this.monthlyStatementRepository.save(savedStatement);
   }
 
   async generateMasterStatement(year: number, month: number) {
@@ -616,17 +675,38 @@ export class MonthlyStatementService {
 
     // Performance & Financial Summary Box
     this.drawSummaryBox(doc, [
-      { label: 'NEW MERCHANTS', opening: '-', closing: s.merchants.new_this_month || 0 },
+      { label: 'NEW MERCHANTS', opening: s.merchants.total - s.merchants.new_this_month, closing: s.merchants.total },
       { label: 'SETTLEMENT PROFIT', opening: '-', closing: '$' + (s.revenue.net_profit || 0).toFixed(2) },
       { label: 'TOTAL CREDITS', opening: openingTotal, closing: closingTotal },
     ]);
     doc.moveDown(0.5);
 
-    // Financial Details
+    // Merchant Portfolio Section
+    this.drawSectionHeader(doc, 'MERCHANT PORTFOLIO');
+    const merchantData = [
+      ['Merchant Name', 'Type', 'Packages', 'Total Spent', 'Status'],
+    ];
+    if (s.merchants.details && s.merchants.details.length > 0) {
+      s.merchants.details.forEach(m => {
+        merchantData.push([
+          m.business_name || 'N/A',
+          m.merchant_type || 'annual',
+          (m.packages_purchased || 0).toString(),
+          '$' + (m.total_spent || 0).toFixed(2),
+          m.is_new ? 'NEW' : 'ACTIVE'
+        ]);
+      });
+    } else {
+      merchantData.push(['No merchants found', '', '', '', '']);
+    }
+    this.drawTable(doc, merchantData, [150, 80, 70, 90, 70]);
+    doc.moveDown(0.5);
+
+    // Commission Breakdown Section
     this.drawSectionHeader(doc, 'COMMISSION & COST BREAKDOWN');
     const finData = [
       ['Description', 'Debit', 'Credit', 'Balance'],
-      ['Opening Credits', '', '', openingTotal.toString()],
+      ['Opening Credits', '', '', (openingTotal || 0).toString()],
       ['Annual Fee Income', '', '$' + (s.revenue.annual_fee || 0).toFixed(2), ''],
       ['Package Commission Income', '', '$' + (s.revenue.package_income || 0).toFixed(2), ''],
       ['System Costs Deducted', '$' + (s.revenue.costs_deducted || 0).toFixed(2), '', ''],
@@ -635,19 +715,45 @@ export class MonthlyStatementService {
     this.drawTable(doc, finData, [210, 100, 100, 100]);
     doc.moveDown(0.5);
 
+    // Commission Transactions Details
+    if (s.commission_transactions && s.commission_transactions.length > 0) {
+      this.drawSectionHeader(doc, 'COMMISSION TRANSACTIONS');
+      const commissionData = [['Date', 'Merchant', 'Type', 'Amount', 'Status']];
+      s.commission_transactions.slice(0, 15).forEach(tx => {
+        commissionData.push([
+          new Date(tx.created_at).toLocaleDateString(),
+          tx.merchant_name || 'N/A',
+          tx.credit_type || 'commission',
+          '$' + parseFloat(tx.amount || 0).toFixed(2),
+          tx.status.toUpperCase()
+        ]);
+      });
+      if (s.commission_transactions.length > 15) {
+        commissionData.push(['...', '...', '...', '...', '...']);
+      }
+      this.drawTable(doc, commissionData, [80, 140, 90, 90, 90]);
+      doc.moveDown(0.5);
+    }
+
     // Ledger Details
     this.drawSectionHeader(doc, 'DETAILED LEDGER ENTRIES');
     const ledgerData = [['Date', 'Description', 'Type', 'Amount', 'Balance after']];
-    l.slice(0, 30).forEach(tx => {
-      ledgerData.push([
-        new Date(tx.created_at).toLocaleDateString(),
-        (tx.description || '').substring(0, 35),
-        (tx.action || 'N/A').toUpperCase(),
-        (tx.amount > 0 ? '+' : '') + tx.amount,
-        tx.balance_after || 'N/A'
-      ]);
-    });
-    if (l.length > 30) ledgerData.push(['...', '...', '...', '...', '...']);
+    if (l && l.length > 0) {
+      l.slice(0, 20).forEach(tx => {
+        ledgerData.push([
+          new Date(tx.created_at).toLocaleDateString(),
+          (tx.description || '').substring(0, 35),
+          (tx.action || 'N/A').toUpperCase(),
+          (tx.amount > 0 ? '+' : '') + tx.amount,
+          tx.balance_after || 'N/A'
+        ]);
+      });
+      if (l.length > 20) {
+        ledgerData.push(['...', '...', '...', '...', '...']);
+      }
+    } else {
+      ledgerData.push(['No ledger entries for this period', '', '', '', '']);
+    }
     this.drawTable(doc, ledgerData, [80, 160, 80, 90, 100]);
 
     this.renderStatementFooter(doc);
