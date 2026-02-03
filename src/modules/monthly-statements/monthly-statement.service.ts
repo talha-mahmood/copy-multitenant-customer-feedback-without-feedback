@@ -751,27 +751,6 @@ export class MonthlyStatementService {
       doc.moveDown(0.5);
     }
 
-    // Ledger Details
-    this.drawSectionHeader(doc, 'DETAILED LEDGER ENTRIES');
-    const ledgerData = [['Date', 'Description', 'Type', 'Amount', 'Balance after']];
-    if (l && l.length > 0) {
-      l.slice(0, 20).forEach(tx => {
-        ledgerData.push([
-          new Date(tx.created_at).toLocaleDateString(),
-          (tx.description || '').substring(0, 35),
-          (tx.action || 'N/A').toUpperCase(),
-          (tx.amount > 0 ? '+' : '') + tx.amount,
-          tx.balance_after || 'N/A'
-        ]);
-      });
-      if (l.length > 20) {
-        ledgerData.push(['...', '...', '...', '...', '...']);
-      }
-    } else {
-      ledgerData.push(['No ledger entries for this period', '', '', '', '']);
-    }
-    this.drawTable(doc, ledgerData, [80, 160, 80, 90, 100]);
-
     this.renderStatementFooter(doc);
 
     doc.end();
