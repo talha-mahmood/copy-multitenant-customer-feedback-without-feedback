@@ -27,6 +27,11 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
+  @Get('profile')
+  async getProfile(@CurrentUser() user: User) {
+    return this.authService.getProfile(user.id);
+  }
+
   @Post('upload-single')
   @FormDataRequest()
   async uploadSingleFile(@Body() uploadFileDto: UploadFileDto) {

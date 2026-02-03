@@ -90,21 +90,35 @@ export class AuthService {
         merchantId = merchant.id;
         // Check merchant subscription expiration
         const merchantWallet = await this.merchantWalletRepository.findOne({ where: { merchant_id: merchant.id } });
-        if (
-          merchantWallet &&
-          merchantWallet.subscription_type === 'annual' &&
-          merchantWallet.subscription_expires_at &&
-          merchantWallet.subscription_expires_at < new Date()
-        ) {
-          // Auto-downgrade to temporary
-          merchantWallet.subscription_type = 'temporary';
-          merchant.merchant_type = 'temporary';
 
+        if (merchantWallet) {
+          let isExpired = false;
+
+          // Check for expiration if it was annual or if it has an expiry date
+          if (merchantWallet.subscription_expires_at) {
+            subscriptionExpiresAt = merchantWallet.subscription_expires_at;
+            if (merchantWallet.subscription_expires_at < new Date()) {
+              isExpired = true;
+              console.log(`Merchant ${merchant.id} subscription has expired.`);
+
+              // Auto-downgrade to temporary if it was annual
+              if (merchantWallet.subscription_type === 'annual') {
+                merchantWallet.subscription_type = 'temporary';
+                merchant.merchant_type = 'temporary';
+                await this.merchantRepository.save(merchant);
+                console.log(`Merchant ${merchant.id} downgraded to temporary.`);
+              }
+            }
+          }
+
+          // Update is_subscription_expired if it doesn't match current state
+          if (merchantWallet.is_subscription_expired !== isExpired) {
+            merchantWallet.is_subscription_expired = isExpired;
+          }
           await this.merchantWalletRepository.save(merchantWallet);
-          await this.merchantRepository.save(merchant);
-          console.log(`Merchant ${merchant.id} subscription downgraded to temporary due to expiration.`);
-        } else {
-          console.log('merchant plan is not expired');
+
+          // // Store for response
+          // adminWalletData = { is_subscription_expired: isExpired } as any;
         }
       }
     } else if (roleName === 'admin') {
@@ -317,5 +331,47 @@ export class AuthService {
       message: `Uploaded file ${uploaded.fileName} successfully`,
       file: uploaded.relativePath,
     };
+  }
+
+  async getProfile(userId: number) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const { data: userHasRole } = await this.userHasRoleService.findByUserId(
+      Number(user.id),
+    );
+
+    const roleName = userHasRole?.role?.name;
+    const response: any = {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: roleName,
+      }
+    };
+
+    if (roleName === 'merchant') {
+      const merchant = await this.merchantRepository.findOne({ where: { user_id: Number(user.id) } });
+      if (merchant) {
+        // Check wallet specifically for subscription status
+        const wallet = await this.merchantWalletRepository.findOne({ where: { merchant_id: merchant.id } });
+        response.merchant = {
+          ...merchant,
+          subscription_expires_at: wallet?.subscription_expires_at,
+          merchant_type: wallet?.subscription_type === 'annual' ? 'annual' : 'temporary' // Trust wallet as source of truth
+        };
+      }
+    } else if (roleName === 'admin') {
+      const admin = await this.adminRepository.findOne({ where: { user_id: Number(user.id) } });
+      if (admin) response.admin = admin;
+    }
+
+    return response;
   }
 }

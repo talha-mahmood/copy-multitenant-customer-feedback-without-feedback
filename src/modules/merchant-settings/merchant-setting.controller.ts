@@ -27,6 +27,12 @@ export class MerchantSettingController {
     return this.merchantSettingService.create(createMerchantSettingDto);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('subscription-fee')
+  getSubscriptionFee() {
+    return this.merchantSettingService.getSubscriptionFee();
+  }
+
   @Public()
   @Get('merchant/:merchantId')
   findByMerchantId(@Param('merchantId', ParseIntPipe) merchantId: number) {
