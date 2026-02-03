@@ -945,47 +945,6 @@ export class MonthlyStatementService {
     this.drawTable(doc, engagementData, [360, 150]);
     doc.moveDown(0.5);
 
-    // Top Performing Agents
-    if (s.top_agents && s.top_agents.length > 0) {
-      this.drawSectionHeader(doc, 'TOP PERFORMING AGENTS');
-      const topAgentsData = [['Agent Name', 'Merchants', 'Commission Earned']];
-      s.top_agents.forEach(a => {
-        topAgentsData.push([
-          a.agent_name || 'N/A',
-          (a.total_merchants || 0).toString(),
-          '$' + parseFloat(a.total_commission || 0).toFixed(2)
-        ]);
-      });
-      this.drawTable(doc, topAgentsData, [260, 100, 150]);
-      doc.moveDown(0.5);
-    }
-
-    // Top Merchants by Coupon Activity
-    if (s.top_merchants && s.top_merchants.length > 0) {
-      this.drawSectionHeader(doc, 'TOP MERCHANTS (BY COUPON ACTIVITY)');
-      const topMerchantsData = [['Business Name', 'Issued', 'Redeemed']];
-      s.top_merchants.forEach(m => {
-        topMerchantsData.push([
-          m.business_name || 'N/A',
-          (m.coupons_issued || 0).toString(),
-          (m.coupons_redeemed || 0).toString()
-        ]);
-      });
-      this.drawTable(doc, topMerchantsData, [310, 100, 100]);
-      doc.moveDown(0.5);
-    }
-
-    // WhatsApp Usage Statistics
-    this.drawSectionHeader(doc, 'WHATSAPP USAGE');
-    const whatsappData = [
-      ['Type', 'Credits Used'],
-      ['WhatsApp UI Messages', (s.platform?.total_whatsapp_ui || 0).toString()],
-      ['WhatsApp BI Messages', (s.platform?.total_whatsapp_bi || 0).toString()],
-      ['Total WhatsApp Credits', ((s.platform?.total_whatsapp_ui || 0) + (s.platform?.total_whatsapp_bi || 0)).toString()],
-    ];
-    this.drawTable(doc, whatsappData, [360, 150]);
-    doc.moveDown(0.5);
-
     // Platform Ledger Sample (if space allows)
     if (l && l.length > 0) {
       this.drawSectionHeader(doc, 'PLATFORM LEDGER SAMPLE (RECENT TRANSACTIONS)');
