@@ -30,11 +30,12 @@ export class FestivalMessageController {
   @Get()
   findAll(
     @Query('merchant_id') merchantId?: number,
-    @Query('is_active', new DefaultValuePipe(true), ParseBoolPipe) isActive?: boolean,
+    @Query('is_active') isActive?: string,
+    @Query('search') search?: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize?: number,
   ) {
-    return this.festivalMessageService.findAll(merchantId, isActive, page, pageSize);
+    return this.festivalMessageService.findAll(merchantId, isActive, search, page, pageSize);
   }
 
   @Get(':id')

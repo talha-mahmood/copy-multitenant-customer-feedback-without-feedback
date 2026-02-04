@@ -10,6 +10,8 @@ import {
   HttpException,
   HttpStatus,
   UseGuards,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -83,6 +85,9 @@ export class ScheduledCampaignController {
     @CurrentUser() user: any,
     @Query('merchant_id') merchantId?: number,
     @Query('status') status?: CampaignStatus,
+    @Query('search') search?: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number = 20,
   ) {
     try {
       const query = this.scheduledCampaignRepository.createQueryBuilder('campaign');
@@ -101,17 +106,33 @@ export class ScheduledCampaignController {
       }
 
       // Filter by status if specified
-      if (status) {
+      if (status && status !== 'all') {
         query.andWhere('campaign.status = :status', { status });
+      }
+
+       if (search && search.trim()) {
+        query.andWhere(
+          '(LOWER(campaign.campaign_name) LIKE LOWER(:search) OR LOWER(campaign.campaign_message) LIKE LOWER(:search))',
+          { search: `%${search.trim()}%` },
+        );
       }
 
       query.orderBy('campaign.scheduled_date', 'DESC');
 
-      const campaigns = await query.getMany();
+      const [campaigns, total] = await query
+        .skip((page - 1) * pageSize)
+        .take(pageSize)
+        .getManyAndCount();
 
       return {
         success: true,
         data: campaigns,
+        meta: {
+          page,
+          pageSize,
+          total,
+          totalPages: Math.ceil(total / pageSize),
+        },
       };
     } catch (error) {
       throw new HttpException(
@@ -198,6 +219,48 @@ export class ScheduledCampaignController {
   }
 
   @Delete(':id')
+  async delete(@CurrentUser() user: any, @Param('id') id: number) {
+    try {
+      const campaign = await this.scheduledCampaignRepository.findOne({
+        where: { id },
+      });
+
+      if (!campaign) {
+        throw new HttpException('Campaign not found', HttpStatus.NOT_FOUND);
+      }
+
+      // Check authorization
+      if (user.role === 'merchant' && user.merchantId !== campaign.merchant_id) {
+        throw new HttpException('Unauthorized', HttpStatus.FORBIDDEN);
+      }
+
+      // Soft delete if status is scheduled or cancelled
+      if (
+        campaign.status === CampaignStatus.SCHEDULED ||
+        campaign.status === CampaignStatus.CANCELLED
+      ) {
+        await this.scheduledCampaignRepository.softDelete(id);
+
+        return {
+          success: true,
+          message: 'Campaign deleted successfully',
+        };
+      }
+
+      // Don't allow deleting campaigns that are processing, completed, or failed
+      throw new HttpException(
+        'Can only delete campaigns that are scheduled or cancelled',
+        HttpStatus.BAD_REQUEST,
+      );
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to delete campaign',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post(':id/cancel')
   async cancel(@CurrentUser() user: any, @Param('id') id: number) {
     try {
       const campaign = await this.scheduledCampaignRepository.findOne({

@@ -22,7 +22,7 @@ export class FestivalMessageService {
     };
   }
 
-  async findAll(merchantId?: number, isActive?: boolean, page: number = 1, pageSize: number = 20) {
+  async findAll(merchantId?: number, isActive?: string, search?: string, page: number = 1, pageSize: number = 20) {
     const query = this.festivalMessageRepository
       .createQueryBuilder('festival')
       .leftJoinAndSelect('festival.merchant', 'merchant');
@@ -31,9 +31,25 @@ export class FestivalMessageService {
       query.andWhere('festival.merchant_id = :merchantId', { merchantId });
     }
 
-    if (isActive !== undefined) {
-      query.andWhere('festival.is_active = :isActive', { isActive });
+    // if (isActive !== undefined) {
+    //   query.andWhere('festival.is_active = :isActive', { isActive });
+    // }
+
+     // Handle filter: 'all', 'active', 'inactive' or undefined (defaults to 'all')
+    if (isActive === 'active') {
+      query.andWhere('festival.is_active = :isActive', { isActive: true });
+    } else if (isActive === 'inactive') {
+      query.andWhere('festival.is_active = :isActive', { isActive: false });
     }
+    // If isActive is 'all' or undefined, don't add any filter (show all)
+     // Handle search: search in festival_name and message
+    if (search && search.trim()) {
+      query.andWhere(
+        '(LOWER(festival.festival_name) LIKE LOWER(:search) OR LOWER(festival.message) LIKE LOWER(:search))',
+        { search: `%${search.trim()}%` },
+      );  
+    }
+
 
     query.orderBy('festival.festival_date', 'ASC');
 

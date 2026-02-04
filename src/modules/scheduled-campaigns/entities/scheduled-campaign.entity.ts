@@ -16,6 +16,7 @@ export enum CampaignStatus {
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   FAILED = 'failed',
+  ALL = 'all',
 }
 
 @Entity('scheduled_campaigns')
