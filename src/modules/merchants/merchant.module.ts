@@ -12,6 +12,6 @@ import { SuperAdminSettingsModule } from '../super-admin-settings/super-admin-se
   imports: [DatabaseModule, WalletModule, MerchantSettingModule, SystemLogModule, SuperAdminSettingsModule],
   controllers: [MerchantController],
   providers: [MerchantService, ...merchantProviders],
-  exports: [MerchantService],
+  exports: [MerchantService, 'MERCHANT_REPOSITORY'],
 })
-export class MerchantModule {}
+export class MerchantModule { }

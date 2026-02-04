@@ -16,7 +16,7 @@ import { UserRole } from 'src/common/enums/user-role.enum';
 @Controller('super-admin-settings')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class SuperAdminSettingsController {
-  constructor(private readonly settingsService: SuperAdminSettingsService) {}
+  constructor(private readonly settingsService: SuperAdminSettingsService) { }
 
   @Roles(UserRole.SUPER_ADMIN)
   @Get()
@@ -55,6 +55,20 @@ export class SuperAdminSettingsController {
     return {
       message: 'Commission settings retrieved successfully',
       data: settings,
+    };
+  }
+
+
+  @SkipSubscription()
+  @Get('merchant-annual-fee')
+  async getMerchantAnnualFee() {
+    const settings = await this.settingsService.getSettings();
+    return {
+      message: 'Merchant annual fee retrieved successfully',
+      data: {
+        fee: parseFloat(settings.merchant_annual_fee.toString()),
+        currency: settings.currency,
+      },
     };
   }
 }

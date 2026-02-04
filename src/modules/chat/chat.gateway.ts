@@ -108,7 +108,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                         convPayload.superAdminId = user.superAdminId;
                         convPayload.adminId = data.receiverId;
                     } else {
-                        convPayload.superAdminId = data.receiverId;
+                        convPayload.superAdminId = 1; // Enforce static SuperAdmin ID = 1
                         convPayload.adminId = user.adminId;
                     }
                 } else { // AGENT_MERCHANT
@@ -159,6 +159,53 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             this.logger.log(`Message from ${user.id} sent to rooms: ${rooms.join(', ')}`);
         } catch (error) {
             this.logger.error(`Send message failed: ${error.message}`);
+            client.emit('error', { message: error.message });
+        }
+    }
+
+    @UseGuards(WsJwtGuard)
+    @SubscribeMessage('getConversations')
+    async handleGetConversations(
+        @ConnectedSocket() client: Socket,
+    ) {
+        const user = client['user'];
+        try {
+            const conversations = await this.chatService.findUserConversations(
+                user.id,
+                user.role,
+                user.superAdminId,
+                user.adminId,
+                user.merchantId
+            );
+            client.emit('conversations', conversations);
+        } catch (error) {
+            client.emit('error', { message: error.message });
+        }
+    }
+
+    @UseGuards(WsJwtGuard)
+    @SubscribeMessage('getMessages')
+    async handleGetMessages(
+        @ConnectedSocket() client: Socket,
+        @MessageBody() data: { conversationId: number; page?: number; limit?: number },
+    ) {
+        const user = client['user'];
+        try {
+            const messages = await this.chatService.getConversationMessages(
+                data.conversationId,
+                user.id,
+                user.role,
+                data.page || 1,
+                data.limit || 20,
+                user.superAdminId,
+                user.adminId,
+                user.merchantId
+            );
+            client.emit('messages', {
+                conversationId: data.conversationId,
+                data: messages
+            });
+        } catch (error) {
             client.emit('error', { message: error.message });
         }
     }

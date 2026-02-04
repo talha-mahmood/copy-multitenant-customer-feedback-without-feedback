@@ -9,6 +9,7 @@ import { DataSource } from 'typeorm';
 import { merchantProviders } from '../merchants/merchant.provider';
 import { couponBatchProvider } from '../coupon-batches/coupon-batch.provider';
 import { WalletModule } from '../wallets/wallet.module';
+import { superAdminSettingsProviders } from '../super-admin-settings/super-admin-settings.provider';
 import { ApprovalModule } from '../approvals/approval.module';
 
 @Module({
@@ -17,6 +18,7 @@ import { ApprovalModule } from '../approvals/approval.module';
   providers: [
     MerchantSettingService,
     ...merchantSettingProviders,
+    ...superAdminSettingsProviders,
     ...merchantProviders,
     ...couponBatchProvider,
   ],

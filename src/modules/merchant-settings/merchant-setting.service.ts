@@ -9,6 +9,8 @@ import { Merchant } from '../merchants/entities/merchant.entity';
 import { CouponBatch } from '../coupon-batches/entities/coupon-batch.entity';
 import { WalletService } from '../wallets/wallet.service';
 import { ApprovalService } from '../approvals/approval.service';
+import { SUPER_ADMIN_SETTINGS_REPOSITORY } from '../super-admin-settings/super-admin-settings.provider';
+import { SuperAdminSettings } from '../super-admin-settings/entities/super-admin-settings.entity';
 
 @Injectable()
 export class MerchantSettingService {
@@ -21,7 +23,24 @@ export class MerchantSettingService {
     private couponBatchRepository: Repository<CouponBatch>,
     private walletService: WalletService,
     private approvalService: ApprovalService,
+    @Inject(SUPER_ADMIN_SETTINGS_REPOSITORY)
+    private superAdminSettingsRepository: Repository<SuperAdminSettings>,
   ) { }
+
+  async getSubscriptionFee() {
+    const settings = await this.superAdminSettingsRepository.findOne({
+      where: { is_active: true },
+    });
+
+    if (!settings) {
+      throw new NotFoundException('Super admin settings not found');
+    }
+
+    return {
+      fee: settings.merchant_annual_fee,
+      currency: settings.currency,
+    };
+  }
 
   async create(createMerchantSettingDto: CreateMerchantSettingDto) {
     // Check if settings already exist for this merchant
@@ -39,7 +58,7 @@ export class MerchantSettingService {
     // Validate whatsapp_enabled_for_batch_id belongs to merchant
     if (createMerchantSettingDto.whatsapp_enabled_for_batch_id) {
       const whatsappBatch = await this.couponBatchRepository.findOne({
-        where: { 
+        where: {
           id: createMerchantSettingDto.whatsapp_enabled_for_batch_id,
           merchant_id: createMerchantSettingDto.merchant_id,
         },
@@ -55,7 +74,7 @@ export class MerchantSettingService {
     // Validate birthday_coupon_batch_id belongs to merchant
     if (createMerchantSettingDto.birthday_coupon_batch_id) {
       const birthdayBatch = await this.couponBatchRepository.findOne({
-        where: { 
+        where: {
           id: createMerchantSettingDto.birthday_coupon_batch_id,
           merchant_id: createMerchantSettingDto.merchant_id,
         },
@@ -118,7 +137,7 @@ export class MerchantSettingService {
     if (updateMerchantSettingDto.whatsapp_enabled_for_batch_id !== undefined) {
       if (updateMerchantSettingDto.whatsapp_enabled_for_batch_id !== null) {
         const whatsappBatch = await this.couponBatchRepository.findOne({
-          where: { 
+          where: {
             id: updateMerchantSettingDto.whatsapp_enabled_for_batch_id,
             merchant_id: merchantId,
           },
@@ -136,7 +155,7 @@ export class MerchantSettingService {
     if (updateMerchantSettingDto.birthday_coupon_batch_id !== undefined) {
       if (updateMerchantSettingDto.birthday_coupon_batch_id !== null) {
         const birthdayBatch = await this.couponBatchRepository.findOne({
-          where: { 
+          where: {
             id: updateMerchantSettingDto.birthday_coupon_batch_id,
             merchant_id: merchantId,
           },
@@ -154,7 +173,7 @@ export class MerchantSettingService {
     if (updateMerchantSettingDto.inactive_recall_coupon_batch_id !== undefined) {
       if (updateMerchantSettingDto.inactive_recall_coupon_batch_id !== null) {
         const inactiveBatch = await this.couponBatchRepository.findOne({
-          where: { 
+          where: {
             id: updateMerchantSettingDto.inactive_recall_coupon_batch_id,
             merchant_id: merchantId,
           },
