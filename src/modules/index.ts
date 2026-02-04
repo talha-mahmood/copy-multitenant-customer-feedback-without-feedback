@@ -74,3 +74,9 @@ export { ScheduledCampaignModule } from './scheduled-campaigns/scheduled-campaig
 
 // Festival Messages
 export { FestivalMessageModule } from './festival-messages/festival-message.module';
+
+// Credit Ledger
+export { CreditLedgerModule } from './credits-ledger/credit-ledger.module';
+
+// Monthly Statements
+export { MonthlyStatementModule } from './monthly-statements/monthly-statement.module';

@@ -1,7 +1,7 @@
 {
   "info": {
-    "_postman_id": "9ad5861f-e55b-44fb-83ab-a8cf23ea5926",
-    "name": "45QR Review & Coupon SaaS API - With Credits Ledger",
+    "_postman_id": "e5f38197-088e-403e-831c-8593c18de44b",
+    "name": "46QR Review & Coupon SaaS API - With Credits Ledger",
     "description": "Complete API collection including wallet system, automated campaigns, Credits Ledger (bank-style accounting), and Monthly PDF Statements",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "22622973"
@@ -442,7 +442,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/merchants?page=1&pageSize=20&isActive=false",
+              "raw": "{{base_url}}/merchants?page=1&pageSize=20",
               "host": [
                 "{{base_url}}"
               ],
@@ -457,10 +457,6 @@
                 {
                   "key": "pageSize",
                   "value": "20"
-                },
-                {
-                  "key": "isActive",
-                  "value": "false"
                 }
               ]
             }
@@ -1309,7 +1305,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"batch_name\": \"Winter Sale 2029\",\n  \"batch_type\": \"temporary\",\n  \"total_quantity\": 3,\n  \"start_date\": \"2026-01-01\",\n  \"end_date\": \"2026-02-05\",\n  \"is_active\": true,\n//   \"whatsapp_enabled\": false,\n//   \"lucky_draw_enabled\": false,\n  \"template_id\": 2,\n  \"header\": \"Special Offer\",\n  \"title\": \"50% Off\",\n  \"description\": \"Use this coupon to get 50% off your next purchase.\",\n  \"ishalal\": true\n\n}"
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"batch_name\": \"Winter Sale 2029\",\n  \"batch_type\": \"annual\",\n  \"total_quantity\": 30,\n  \"start_date\": \"2026-01-01\",\n  \"end_date\": \"2026-04-05\",\n  \"is_active\": true,\n//   \"whatsapp_enabled\": false,\n//   \"lucky_draw_enabled\": false,\n  \"template_id\": 2,\n  \"header\": \"Special Offer\",\n  \"title\": \"50% Off\",\n  \"description\": \"Use this coupon to get 50% off your next purchase.\",\n  \"ishalal\": true\n\n}"
             },
             "url": {
               "raw": "{{base_url}}/coupon-batches",
@@ -3492,7 +3488,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "// Basic Settings Example:\n// {\n//   \"enableGoogleReviews\": true,\n//   \"enableFacebookReviews\": true,\n//   \"googleReviewUrl\": \"https://g.page/r/updated-url\",\n//   \"facebookPageUrl\": \"https://facebook.com/updated-page\"\n// }\n\n// Full Settings with Campaigns:\n{\n    \"whatsapp_enabled_for_batch_id\": 2,\n    \"luckydraw_enabled\": false,\n    \"birthday_message_enabled\": true,\n    \"days_before_birthday\": 3,\n    \"days_after_birthday\": 0,\n    \"birthday_coupon_batch_id\": 1,\n    \"inactive_recall_enabled\": true,\n    \"inactive_recall_days\": 30,\n    \"inactive_recall_coupon_batch_id\": 2,\n    \"festival_campaign_enabled\": true,\n    \"scheduled_campaign_enabled\": true\n}"
+              "raw": "// Basic Settings Example:\n// {\n//   \"enableGoogleReviews\": true,\n//   \"enableFacebookReviews\": true,\n//   \"googleReviewUrl\": \"https://g.page/r/updated-url\",\n//   \"facebookPageUrl\": \"https://facebook.com/updated-page\"\n// }\n\n// Full Settings with Campaigns:\n{\n    \"whatsapp_enabled_for_batch_id\": 4,\n    \"luckydraw_enabled\": false,\n    \"birthday_message_enabled\": true,\n    \"days_before_birthday\": 4,\n    \"days_after_birthday\": 0,\n    \"birthday_coupon_batch_id\": 4,\n    \"inactive_recall_enabled\": true,\n    \"inactive_recall_days\": 30,\n    \"inactive_recall_coupon_batch_id\": 4,\n    \"festival_campaign_enabled\": true,\n    \"scheduled_campaign_enabled\": true\n    // \"paid_ads\": true\n}"
             },
             "url": {
               "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
@@ -4814,7 +4810,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"year\": 2026,\n  \"month\": 1,\n  \"owner_type\": \"merchant\",\n  \"owner_id\": {{merchant_id}}\n}"
+                  "raw": "{\n  \"year\": 2026,\n  \"month\": 2,\n  \"owner_type\": \"merchant\",\n  \"owner_id\": {{merchant_id}}\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/monthly-statements/generate",
@@ -4826,7 +4822,7 @@
                     "generate"
                   ]
                 },
-                "description": "Manually trigger generation of monthly statement for specific merchant, agent, or master. Omit owner_type and owner_id to generate for all."
+                "description": "Manually trigger generation of monthly statements. Include owner_type and owner_id to generate for specific owner, or omit them to generate for all merchants, agents, and master."
               },
               "response": []
             },
@@ -4841,7 +4837,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{base_url}}/monthly-statements?owner_type=merchant&owner_id={{merchant_id}}&page=1&limit=20",
+                  "raw": "{{base_url}}/monthly-statements?owner_type=merchant&owner_id={{merchant_id}}&year=2026&month=2&page=1&limit=20",
                   "host": [
                     "{{base_url}}"
                   ],
@@ -4851,8 +4847,7 @@
                   "query": [
                     {
                       "key": "owner_type",
-                      "value": "merchant",
-                      "description": "merchant | agent | master"
+                      "value": "merchant"
                     },
                     {
                       "key": "owner_id",
@@ -4860,19 +4855,11 @@
                     },
                     {
                       "key": "year",
-                      "value": "2026",
-                      "disabled": true
+                      "value": "2026"
                     },
                     {
                       "key": "month",
-                      "value": "1",
-                      "disabled": true
-                    },
-                    {
-                      "key": "status",
-                      "value": "generated",
-                      "description": "generated | sent | viewed",
-                      "disabled": true
+                      "value": "2"
                     },
                     {
                       "key": "page",
@@ -4881,6 +4868,12 @@
                     {
                       "key": "limit",
                       "value": "20"
+                    },
+                    {
+                      "key": "status",
+                      "value": "generated",
+                      "description": "generated | sent | viewed",
+                      "disabled": true
                     }
                   ]
                 },
