@@ -198,6 +198,48 @@ export class ScheduledCampaignController {
   }
 
   @Delete(':id')
+  async delete(@CurrentUser() user: any, @Param('id') id: number) {
+    try {
+      const campaign = await this.scheduledCampaignRepository.findOne({
+        where: { id },
+      });
+
+      if (!campaign) {
+        throw new HttpException('Campaign not found', HttpStatus.NOT_FOUND);
+      }
+
+      // Check authorization
+      if (user.role === 'merchant' && user.merchantId !== campaign.merchant_id) {
+        throw new HttpException('Unauthorized', HttpStatus.FORBIDDEN);
+      }
+
+      // Soft delete if status is scheduled or cancelled
+      if (
+        campaign.status === CampaignStatus.SCHEDULED ||
+        campaign.status === CampaignStatus.CANCELLED
+      ) {
+        await this.scheduledCampaignRepository.softDelete(id);
+
+        return {
+          success: true,
+          message: 'Campaign deleted successfully',
+        };
+      }
+
+      // Don't allow deleting campaigns that are processing, completed, or failed
+      throw new HttpException(
+        'Can only delete campaigns that are scheduled or cancelled',
+        HttpStatus.BAD_REQUEST,
+      );
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to delete campaign',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post(':id/cancel')
   async cancel(@CurrentUser() user: any, @Param('id') id: number) {
     try {
       const campaign = await this.scheduledCampaignRepository.findOne({
