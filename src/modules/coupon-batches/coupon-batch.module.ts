@@ -7,7 +7,6 @@ import { merchantProviders } from '../merchants/merchant.provider';
 import { ConfigModule } from '@nestjs/config';
 import { WalletModule } from '../wallets/wallet.module';
 import { SystemLogModule } from '../system-logs/system-log.module';
-import { CouponExpiryCronService } from './coupon-expiry-cron.service';
 import { CreditLedgerModule } from '../credits-ledger/credit-ledger.module';
 import { couponProvider } from '../coupons/coupon.provider';
 import { walletProviders } from '../wallets/wallet.provider';
@@ -17,7 +16,6 @@ import { walletProviders } from '../wallets/wallet.provider';
   controllers: [CouponBatchController],
   providers: [
     CouponBatchService,
-    CouponExpiryCronService,
     ...couponBatchProvider,
     ...merchantProviders,
     ...couponProvider,
