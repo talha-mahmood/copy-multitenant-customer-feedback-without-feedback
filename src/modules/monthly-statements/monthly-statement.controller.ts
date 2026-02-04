@@ -3,6 +3,7 @@ import { MonthlyStatementService } from './monthly-statement.service';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { Response } from 'express';
 import * as fs from 'fs';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('monthly-statements')
 @UseGuards(JwtAuthGuard)
@@ -73,11 +74,11 @@ export class MonthlyStatementController {
     const statement = result.data;
 
     // Check permissions
-    if (req.user.role === 'merchant' && statement.owner_id !== req.user.merchantId) {
+    if (req.user?.role === 'merchant' && statement.owner_id !== req.user.merchantId) {
       throw new UnauthorizedException('You can only download your own statements');
     }
 
-    if (req.user.role === 'admin' && statement.owner_id !== req.user.adminId && statement.owner_type === 'agent') {
+    if (req.user?.role === 'admin' && statement.owner_id !== req.user.adminId && statement.owner_type === 'agent') {
       throw new UnauthorizedException('You can only download your own statements');
     }
 

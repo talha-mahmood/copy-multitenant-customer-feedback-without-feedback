@@ -97,20 +97,6 @@ export class MonthlyStatementService {
       throw new Error(`Merchant ${merchantId} not found`);
     }
 
-    // Check if statement already exists
-    const existing = await this.monthlyStatementRepository.findOne({
-      where: {
-        owner_type: 'merchant',
-        owner_id: merchantId,
-        year,
-        month,
-      },
-    });
-
-    if (existing) {
-      return existing;
-    }
-
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
@@ -172,33 +158,19 @@ export class MonthlyStatementService {
       status: 'generated',
     });
 
-    return await this.monthlyStatementRepository.save(statement);
+    const savedStatement = await this.monthlyStatementRepository.save(statement);
+    
+    // Generate PDF immediately
+    const pdfPath = await this.generatePdf(savedStatement);
+    savedStatement.pdf_url = pdfPath;
+    
+    return await this.monthlyStatementRepository.save(savedStatement);
   }
 
   async generateAgentStatement(agentId: number, year: number, month: number) {
     const agent = await this.adminRepository.findOne({ where: { id: agentId }, relations: ['user'] });
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);
-    }
-
-    // Check if statement already exists
-    const existing = await this.monthlyStatementRepository.findOne({
-      where: {
-        owner_type: 'agent',
-        owner_id: agentId,
-        year,
-        month,
-      },
-    });
-
-    if (existing) {
-      // Generate PDF if not already generated
-      if (!existing.pdf_url) {
-        const pdfPath = await this.generatePdf(existing);
-        existing.pdf_url = pdfPath;
-        await this.monthlyStatementRepository.save(existing);
-      }
-      return existing;
     }
 
     const startDate = new Date(year, month - 1, 1);
@@ -380,20 +352,6 @@ export class MonthlyStatementService {
   }
 
   async generateMasterStatement(year: number, month: number) {
-    // Check if statement already exists
-    const existing = await this.monthlyStatementRepository.findOne({
-      where: {
-        owner_type: 'super_admin',
-        owner_id: 1,
-        year,
-        month,
-      },
-    });
-
-    // if (existing) {
-    //   return existing;
-    // }
-
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
@@ -489,7 +447,13 @@ export class MonthlyStatementService {
       status: 'generated',
     });
 
-    return await this.monthlyStatementRepository.save(statement);
+    const savedStatement = await this.monthlyStatementRepository.save(statement);
+    
+    // Generate PDF immediately
+    const pdfPath = await this.generatePdf(savedStatement);
+    savedStatement.pdf_url = pdfPath;
+    
+    return await this.monthlyStatementRepository.save(savedStatement);
   }
 
   private async getCouponStats(merchantId: number, startDate: Date, endDate: Date) {
