@@ -190,18 +190,9 @@ export class CustomerService {
         throw new HttpException('Merchant not found', 404);
       }
 
-      // 2. Get merchant settings to find WhatsApp enabled batch
-      const merchantSettings = await this.merchantSettingRepository.findOne({
-        where: { merchant_id: claimCouponDto.merchant_id },
-      });
-
-      if (!merchantSettings || !merchantSettings.whatsapp_enabled_for_batch_id) {
-        throw new HttpException('No WhatsApp coupon batch configured for this merchant', 400);
-      }
-
-      // 3. Get the coupon batch
+      // 2. Get the coupon batch
       const batch = await this.couponBatchRepository.findOne({
-        where: { id: merchantSettings.whatsapp_enabled_for_batch_id },
+        where: { id: claimCouponDto.coupon_batch_id },
       });
 
       if (!batch) {
@@ -210,9 +201,20 @@ export class CustomerService {
 
       if (!batch.is_active) {
         throw new HttpException('Coupon batch is not active', 400);
-      }     
+      }
 
-      // 4. Check or create customer
+      // Verify batch belongs to the merchant
+      if (batch.merchant_id !== claimCouponDto.merchant_id) {
+        throw new HttpException('Coupon batch does not belong to this merchant', 400);
+      }
+
+      // Check if batch has expired
+      // const now = new Date();
+      // if (new Date(batch.end_date) < now) {
+      //   throw new HttpException('Coupon batch has expired', 400);
+      // }
+
+      // 3. Check or create customer
       let customer = await this.customerRepository.findOne({
         where: { phone: claimCouponDto.phone },
       });
