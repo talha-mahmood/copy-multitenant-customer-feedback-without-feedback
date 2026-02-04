@@ -461,7 +461,7 @@ export class WalletService {
         type: 'merchant_package_commission',
         amount: adminCommission,
         status: 'completed',
-        description: `Commission from merchant credit purchase (${commissionRate * 100}%)`,
+        description: `Commission from merchant credit purchase (${(commissionRate * 100).toFixed(0)}%)`,
         metadata: JSON.stringify({
           merchant_id: merchantId,
           purchase_amount: amount,
@@ -477,6 +477,43 @@ export class WalletService {
       });
 
       const savedAdminTransaction = await queryRunner.manager.save(adminTransaction);
+
+      // Credit super admin wallet with remaining commission (platform share)
+      const superAdminWallet = await queryRunner.manager.findOne(SuperAdminWallet, {
+        where: { is_active: true },
+      });
+
+      if (superAdminWallet) {
+        const superAdminBalanceBefore = parseFloat(superAdminWallet.balance.toString());
+        const newSuperAdminBalance = superAdminBalanceBefore + platformAmount;
+
+        await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
+          balance: newSuperAdminBalance,
+          total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + platformAmount,
+        });
+
+        // Create super admin transaction
+        await queryRunner.manager.save(WalletTransaction, {
+          super_admin_wallet_id: superAdminWallet.id,
+          type: 'merchant_package_commission',
+          amount: platformAmount,
+          status: 'completed',
+          description: `Platform commission from merchant #${merchantId} credit purchase (${((1 - commissionRate) * 100).toFixed(0)}%)`,
+          metadata: JSON.stringify({
+            merchant_id: merchantId,
+            admin_id: adminId,
+            purchase_amount: amount,
+            commission_rate: (1 - commissionRate),
+            credits,
+            credit_type: creditType,
+            package_id: creditPackage.id,
+            package_name: creditPackage.name,
+          }),
+          balance_before: superAdminBalanceBefore,
+          balance_after: newSuperAdminBalance,
+          completed_at: new Date(),
+        });
+      }
 
       await queryRunner.commitTransaction();
 
@@ -888,22 +925,47 @@ export class WalletService {
       });
 
       if (adminWallet) {
-        const commission = ANNUAL_FEE * COMMISSION_RATE; // Agent gets 75% (RM900 of RM1199)
+        const adminCommission = ANNUAL_FEE * COMMISSION_RATE; // Agent gets configured % (e.g., 75%)
+        const superAdminCommission = ANNUAL_FEE * (1 - COMMISSION_RATE); // Super admin gets remaining % (e.g., 25%)
+        
         await queryRunner.manager.update(AdminWallet, adminWallet.id, {
-          balance: parseFloat(adminWallet.balance.toString()) + commission,
-          total_earnings: parseFloat(adminWallet.total_earnings.toString()) + commission,
+          balance: parseFloat(adminWallet.balance.toString()) + adminCommission,
+          total_earnings: parseFloat(adminWallet.total_earnings.toString()) + adminCommission,
         });
 
         // Create admin transaction
         await queryRunner.manager.save(WalletTransaction, {
           admin_wallet_id: adminWallet.id,
           type: 'merchant_annual_subscription_commission',
-          amount: commission,
+          amount: adminCommission,
           status: 'completed',
-          description: `Annual subscription commission from merchant #${merchantId}`,
-          metadata: JSON.stringify({ merchant_id: merchantId, total_amount: ANNUAL_FEE }),
+          description: `Annual subscription commission from merchant #${merchantId} (${(COMMISSION_RATE * 100).toFixed(0)}%)`,
+          metadata: JSON.stringify({ merchant_id: merchantId, total_amount: ANNUAL_FEE, commission_rate: COMMISSION_RATE }),
           completed_at: new Date(),
         });
+
+        // Credit super admin wallet with remaining commission
+        const superAdminWallet = await queryRunner.manager.findOne(SuperAdminWallet, {
+          where: { is_active: true },
+        });
+
+        if (superAdminWallet) {
+          await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
+            balance: parseFloat(superAdminWallet.balance.toString()) + superAdminCommission,
+            total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + superAdminCommission,
+          });
+
+          // Create super admin transaction
+          await queryRunner.manager.save(WalletTransaction, {
+            super_admin_wallet_id: superAdminWallet.id,
+            type: 'merchant_annual_subscription_commission',
+            amount: superAdminCommission,
+            status: 'completed',
+            description: `Annual subscription commission from merchant #${merchantId} upgrade (${((1 - COMMISSION_RATE) * 100).toFixed(0)}%)`,
+            metadata: JSON.stringify({ merchant_id: merchantId, admin_id: adminId, total_amount: ANNUAL_FEE, commission_rate: (1 - COMMISSION_RATE) }),
+            completed_at: new Date(),
+          });
+        }
       }
 
       await queryRunner.commitTransaction();
@@ -1198,7 +1260,7 @@ export class WalletService {
       // Create transaction for super admin
       await queryRunner.manager.save(WalletTransaction, {
         super_admin_wallet_id: superAdminWallet.id,
-        type: 'subscription_fee',
+        type: 'agent_subscription_fee',
         amount: subscriptionFee,
         status: 'completed',
         description: `Admin subscription payment from admin #${adminId}`,

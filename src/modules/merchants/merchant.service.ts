@@ -15,6 +15,8 @@ import { WalletTransaction } from '../wallets/entities/wallet-transaction.entity
 import { MerchantSettingService } from '../merchant-settings/merchant-setting.service';
 import { SystemLogService } from '../system-logs/system-log.service';
 import { SystemLogAction } from 'src/common/enums/system-log.enum';
+import { SuperAdminSettingsService } from '../super-admin-settings/super-admin-settings.service';
+import { SuperAdminWallet } from '../wallets/entities/super-admin-wallet.entity';
 
 @Injectable()
 export class MerchantService {
@@ -32,6 +34,7 @@ export class MerchantService {
     private walletService: WalletService,
     private merchantSettingService: MerchantSettingService,
     private systemLogService: SystemLogService,
+    private superAdminSettingsService: SuperAdminSettingsService,
   ) {}
 
   async create(createMerchantDto: CreateMerchantDto) {
@@ -143,9 +146,13 @@ export class MerchantService {
 
       // If annual merchant, credit admin wallet with commission
       if (isAnnual && createMerchantDto.admin_id) {
-        const ANNUAL_FEE = 1199.00;
-        const COMMISSION_RATE = 0.75;
-        const commission = ANNUAL_FEE * COMMISSION_RATE;
+        // Get settings from super admin settings
+        const settings = await this.superAdminSettingsService.getSettings();
+        
+        const ANNUAL_FEE = parseFloat(settings.merchant_annual_fee.toString());
+        const ADMIN_COMMISSION_RATE = parseFloat(settings.annual_merchant_subscription_admin_commission_rate.toString());
+        const adminCommission = ANNUAL_FEE * ADMIN_COMMISSION_RATE;
+        const superAdminCommission = ANNUAL_FEE * (1 - ADMIN_COMMISSION_RATE);
 
         const adminWallet = await queryRunner.manager.findOne(AdminWallet, {
           where: { admin_id: createMerchantDto.admin_id },
@@ -153,18 +160,41 @@ export class MerchantService {
 
         if (adminWallet) {
           await queryRunner.manager.update(AdminWallet, adminWallet.id, {
-            balance: parseFloat(adminWallet.balance.toString()) + commission,
-            total_earnings: parseFloat(adminWallet.total_earnings.toString()) + commission,
+            balance: parseFloat(adminWallet.balance.toString()) + adminCommission,
+            total_earnings: parseFloat(adminWallet.total_earnings.toString()) + adminCommission,
           });
 
           // Create admin transaction
           await queryRunner.manager.save(WalletTransaction, {
             admin_wallet_id: adminWallet.id,
             type: 'merchant_annual_subscription_commission',
-            amount: commission,
+            amount: adminCommission,
             status: 'completed',
-            description: `Annual subscription commission from new merchant #${savedMerchant.id}`,
-            metadata: JSON.stringify({ merchant_id: savedMerchant.id, total_amount: ANNUAL_FEE }),
+            description: `Annual subscription commission from new merchant #${savedMerchant.id} (${(ADMIN_COMMISSION_RATE * 100).toFixed(0)}%)`,
+            metadata: JSON.stringify({ merchant_id: savedMerchant.id, total_amount: ANNUAL_FEE, commission_rate: ADMIN_COMMISSION_RATE }),
+            completed_at: new Date(),
+          });
+        }
+
+        // Credit super admin wallet with remaining commission
+        const superAdminWallet = await queryRunner.manager.findOne(SuperAdminWallet, {
+          where: { is_active: true },
+        });
+
+        if (superAdminWallet) {
+          await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
+            balance: parseFloat(superAdminWallet.balance.toString()) + superAdminCommission,
+            total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + superAdminCommission,
+          });
+
+          // Create super admin transaction
+          await queryRunner.manager.save(WalletTransaction, {
+            super_admin_wallet_id: superAdminWallet.id,
+            type: 'merchant_annual_subscription_commission',
+            amount: superAdminCommission,
+            status: 'completed',
+            description: `Annual subscription commission from new merchant #${savedMerchant.id} (${((1 - ADMIN_COMMISSION_RATE) * 100).toFixed(0)}%)`,
+            metadata: JSON.stringify({ merchant_id: savedMerchant.id, admin_id: createMerchantDto.admin_id, total_amount: ANNUAL_FEE, commission_rate: (1 - ADMIN_COMMISSION_RATE) }),
             completed_at: new Date(),
           });
         }

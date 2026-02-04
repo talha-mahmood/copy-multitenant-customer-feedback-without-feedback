@@ -6,9 +6,10 @@ import { merchantProviders } from './merchant.provider';
 import { WalletModule } from '../wallets/wallet.module';
 import { MerchantSettingModule } from '../merchant-settings/merchant-setting.module';
 import { SystemLogModule } from '../system-logs/system-log.module';
+import { SuperAdminSettingsModule } from '../super-admin-settings/super-admin-settings.module';
 
 @Module({
-  imports: [DatabaseModule, WalletModule, MerchantSettingModule, SystemLogModule],
+  imports: [DatabaseModule, WalletModule, MerchantSettingModule, SystemLogModule, SuperAdminSettingsModule],
   controllers: [MerchantController],
   providers: [MerchantService, ...merchantProviders],
   exports: [MerchantService],

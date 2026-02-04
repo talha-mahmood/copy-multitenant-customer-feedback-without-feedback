@@ -383,7 +383,7 @@ export class MonthlyStatementService {
     // Check if statement already exists
     const existing = await this.monthlyStatementRepository.findOne({
       where: {
-        owner_type: 'master',
+        owner_type: 'super_admin',
         owner_id: 1,
         year,
         month,
@@ -399,7 +399,7 @@ export class MonthlyStatementService {
 
     // Get all ledgers for the period
     const allLedgers = await this.creditLedgerService.getLedgerForPeriod(
-      'master',
+      'super_admin',
       1,
       startDate,
       endDate,
@@ -419,7 +419,7 @@ export class MonthlyStatementService {
       .filter((l) => l.credit_type === 'wa_bi' && l.action === 'deduct')
       .reduce((sum, l) => sum + Math.abs(Number(l.amount)), 0);
 
-    // Get revenue breakdown from wallet transactions
+    // Get revenue breakdown from super admin wallet transactions only
     const revenueStats = await this.dataSource.query(`
       SELECT 
         COALESCE(SUM(amount) FILTER (WHERE type IN ('merchant_annual_subscription_commission', 'merchant_package_commission')), 0) AS total_commissions,
@@ -427,7 +427,29 @@ export class MonthlyStatementService {
         COALESCE(SUM(amount) FILTER (WHERE type = 'merchant_package_commission'), 0) AS package_commission_revenue,
         COALESCE(SUM(amount) FILTER (WHERE type = 'agent_subscription_fee'), 0) AS agent_subscription_revenue
       FROM wallet_transactions
-      WHERE created_at BETWEEN $1 AND $2
+      WHERE super_admin_wallet_id IS NOT NULL
+        AND created_at BETWEEN $1 AND $2
+    `, [startDate, endDate]);
+
+    // Get admin commissions paid out (for comparison/tracking)
+    const adminCommissions = await this.dataSource.query(`
+      SELECT 
+        COALESCE(SUM(amount) FILTER (WHERE type = 'merchant_annual_subscription_commission'), 0) AS admin_annual_subscription_commissions,
+        COALESCE(SUM(amount) FILTER (WHERE type = 'merchant_package_commission'), 0) AS admin_package_commissions,
+        COALESCE(SUM(amount) FILTER (WHERE type IN ('merchant_annual_subscription_commission', 'merchant_package_commission')), 0) AS total_admin_commissions
+      FROM wallet_transactions
+      WHERE admin_wallet_id IS NOT NULL
+        AND created_at BETWEEN $1 AND $2
+    `, [startDate, endDate]);
+
+    // Get total merchant payments (gross revenue)
+    const merchantPayments = await this.dataSource.query(`
+      SELECT 
+        COALESCE(SUM(amount), 0) AS total_merchant_payments
+      FROM wallet_transactions
+      WHERE merchant_wallet_id IS NOT NULL
+        AND type = 'purchase'
+        AND created_at BETWEEN $1 AND $2
     `, [startDate, endDate]);
 
     // Get agent statistics
@@ -515,10 +537,22 @@ export class MonthlyStatementService {
         total_whatsapp_bi: whatsappBIUsage,
       },
       revenue: {
+        // Super admin's share (platform revenue)
         total_commissions: Number(revenueStats[0].total_commissions),
         annual_subscription_revenue: Number(revenueStats[0].annual_subscription_revenue),
         package_commission_revenue: Number(revenueStats[0].package_commission_revenue),
         agent_subscription_revenue: Number(revenueStats[0].agent_subscription_revenue),
+        
+        // Admin commissions (paid out to agents)
+        admin_annual_subscription_commissions: Number(adminCommissions[0].admin_annual_subscription_commissions),
+        admin_package_commissions: Number(adminCommissions[0].admin_package_commissions),
+        total_admin_commissions: Number(adminCommissions[0].total_admin_commissions),
+        
+        // Gross merchant payments
+        total_merchant_payments: Number(merchantPayments[0].total_merchant_payments),
+        
+        // Total platform revenue (super admin + agent subscription fees)
+        total_platform_revenue: Number(revenueStats[0].total_commissions) + Number(revenueStats[0].agent_subscription_revenue),
       },
       agents: {
         total: Number(agentStats[0].total_agents),
@@ -556,7 +590,7 @@ export class MonthlyStatementService {
     };
 
     const statement = this.monthlyStatementRepository.create({
-      owner_type: 'master',
+      owner_type: 'super_admin',
       owner_id: 1,
       year,
       month,
@@ -699,7 +733,7 @@ export class MonthlyStatementService {
       const agent = await this.adminRepository.findOne({ where: { id: statement.owner_id }, relations: ['user'] });
       if (!agent) throw new Error('Agent not found');
       pdfBuffer = await this.createAgentPdf(agent, monthStr, statement.statement_data, ledgers);
-    } else if (statement.owner_type === 'master') {
+    } else if (statement.owner_type === 'super_admin') {
       pdfBuffer = await this.createMasterPdf(monthStr, statement.statement_data, ledgers);
     } else {
       throw new Error('Invalid owner type');
@@ -889,22 +923,22 @@ export class MonthlyStatementService {
 
     // Global Metrics Summary Box
     this.drawSummaryBox(doc, [
-      { label: 'TOTAL COMMISSIONS', opening: '-', closing: '$' + ((s.revenue?.total_commissions || 0)).toFixed(2) },
+      { label: 'SUPER ADMIN REVENUE', opening: '-', closing: '$' + ((s.revenue?.total_platform_revenue || 0)).toFixed(2) },
+      { label: 'AGENT SUBSCRIPTIONS', opening: '-', closing: '$' + ((s.revenue?.agent_subscription_revenue || 0)).toFixed(2) },
       { label: 'ACTIVE MERCHANTS', opening: '-', closing: (s.merchants?.active || 0).toString() },
-      { label: 'ACTIVE AGENTS', opening: '-', closing: (s.agents?.active || 0).toString() },
     ]);
     doc.moveDown(0.5);
 
-    // Revenue Breakdown
-    this.drawSectionHeader(doc, 'REVENUE BREAKDOWN');
-    const revenueData = [
+    // Revenue Breakdown - Super Admin Earnings Only
+    this.drawSectionHeader(doc, 'PLATFORM REVENUE (SUPER ADMIN)');
+    const platformRevenueData = [
       ['Revenue Source', 'Amount'],
-      ['Annual Subscription Commissions', '$' + ((s.revenue?.annual_subscription_revenue || 0)).toFixed(2)],
-      ['Package Purchase Commissions', '$' + ((s.revenue?.package_commission_revenue || 0)).toFixed(2)],
-      ['Agent Subscription Fees', '$' + ((s.revenue?.agent_subscription_revenue || 0)).toFixed(2)],
-      ['Total Commissions', '$' + ((s.revenue?.total_commissions || 0)).toFixed(2)],
+      ['Agents Subscription Fees Revenue', '$' + ((s.revenue?.agent_subscription_revenue || 0)).toFixed(2)],
+      ['Annual Merchant Subscription Fees Revenue', '$' + ((s.revenue?.annual_subscription_revenue || 0)).toFixed(2)],
+      ['Merchants Package Commissions', '$' + ((s.revenue?.package_commission_revenue || 0)).toFixed(2)],
+      ['Total Super Admin Revenue', '$' + ((s.revenue?.total_platform_revenue || 0)).toFixed(2)],
     ];
-    this.drawTable(doc, revenueData, [360, 150]);
+    this.drawTable(doc, platformRevenueData, [360, 150]);
     doc.moveDown(0.5);
 
     // Agent Statistics
