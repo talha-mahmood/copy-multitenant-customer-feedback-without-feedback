@@ -61,6 +61,10 @@ export class CreateMerchantSettingDto {
   @IsString()
   paid_ad_placement?: string;
 
+  @IsOptional()
+  @IsInt()
+  paid_ad_duration?: number;
+
   @Exists(() => CouponBatch, 'id', { message: 'Coupon Batch must exist' })
   @IsOptional()
   @IsInt()
