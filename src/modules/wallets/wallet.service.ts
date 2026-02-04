@@ -47,12 +47,8 @@ export class WalletService {
     private dataSource: DataSource,
     private systemLogService: SystemLogService,
     private superAdminSettingsService: SuperAdminSettingsService,
-<<<<<<< monthly-statements-ledger-implementation
     private creditLedgerService: CreditLedgerService,
   ) {}
-=======
-  ) { }
->>>>>>> main
 
   /**
    * Create admin wallet when admin is created
