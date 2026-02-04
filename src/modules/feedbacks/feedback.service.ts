@@ -372,7 +372,6 @@ export class FeedbackService {
           customer: savedCustomer,
           coupon: coupon ? {
             id: coupon.id,
-            coupon_code: coupon.coupon_code,
             status: coupon.status,
             whatsapp_sent: coupon.whatsapp_sent,
           } : null,
@@ -564,43 +563,43 @@ export class FeedbackService {
     };
   }
 
-  async checkCustomerByPhone(phone: string) {
-  if (!phone?.trim()) {
-    throw new HttpException('Phone number is required', 400);
-  }
+//   async checkCustomerByPhone(phone: string) {
+//   if (!phone?.trim()) {
+//     throw new HttpException('Phone number is required', 400);
+//   }
 
-  const normalizedPhone = this.normalizePhone(phone);
+//   const normalizedPhone = this.normalizePhone(phone);
 
-  const customer = await this.customerRepository
-    .createQueryBuilder('customer')
-    .where(
-      `
-        REGEXP_REPLACE(customer.phone, '[^0-9]', '', 'g')
-        LIKE :phone
-      `,
-      { phone: `%${normalizedPhone}%` },
-    )
-    .getOne();
+//   const customer = await this.customerRepository
+//     .createQueryBuilder('customer')
+//     .where(
+//       `
+//         REGEXP_REPLACE(customer.phone, '[^0-9]', '', 'g')
+//         LIKE :phone
+//       `,
+//       { phone: `%${normalizedPhone}%` },
+//     )
+//     .getOne();
 
-  if (!customer) {
-    return {
-      message: 'Customer not found',
-      data: null,
-    };
-  }
+//   if (!customer) {
+//     return {
+//       message: 'Customer not found',
+//       data: null,
+//     };
+//   }
 
-  return {
-    message: 'Customer found',
-    data: {
-      name: customer.name,
-      email: customer.email,
-      phone: customer.phone,
-      address: customer.address,
-      gender: customer.gender,
-      date_of_birth: this.formatDate(customer.date_of_birth),
-    },
-  };
-}
+//   return {
+//     message: 'Customer found',
+//     data: {
+//       name: customer.name,
+//       email: customer.email,
+//       phone: customer.phone,
+//       address: customer.address,
+//       gender: customer.gender,
+//       date_of_birth: this.formatDate(customer.date_of_birth),
+//     },
+//   };
+// }
 
 
 

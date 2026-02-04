@@ -40,11 +40,11 @@ export class FeedbackController {
     return this.feedbackService.findAll(page, pageSize, merchantId, customerId, user);
   }
 
-  @Public()
-  @Get('check-customer-by-phone')
-  checkCustomerByPhone(@Query('phone') phone: string) {
-    return this.feedbackService.checkCustomerByPhone(phone);
-  }
+  // @Public()
+  // @Get('check-customer-by-phone')
+  // checkCustomerByPhone(@Query('phone') phone: string) {
+  //   return this.feedbackService.checkCustomerByPhone(phone);
+  // }
 
   @Get('analytics/:merchantId')
   getReviewAnalytics(@Param('merchantId', ParseIntPipe) merchantId: number) {
