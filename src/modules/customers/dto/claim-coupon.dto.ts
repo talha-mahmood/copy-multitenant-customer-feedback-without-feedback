@@ -5,6 +5,10 @@ export class ClaimCouponDto {
   @IsNotEmpty()
   merchant_id: number;
 
+  @IsInt()
+  @IsNotEmpty()
+  coupon_batch_id: number;
+
   @IsString()
   @IsNotEmpty()
   name: string;
