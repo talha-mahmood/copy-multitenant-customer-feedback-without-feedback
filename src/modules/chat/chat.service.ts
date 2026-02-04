@@ -217,9 +217,9 @@ export class ChatService {
     // Support Inbox Methods
     async createSupportConversation(user: any, message: string, imageUrl?: string) {
         let type: ConversationType;
-        let superAdminId: number = null;
+        let superAdminId: number | null = null;
         let adminId: number;
-        let merchantId: number = null;
+        let merchantId: number | null = null;
 
         // Determine conversation type based on user role
         if (user.role === 'admin') {
@@ -409,7 +409,7 @@ export class ChatService {
         }
     }
 
-    private getSenderId(user: any): number {
+    private getSenderId(user: any): number | null {
         if (user.role === 'super_admin') return user.superAdminId || 1;
         if (user.role === 'admin') return user.adminId;
         if (user.role === 'merchant') return user.merchantId;

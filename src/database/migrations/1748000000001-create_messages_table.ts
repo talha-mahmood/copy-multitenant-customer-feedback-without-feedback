@@ -95,10 +95,14 @@ export class CreateMessagesTable1748000000001 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     const table = await queryRunner.getTable('messages');
-    const foreignKey = table.foreignKeys.find(
-      fk => fk.columnNames.indexOf('conversation_id') !== -1,
-    );
-    await queryRunner.dropForeignKey('messages', foreignKey);
+    if (table) {
+      const foreignKey = table.foreignKeys.find(
+        fk => fk.columnNames.indexOf('conversation_id') !== -1,
+      );
+      if (foreignKey) {
+        await queryRunner.dropForeignKey('messages', foreignKey);
+      }
+    }
     await queryRunner.dropTable('messages');
   }
 }
