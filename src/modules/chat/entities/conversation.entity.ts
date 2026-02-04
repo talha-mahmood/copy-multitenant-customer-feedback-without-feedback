@@ -10,6 +10,11 @@ export enum ConversationType {
     AGENT_MERCHANT = 'AGENT_MERCHANT',
 }
 
+export enum ConversationCategory {
+    SUPPORT = 'support',
+    CHAT = 'chat',
+}
+
 @Entity('conversations')
 export class Conversation extends BaseEntity {
     @Column({
@@ -17,6 +22,22 @@ export class Conversation extends BaseEntity {
         enum: ConversationType,
     })
     type: ConversationType;
+
+    @Column({
+        type: 'enum',
+        enum: ConversationCategory,
+        default: ConversationCategory.CHAT,
+    })
+    category: ConversationCategory;
+
+    @Column({ name: 'last_message', type: 'text', nullable: true })
+    last_message: string;
+
+    @Column({ name: 'last_message_at', type: 'timestamp', nullable: true })
+    last_message_at: Date;
+
+    @Column({ name: 'is_read', default: false })
+    is_read: boolean;
 
     @Column({ name: 'super_admin_id', nullable: true })
     super_admin_id: number;
