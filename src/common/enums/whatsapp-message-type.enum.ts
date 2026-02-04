@@ -34,4 +34,5 @@ export enum WhatsAppCampaignType {
   INACTIVE_RECALL = 'inactive_recall',
   FESTIVAL = 'festival',
   CUSTOM = 'custom',
+  DIRECT_CLAIM = 'direct_claim',
 }
