@@ -216,7 +216,7 @@ export class ChatService {
 
     // Support Inbox Methods
     async createSupportConversation(user: any, message: string, imageUrl?: string) {
-        let type: ConversationType;
+        let conversationType: ConversationType;
         let superAdminId: number | null = null;
         let adminId: number;
         let merchantId: number | null = null;
@@ -224,12 +224,12 @@ export class ChatService {
         // Determine conversation type based on user role
         if (user.role === 'admin') {
             // Agent contacting main platform
-            type = ConversationType.SUPERADMIN_AGENT;
+            conversationType = ConversationType.SUPERADMIN_AGENT;
             superAdminId = 1; // Static super admin ID
             adminId = user.adminId;
         } else if (user.role === 'merchant') {
             // Merchant contacting their agent
-            type = ConversationType.AGENT_MERCHANT;
+            conversationType = ConversationType.AGENT_MERCHANT;
             const merchant = await this.merchantRepository.findOne({
                 where: { id: user.merchantId },
             });
@@ -243,8 +243,8 @@ export class ChatService {
         }
 
         // Create conversation
-        const conversation = this.conversationRepository.create({
-            type,
+        const conversationData: any = {
+            type: conversationType,
             category: ConversationCategory.SUPPORT,
             super_admin_id: superAdminId,
             agent_id: adminId,
@@ -252,9 +252,11 @@ export class ChatService {
             last_message: message,
             last_message_at: new Date(),
             is_read: false,
-        });
+        };
+        
+        const conversation = this.conversationRepository.create(conversationData);
 
-        const savedConversation = await this.conversationRepository.save(conversation);
+        const savedConversation = await this.conversationRepository.save(conversation) as unknown as Conversation;
 
         // Create first message
         const firstMessage = this.messageRepository.create({
@@ -328,10 +330,15 @@ export class ChatService {
         // Validate access
         this.validateSupportAccess(user, conversation);
 
+        const senderId = this.getSenderId(user);
+        if (!senderId) {
+            throw new ForbiddenException('Invalid user');
+        }
+
         // Create message
         const newMessage = this.messageRepository.create({
             conversation_id: conversationId,
-            sender_id: this.getSenderId(user),
+            sender_id: senderId,
             sender_role: user.role,
             sender_name: user.name || 'Support',
             content: message,
