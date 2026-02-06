@@ -10,9 +10,10 @@ import { SystemLogModule } from '../system-logs/system-log.module';
 import { CreditLedgerModule } from '../credits-ledger/credit-ledger.module';
 import { couponProvider } from '../coupons/coupon.provider';
 import { walletProviders } from '../wallets/wallet.provider';
+import { NestjsFormDataModule } from 'nestjs-form-data';
 
 @Module({
-  imports: [DatabaseModule, ConfigModule, WalletModule, SystemLogModule, CreditLedgerModule],
+  imports: [DatabaseModule, ConfigModule, WalletModule, SystemLogModule, CreditLedgerModule, NestjsFormDataModule],
   controllers: [CouponBatchController],
   providers: [
     CouponBatchService,
@@ -23,4 +24,4 @@ import { walletProviders } from '../wallets/wallet.provider';
   ],
   exports: [CouponBatchService],
 })
-export class CouponBatchModule {}
+export class CouponBatchModule { }

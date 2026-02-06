@@ -19,14 +19,23 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
 import { CurrentUser, User } from 'src/common/decorators/current-user';
 
+import { UploadBrandImageDto } from './dto/upload-brand-image.dto';
+import { FormDataRequest } from 'nestjs-form-data';
+
 @Controller('coupon-batches')
 @UseGuards(JwtAuthGuard)
 export class CouponBatchController {
-  constructor(private readonly couponBatchService: CouponBatchService) {}
+  constructor(private readonly couponBatchService: CouponBatchService) { }
 
   @Post()
   create(@Body() createCouponBatchDto: CreateCouponBatchDto) {
     return this.couponBatchService.create(createCouponBatchDto);
+  }
+
+  @Post('upload-brand-image')
+  @FormDataRequest()
+  async uploadBrandImage(@Body() uploadBrandImageDto: UploadBrandImageDto) {
+    return this.couponBatchService.uploadBrandImage(uploadBrandImageDto.brandImage);
   }
 
   @Get()

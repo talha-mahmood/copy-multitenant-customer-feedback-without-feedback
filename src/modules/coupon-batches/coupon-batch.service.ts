@@ -15,6 +15,9 @@ import { WalletService } from '../wallets/wallet.service';
 import { SystemLogService } from '../system-logs/system-log.service';
 import { SystemLogAction } from 'src/common/enums/system-log.enum';
 
+import { uploadFile } from 'src/common/helpers/file-upload.helper';
+import { FileUploadStorageType } from 'src/common/enums/file-upload-storage-type.enum';
+
 @Injectable()
 export class CouponBatchService {
   constructor(
@@ -29,7 +32,21 @@ export class CouponBatchService {
     private configService: ConfigService,
     private walletService: WalletService,
     private systemLogService: SystemLogService,
-  ) {}
+  ) { }
+
+  async uploadBrandImage(brandImage: any) {
+    const timestamp = Date.now();
+    const uploadResult = await uploadFile(
+      brandImage,
+      `coupon-batches/brand-images/${timestamp}`,
+      FileUploadStorageType.LOCAL_STORAGE,
+    );
+
+    return {
+      message: `Uploaded brand image successfully`,
+      url: uploadResult.relativePath,
+    };
+  }
 
   async create(createCouponBatchDto: CreateCouponBatchDto) {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -79,13 +96,13 @@ export class CouponBatchService {
       // Auto-generate coupons for the batch
       const coupons: Coupon[] = [];
       const secret = this.configService.get<string>('APP_KEY') || 'default-secret';
-      
+
       for (let i = 0; i < createCouponBatchDto.total_quantity; i++) {
         const couponCode = CouponCodeGenerator.generate('CPN');
-        const qrHash = QRCodeHelper.generateHash(savedBatch.merchant_id, savedBatch.id, secret);
+        const qrHash = QRCodeHelper.generateHash(createCouponBatchDto.merchant_id, savedBatch.id, secret);
         const coupon = queryRunner.manager.create(Coupon, {
           batch_id: savedBatch.id,
-          merchant_id: savedBatch.merchant_id,
+          merchant_id: createCouponBatchDto.merchant_id,
           coupon_code: couponCode,
           qr_hash: qrHash,
           status: 'created',
@@ -93,6 +110,7 @@ export class CouponBatchService {
           header: createCouponBatchDto.header,
           title: createCouponBatchDto.title,
           description: createCouponBatchDto.description,
+          brand_image: createCouponBatchDto.brand_image,
           ishalal: createCouponBatchDto.ishalal ?? false,
         });
         coupons.push(coupon);
@@ -124,7 +142,7 @@ export class CouponBatchService {
       );
 
       await queryRunner.commitTransaction();
-      
+
       return {
         message: `Coupon batch created successfully with ${coupons.length} coupons. ${createCouponBatchDto.total_quantity} coupon credits deducted.`,
         data: {
@@ -163,9 +181,9 @@ export class CouponBatchService {
   private generateBatchQRData(merchantId: number, batchId: number): { url: string; image: string } {
     const baseUrl = this.configService.get<string>('APP_FRONTEND_URL') || 'http://localhost:3000';
     const secret = this.configService.get<string>('APP_KEY') || 'default-secret';
-    
+
     const url = QRCodeHelper.generateQRCodeUrl(merchantId, batchId, baseUrl, secret);
-    
+
     return {
       url,
       image: url, // Placeholder - will generate actual QR image in next step
@@ -184,7 +202,7 @@ export class CouponBatchService {
       .leftJoinAndSelect('couponBatch.merchant', 'merchant');
 
     if (filters?.merchantId) {
-      queryBuilder.andWhere('couponBatch.merchant_id = :merchantId', { merchantId : filters?.merchantId });
+      queryBuilder.andWhere('couponBatch.merchant_id = :merchantId', { merchantId: filters?.merchantId });
     }
 
     // If admin, filter by admin's merchants
@@ -267,9 +285,9 @@ export class CouponBatchService {
   }
 
 
-    /**
-   * Export a single coupon batch and its coupons as PDF (base64)
-   */
+  /**
+ * Export a single coupon batch and its coupons as PDF (base64)
+ */
   async exportBatchPdf(batchId: number) {
     const batch = await this.couponBatchRepository.findOne({ where: { id: batchId } });
     if (!batch) {
