@@ -273,7 +273,7 @@ export class FeedbackService {
           });
 
           if (!coupon) {
-            throw new HttpException('No available coupons', 404);
+            console.log('No available coupons', 404);
           }
         }
       }
