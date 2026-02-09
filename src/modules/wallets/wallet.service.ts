@@ -512,9 +512,15 @@ export class WalletService {
         const superAdminBalanceBefore = parseFloat(superAdminWallet.balance.toString());
         const newSuperAdminBalance = superAdminBalanceBefore + platformAmount;
 
+        // Determine which commission field to update based on merchant type
+        const commissionField = merchant.merchant_type === 'temporary'
+          ? 'commission_temporary_merchant_packages'
+          : 'commission_annual_merchant_packages';
+
         await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
           balance: newSuperAdminBalance,
           total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + platformAmount,
+          [commissionField]: parseFloat(superAdminWallet[commissionField].toString()) + platformAmount,
         });
 
         // Create super admin transaction
@@ -983,6 +989,7 @@ export class WalletService {
           await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
             balance: parseFloat(superAdminWallet.balance.toString()) + superAdminCommission,
             total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + superAdminCommission,
+            commission_merchant_annual_fee: parseFloat(superAdminWallet.commission_merchant_annual_fee.toString()) + superAdminCommission,
           });
 
           // Create super admin transaction
@@ -1285,6 +1292,7 @@ export class WalletService {
       await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
         balance: parseFloat(superAdminWallet.balance.toString()) + subscriptionFee,
         total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + subscriptionFee,
+        revenue_admin_annual_subscription_fee: parseFloat(superAdminWallet.revenue_admin_annual_subscription_fee.toString()) + subscriptionFee,
       });
 
       // Create transaction for super admin

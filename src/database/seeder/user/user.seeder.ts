@@ -112,6 +112,10 @@ export async function seedUser(dataSource: DataSource) {
         total_earnings: 0,
         total_spent: 0,
         pending_amount: 0,
+        revenue_admin_annual_subscription_fee: 0,
+        commission_temporary_merchant_packages: 0,
+        commission_annual_merchant_packages: 0,
+        commission_merchant_annual_fee: 0,
         currency: 'USD',
         is_active: true,
       });
