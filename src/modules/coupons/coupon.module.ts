@@ -12,9 +12,10 @@ import { MERCHANT_WALLET_REPOSITORY, CREDITS_LEDGER_REPOSITORY } from '../wallet
 import { MerchantWallet } from '../wallets/entities/merchant-wallet.entity';
 import { CreditsLedger } from '../wallets/entities/credits-ledger.entity';
 import { DataSource } from 'typeorm';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [DatabaseModule, SystemLogModule],
+  imports: [DatabaseModule, SystemLogModule, ConfigModule],
   controllers: [CouponController],
   providers: [
     CouponService,
@@ -36,4 +37,4 @@ import { DataSource } from 'typeorm';
   ],
   exports: [CouponService],
 })
-export class CouponModule {}
+export class CouponModule { }
