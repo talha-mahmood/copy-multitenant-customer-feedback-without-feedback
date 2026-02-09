@@ -8,6 +8,7 @@ import { UpdateCouponDto } from './dto/update-coupon.dto';
 import { instanceToPlain } from 'class-transformer';
 import { SystemLogService } from '../system-logs/system-log.service';
 import { SystemLogAction } from 'src/common/enums/system-log.enum';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CouponService {
@@ -19,6 +20,7 @@ export class CouponService {
     private systemLogService: SystemLogService,
     @Inject('ADMIN_REPOSITORY')
     private adminRepository: Repository<Admin>,
+    private configService: ConfigService,
   ) { }
 
   /**
@@ -182,15 +184,25 @@ export class CouponService {
 
           // Inject dynamic fields if HTML exists
           if (renderedHtml) {
+            const backendUrl = this.configService.get<string>('APP_URL') || 'http://localhost:8000';
+            let brandLogo = batch.brand_image || '';
+
+            if (brandLogo && !brandLogo.startsWith('http')) {
+              // Ensure brandLogo starts with a slash
+              const logoPath = brandLogo.startsWith('/') ? brandLogo : `/${brandLogo}`;
+              brandLogo = `${backendUrl}/api${logoPath}`;
+            }
+
             const replacements = {
               '{{header}}': header,
               '{{title}}': title,
               '{{description}}': description,
+              '{{logo}}': brandLogo,
             };
 
             Object.entries(replacements).forEach(([placeholder, value]) => {
               const regex = new RegExp(placeholder.replace('{{', '{{\\s*').replace('}}', '\\s*}}'), 'gi');
-              renderedHtml = renderedHtml.replace(regex, value);
+              renderedHtml = renderedHtml.replace(regex, value || '');
             });
           }
 
@@ -214,7 +226,7 @@ export class CouponService {
         total,
         page,
         pageSize,
-        },
+      },
     };
   }
 
@@ -255,15 +267,25 @@ export class CouponService {
 
               // Inject dynamic fields if HTML exists
               if (renderedHtml) {
+                const backendUrl = this.configService.get<string>('APP_URL') || 'http://localhost:8000';
+                let brandLogo = batch.brand_image || '';
+
+                if (brandLogo && !brandLogo.startsWith('http')) {
+                  // Ensure brandLogo starts with a slash
+                  const logoPath = brandLogo.startsWith('/') ? brandLogo : `/${brandLogo}`;
+                  brandLogo = `${backendUrl}/api${logoPath}`;
+                }
+
                 const replacements = {
                   '{{header}}': header,
                   '{{title}}': title,
                   '{{description}}': description,
+                  '{{logo}}': brandLogo,
                 };
 
                 Object.entries(replacements).forEach(([placeholder, value]) => {
                   const regex = new RegExp(placeholder.replace('{{', '{{\\s*').replace('}}', '\\s*}}'), 'gi');
-                  renderedHtml = renderedHtml.replace(regex, value);
+                  renderedHtml = renderedHtml.replace(regex, value || '');
                 });
               }
 
@@ -353,7 +375,7 @@ export class CouponService {
   }
 
   async updateCouponStatus(id: number, status: string) {
-    const coupon = await this.couponRepository.findOne({ 
+    const coupon = await this.couponRepository.findOne({
       where: { id },
       relations: ['batch']
     });
@@ -370,7 +392,7 @@ export class CouponService {
     // Set timestamps based on status
     if (status === 'issued' && oldStatus !== 'issued') {
       coupon.issued_at = new Date();
-      
+
       // Increment batch issued_quantity when status changes to 'issued'
       if (coupon.batch) {
         coupon.batch.issued_quantity += 1;

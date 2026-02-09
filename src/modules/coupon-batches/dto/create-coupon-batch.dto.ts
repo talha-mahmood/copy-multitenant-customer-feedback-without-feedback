@@ -65,4 +65,7 @@ export class CreateCouponBatchDto {
   @IsOptional()
   visibility?: boolean;
 
+  @IsString()
+  @IsOptional()
+  brand_image?: string;
 }
