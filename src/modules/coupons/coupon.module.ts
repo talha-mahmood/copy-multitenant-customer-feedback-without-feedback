@@ -7,11 +7,12 @@ import { couponTemplateProvider } from './coupon-template.provider';
 import { merchantProviders } from '../merchants/merchant.provider';
 import { SystemLogModule } from '../system-logs/system-log.module';
 import { adminProviders } from '../admins/admin.provider';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [DatabaseModule, SystemLogModule],
+  imports: [DatabaseModule, SystemLogModule, ConfigModule],
   controllers: [CouponController],
   providers: [CouponService, ...couponProvider, ...couponTemplateProvider, ...merchantProviders, ...adminProviders],
   exports: [CouponService],
 })
-export class CouponModule {}
+export class CouponModule { }
