@@ -43,6 +43,9 @@ export class MerchantSetting extends BaseEntity {
   @Column({ name: 'paid_ad_placement', type: 'text', nullable: true, default: 'top' })
   paid_ad_placement: string;
 
+  @Column({ name: 'paid_ad_duration', type: 'int', default: 7 })
+  paid_ad_duration: number;
+
   @Column({ name: 'placement', length: 255, nullable: true, default: null })
   placement: string;
 

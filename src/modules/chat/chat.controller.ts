@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { SkipSubscription } from 'src/common/decorators/skip-subscription.decorator';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
@@ -47,6 +47,46 @@ export class ChatController {
             req.user.superAdminId,
             req.user.adminId,
             req.user.merchantId
+        );
+    }
+
+    // Support Inbox Endpoints
+    @Post('support/conversations')
+    async createSupportConversation(
+        @Request() req,
+        @Body() body: { message: string; image_url?: string }
+    ) {
+        return await this.chatService.createSupportConversation(
+            req.user,
+            body.message,
+            body.image_url
+        );
+    }
+
+    @Get('support/inbox')
+    async getSupportInbox(@Request() req) {
+        return await this.chatService.getSupportInbox(req.user);
+    }
+
+    @Get('support/conversations/:id/messages')
+    async getSupportMessages(
+        @Request() req,
+        @Param('id') id: string
+    ) {
+        return await this.chatService.getSupportMessages(req.user, +id);
+    }
+
+    @Post('support/conversations/:id/messages')
+    async sendSupportMessage(
+        @Request() req,
+        @Param('id') id: string,
+        @Body() body: { message: string; image_url?: string }
+    ) {
+        return await this.chatService.sendSupportMessage(
+            req.user,
+            +id,
+            body.message,
+            body.image_url
         );
     }
 }

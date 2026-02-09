@@ -185,6 +185,7 @@ export class MerchantService {
           await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
             balance: parseFloat(superAdminWallet.balance.toString()) + superAdminCommission,
             total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + superAdminCommission,
+            commission_merchant_annual_fee: parseFloat(superAdminWallet.commission_merchant_annual_fee.toString()) + superAdminCommission,
           });
 
           // Create super admin transaction

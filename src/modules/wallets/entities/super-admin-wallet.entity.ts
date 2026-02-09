@@ -24,6 +24,18 @@ export class SuperAdminWallet extends BaseEntity {
   @Column({ name: 'pending_amount', type: 'decimal', precision: 10, scale: 2, default: 0 })
   pending_amount: number;
 
+  @Column({ name: 'revenue_admin_annual_subscription_fee', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  revenue_admin_annual_subscription_fee: number;
+
+  @Column({ name: 'commission_temporary_merchant_packages', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  commission_temporary_merchant_packages: number;
+
+  @Column({ name: 'commission_annual_merchant_packages', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  commission_annual_merchant_packages: number;
+
+  @Column({ name: 'commission_merchant_annual_fee', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  commission_merchant_annual_fee: number;
+
   @Column({ type: 'varchar', length: 10, default: 'USD' })
   currency: string;
 

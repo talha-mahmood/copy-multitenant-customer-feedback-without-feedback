@@ -15,6 +15,8 @@ import { CustomerService } from './customer.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { ShowCustomerDto } from './dto/show-customer.dto';
+import { ClaimCouponDto } from './dto/claim-coupon.dto';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('customers')
 export class CustomerController {
@@ -23,6 +25,18 @@ export class CustomerController {
   @Post()
   create(@Body() createCustomerDto: CreateCustomerDto) {
     return this.customerService.create(createCustomerDto);
+  }
+
+  @Public()
+  @Get('check-by-phone')
+  checkCustomerByPhone(@Query('phone') phone: string) {
+    return this.customerService.checkCustomerByPhone(phone);
+  }
+
+  @Public()
+  @Post('claim-coupon')
+  claimCoupon(@Body() claimCouponDto: ClaimCouponDto) {
+    return this.customerService.claimCoupon(claimCouponDto);
   }
 
   @Get()

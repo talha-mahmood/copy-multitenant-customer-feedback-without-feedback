@@ -8,6 +8,8 @@ export class StatementCronService {
 
   // Run on the 1st of every month at 1:00 AM
   @Cron('0 1 1 * *')
+  //Run every 3 minutes for testing
+  // @Cron('*/3 * * * *')
   async generateMonthlyStatements() {
     console.log('Starting monthly statement generation...');
     
