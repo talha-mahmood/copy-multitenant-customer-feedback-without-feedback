@@ -63,4 +63,7 @@ export class Coupon extends BaseEntity {
 
   @Column({ name: 'pdf_url', type: 'text', nullable: true })
   pdf_url: string;
+
+  @Column({ name: 'brand_image', type: 'varchar', length: 255 })
+  brand_image: string;
 }

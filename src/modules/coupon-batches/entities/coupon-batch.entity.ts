@@ -60,4 +60,7 @@ export class CouponBatch extends BaseEntity {
 
   @Column({ name: 'description', type: 'text', nullable: true })
   description: string;
+
+  @Column({ name: 'brand_image', type: 'varchar', length: 255 })
+  brand_image: string;
 }
