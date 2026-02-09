@@ -19,6 +19,27 @@ export class CreateChatTables1769000000000 implements MigrationInterface {
                     type: "varchar",
                 },
                 {
+                    name: "category",
+                    type: "enum",
+                    enum: ["support", "chat"],
+                    default: "'chat'"
+                },
+                {
+                    name: "last_message",
+                    type: "text",
+                    isNullable: true,
+                },
+                {
+                    name: "last_message_at",
+                    type: "timestamp",
+                    isNullable: true,
+                },
+                {
+                    name: "is_read",
+                    type: "boolean",
+                    default: false
+                },
+                {
                     name: "super_admin_id",
                     type: "int",
                     isNullable: true,
@@ -96,8 +117,19 @@ export class CreateChatTables1769000000000 implements MigrationInterface {
                     type: "varchar",
                 },
                 {
+                    name: "sender_name",
+                    type: "varchar",
+                    isNullable: true,
+                },
+                {
                     name: "content",
                     type: "text",
+                },
+                {
+                    name: "image_url",
+                    type: "varchar",
+                    length: "500",
+                    isNullable: true,
                 },
                 {
                     name: "is_read",

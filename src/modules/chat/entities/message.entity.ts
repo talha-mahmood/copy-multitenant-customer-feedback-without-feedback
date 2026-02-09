@@ -17,8 +17,14 @@ export class Message extends BaseEntity {
     @Column({ name: 'sender_role' })
     sender_role: string;
 
+    @Column({ name: 'sender_name', nullable: true })
+    sender_name: string;
+
     @Column({ type: 'text' })
     content: string;
+
+    @Column({ name: 'image_url', nullable: true })
+    image_url: string;
 
     @Column({ name: 'is_read', default: false })
     is_read: boolean;
