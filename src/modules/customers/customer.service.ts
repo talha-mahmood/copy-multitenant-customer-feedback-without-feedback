@@ -215,7 +215,7 @@ export class CustomerService {
       // }
 
       // 3. Check or create customer
-      let customer = await this.customerRepository.findOne({
+      let customer = await queryRunner.manager.findOne(Customer, {
         where: { phone: claimCouponDto.phone },
       });
 
@@ -247,6 +247,50 @@ export class CustomerService {
 
         const newCustomer = queryRunner.manager.create(Customer, customerData);
         customer = await queryRunner.manager.save(newCustomer);
+      } else {
+        // Update existing customer if values have changed
+        const updates: any = {};
+        let hasChanges = false;
+
+        // Compare and update name
+        if (claimCouponDto.name && claimCouponDto.name.trim() && claimCouponDto.name !== customer.name) {
+          updates.name = claimCouponDto.name.trim();
+          hasChanges = true;
+        }
+
+        // Compare and update date_of_birth
+        if (claimCouponDto.date_of_birth) {
+          const dateStr = claimCouponDto.date_of_birth.trim();
+          const [day, month, year] = dateStr.split('-');
+          
+          // Validate date parts
+          if (day && month && year && year.length === 4) {
+            const paddedDay = day.padStart(2, '0');
+            const paddedMonth = month.padStart(2, '0');
+            const formattedDate = `${year}-${paddedMonth}-${paddedDay}`;
+            
+            // Compare with existing date
+            const existingDate = customer.date_of_birth 
+              ? new Date(customer.date_of_birth).toISOString().split('T')[0] 
+              : null;
+            
+            if (formattedDate !== existingDate) {
+              updates.date_of_birth = formattedDate;
+              hasChanges = true;
+            }
+          } else {
+            throw new HttpException('Invalid date format. Expected DD-MM-YYYY', 400);
+          }
+        }
+
+        // Apply updates if there are changes
+        if (hasChanges) {
+          await queryRunner.manager.update(Customer, customer.id, updates);
+          // Reload customer with updates
+          customer = await queryRunner.manager.findOne(Customer, {
+            where: { id: customer.id },
+          });
+        }
       }
 
       // 5. Find an available coupon from the batch
@@ -267,7 +311,7 @@ export class CustomerService {
       // 6. Send WhatsApp message
       let whatsappSent = false;
 
-      if (customer.phone) {
+      if (customer?.phone) {
         // Check if merchant has WhatsApp credits
         const creditCheck = await this.walletService.checkMerchantCredits(
           merchant.id,

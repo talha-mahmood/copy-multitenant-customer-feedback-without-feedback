@@ -47,7 +47,7 @@ export class FeedbackService {
 
     try {
       // 1. Check if customer already exists
-      let savedCustomer = await this.customerRepository.findOne({
+      let savedCustomer = await queryRunner.manager.findOne(Customer, {
         where: { phone: createFeedbackDto.phoneNumber },
       });
 
@@ -84,6 +84,80 @@ export class FeedbackService {
 
         const customer = queryRunner.manager.create(Customer, customerData);
         savedCustomer = await queryRunner.manager.save(customer);
+      } else {
+        // Update existing customer if values have changed
+        const updates: any = {};
+        let hasChanges = false;
+
+        // Compare and update name
+        if (createFeedbackDto.name && createFeedbackDto.name.trim() && createFeedbackDto.name !== savedCustomer.name) {
+          updates.name = createFeedbackDto.name.trim();
+          hasChanges = true;
+        }
+
+        // Compare and update email
+        if (createFeedbackDto.email && createFeedbackDto.email.trim()) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(createFeedbackDto.email)) {
+            throw new HttpException('Invalid email format', 400);
+          }
+          if (createFeedbackDto.email !== savedCustomer.email) {
+            updates.email = createFeedbackDto.email.trim();
+            hasChanges = true;
+          }
+        }
+
+        // Compare and update address
+        if (createFeedbackDto.address && createFeedbackDto.address.trim() && createFeedbackDto.address !== savedCustomer.address) {
+          updates.address = createFeedbackDto.address.trim();
+          hasChanges = true;
+        }
+
+        // Compare and update gender
+        if (createFeedbackDto.gender && createFeedbackDto.gender !== savedCustomer.gender) {
+          updates.gender = createFeedbackDto.gender;
+          hasChanges = true;
+        }
+
+        // Compare and update date_of_birth
+        if (createFeedbackDto.date_of_birth) {
+          const dateStr = createFeedbackDto.date_of_birth.trim();
+          const [day, month, year] = dateStr.split('-');
+          
+          // Validate date parts
+          if (day && month && year && year.length === 4) {
+            const paddedDay = day.padStart(2, '0');
+            const paddedMonth = month.padStart(2, '0');
+            const formattedDate = `${year}-${paddedMonth}-${paddedDay}`;
+            
+            // Compare with existing date
+            const existingDate = savedCustomer.date_of_birth 
+              ? new Date(savedCustomer.date_of_birth).toISOString().split('T')[0] 
+              : null;
+            
+            if (formattedDate !== existingDate) {
+              updates.date_of_birth = formattedDate;
+              hasChanges = true;
+            }
+          } else {
+            throw new HttpException('Invalid date format. Expected DD-MM-YYYY', 400);
+          }
+        }
+
+        // Update reward flag if redirect was completed
+        if (createFeedbackDto.redirectCompleted && !savedCustomer.reward) {
+          updates.reward = true;
+          hasChanges = true;
+        }
+
+        // Apply updates if there are changes
+        if (hasChanges) {
+          await queryRunner.manager.update(Customer, savedCustomer.id, updates);
+          // Reload customer with updates
+          savedCustomer = await queryRunner.manager.findOne(Customer, {
+            where: { id: savedCustomer.id },
+          });
+        }
       }
 
       // 3. Validate merchant and platform availability
@@ -154,7 +228,7 @@ export class FeedbackService {
       // 7. Create Feedback
       const feedback = queryRunner.manager.create(Feedback, {
         merchant_id: createFeedbackDto.merchantId,
-        customer_id: savedCustomer.id,
+        customer_id: savedCustomer?.id,
         rating: createFeedbackDto.rating,
         comment: createFeedbackDto.comment,
         review_type: createFeedbackDto.reviewType,
@@ -212,7 +286,7 @@ export class FeedbackService {
       let availableWhatsappCredits = 0;
 
       // Send WhatsApp message after transaction commit if coupon was found
-      if (coupon && savedCustomer.phone && !merchantSettings.luckydraw_enabled) {
+      if (coupon && savedCustomer?.phone && !merchantSettings.luckydraw_enabled) {
         // Check if merchant has WhatsApp credits before sending
         const creditCheck = await this.walletService.checkMerchantCredits(
           merchant.id,
@@ -342,14 +416,14 @@ export class FeedbackService {
         category: SystemLogCategory.CUSTOMER,
         action: SystemLogAction.CREATE,
         level: SystemLogLevel.INFO,
-        message: `Customer ${savedCustomer.name} submitted feedback for ${merchant.business_name}`,
-        userId: savedCustomer.id,
+        message: `Customer ${savedCustomer?.name} submitted feedback for ${merchant.business_name}`,
+        userId: savedCustomer?.id,
         userType: 'customer',
         entityType: 'feedback',
         entityId: savedFeedback.id,
         metadata: {
           merchant_id: createFeedbackDto.merchantId,
-          customer_id: savedCustomer.id,
+          customer_id: savedCustomer?.id,
           is_new_customer: isNewCustomer,
           review_type: createFeedbackDto.reviewType,
           selected_platform: createFeedbackDto.selectedPlatform,
