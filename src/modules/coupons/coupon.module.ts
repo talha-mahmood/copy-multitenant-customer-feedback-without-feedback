@@ -7,11 +7,19 @@ import { couponTemplateProvider } from './coupon-template.provider';
 import { merchantProviders } from '../merchants/merchant.provider';
 import { SystemLogModule } from '../system-logs/system-log.module';
 import { adminProviders } from '../admins/admin.provider';
+import { CouponExpiryCronService } from './coupon-expiry-cron.service';
 
 @Module({
   imports: [DatabaseModule, SystemLogModule],
   controllers: [CouponController],
-  providers: [CouponService, ...couponProvider, ...couponTemplateProvider, ...merchantProviders, ...adminProviders],
+  providers: [
+    CouponService,
+    CouponExpiryCronService,
+    ...couponProvider,
+    ...couponTemplateProvider,
+    ...merchantProviders,
+    ...adminProviders,
+  ],
   exports: [CouponService],
 })
 export class CouponModule {}
