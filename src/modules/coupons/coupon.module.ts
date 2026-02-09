@@ -7,12 +7,34 @@ import { couponTemplateProvider } from './coupon-template.provider';
 import { merchantProviders } from '../merchants/merchant.provider';
 import { SystemLogModule } from '../system-logs/system-log.module';
 import { adminProviders } from '../admins/admin.provider';
+import { CouponExpiryCronService } from './coupon-expiry-cron.service';
+import { MERCHANT_WALLET_REPOSITORY, CREDITS_LEDGER_REPOSITORY } from '../wallets/wallet.provider';
+import { MerchantWallet } from '../wallets/entities/merchant-wallet.entity';
+import { CreditsLedger } from '../wallets/entities/credits-ledger.entity';
+import { DataSource } from 'typeorm';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [DatabaseModule, SystemLogModule, ConfigModule],
   controllers: [CouponController],
-  providers: [CouponService, ...couponProvider, ...couponTemplateProvider, ...merchantProviders, ...adminProviders],
+  providers: [
+    CouponService,
+    CouponExpiryCronService,
+    ...couponProvider,
+    ...couponTemplateProvider,
+    ...merchantProviders,
+    ...adminProviders,
+    {
+      provide: MERCHANT_WALLET_REPOSITORY,
+      useFactory: (dataSource: DataSource) => dataSource.getRepository(MerchantWallet),
+      inject: ['DATA_SOURCE'],
+    },
+    {
+      provide: CREDITS_LEDGER_REPOSITORY,
+      useFactory: (dataSource: DataSource) => dataSource.getRepository(CreditsLedger),
+      inject: ['DATA_SOURCE'],
+    },
+  ],
   exports: [CouponService],
 })
 export class CouponModule { }
