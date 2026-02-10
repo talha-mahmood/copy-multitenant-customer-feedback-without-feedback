@@ -184,13 +184,17 @@ export class CouponService {
 
           // Inject dynamic fields if HTML exists
           if (renderedHtml) {
-            const backendUrl = this.configService.get<string>('APP_URL') || 'http://localhost:8000';
             let brandLogo = batch.brand_image || '';
 
             if (brandLogo && !brandLogo.startsWith('http')) {
-              // Ensure brandLogo starts with a slash
-              const logoPath = brandLogo.startsWith('/') ? brandLogo : `/${brandLogo}`;
-              brandLogo = `${backendUrl}/api${logoPath}`;
+              // Use relative path for src attribute
+              if (!brandLogo.startsWith('/')) {
+                brandLogo = `/${brandLogo}`;
+              }
+              // Ensure /api prefix for uploaded files
+              if (!brandLogo.startsWith('/api')) {
+                brandLogo = `/api${brandLogo}`;
+              }
             }
 
             const replacements = {
@@ -267,13 +271,17 @@ export class CouponService {
 
               // Inject dynamic fields if HTML exists
               if (renderedHtml) {
-                const backendUrl = this.configService.get<string>('APP_URL') || 'http://localhost:8000';
                 let brandLogo = batch.brand_image || '';
 
                 if (brandLogo && !brandLogo.startsWith('http')) {
-                  // Ensure brandLogo starts with a slash
-                  const logoPath = brandLogo.startsWith('/') ? brandLogo : `/${brandLogo}`;
-                  brandLogo = `${backendUrl}/api${logoPath}`;
+                  // Use relative path for src attribute
+                  if (!brandLogo.startsWith('/')) {
+                    brandLogo = `/${brandLogo}`;
+                  }
+                  // Ensure /api prefix for uploaded files
+                  if (!brandLogo.startsWith('/api')) {
+                    brandLogo = `/api${brandLogo}`;
+                  }
                 }
 
                 const replacements = {
