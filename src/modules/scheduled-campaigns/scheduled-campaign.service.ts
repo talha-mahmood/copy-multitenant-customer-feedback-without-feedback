@@ -36,7 +36,7 @@ export class ScheduledCampaignService {
   ) {}
 
   // @Cron(CronExpression.EVERY_5_MINUTES) // Run every 5 minutes
-  @Cron(CronExpression.EVERY_MINUTE) // Run every minute for testing
+  @Cron(CronExpression.EVERY_10_SECONDS) // Run every 10 seconds for testing
   async processScheduledCampaigns() {
     this.logger.log('Starting scheduled campaigns cron job...');
 
