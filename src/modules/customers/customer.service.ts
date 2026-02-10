@@ -415,7 +415,9 @@ export class CustomerService {
         throw new HttpException('Customer phone number is required for WhatsApp delivery', 400);
       }
     } catch (error) {
-      await queryRunner.rollbackTransaction();
+      if (queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
       throw error;
     } finally {
       await queryRunner.release();
