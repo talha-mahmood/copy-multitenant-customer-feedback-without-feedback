@@ -184,8 +184,7 @@ export class CouponService {
 
           // Inject dynamic fields if HTML exists
           if (renderedHtml) {
-            // const baseUrl = this.configService.get<string>('APP_URL') || 'https://qr-review.mustservices.io';
-            const baseUrl ='https://qr-review.mustservices.io';
+            const baseUrl = this.configService.get<string>('APP_URL') || 'https://qr-review.mustservices.io';
             let brandLogo = batch.brand_image || '';
 
             if (brandLogo && !brandLogo.startsWith('http')) {
