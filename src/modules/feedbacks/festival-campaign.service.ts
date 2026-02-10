@@ -44,7 +44,7 @@ export class FestivalCampaignService {
   ) {}
 
   // @Cron(CronExpression.EVERY_DAY_AT_8AM) // Run daily at 8 AM
-  @Cron(CronExpression.EVERY_MINUTE) // Run every minute for testing
+  @Cron(CronExpression.EVERY_10_SECONDS) // Run every 10 seconds for testing
   async sendFestivalCampaigns() {
     this.logger.log('Starting festival campaign cron job...');
 
