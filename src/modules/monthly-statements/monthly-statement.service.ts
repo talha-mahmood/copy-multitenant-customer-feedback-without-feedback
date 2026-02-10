@@ -553,13 +553,26 @@ export class MonthlyStatementService {
     return statement.pdf_url;
   }
 
-  async getAllStatementPdfs(year: number, month: number) {
+  async getAllStatementPdfs(year: number, month: number, ownerType?: string, ownerId?: number) {
+    // Build where clause with optional owner_type and owner_id filters
+    const whereClause: any = {
+      year,
+      month,
+    };
+
+    // Add owner_type filter if provided
+    if (ownerType) {
+      whereClause.owner_type = ownerType;
+    }
+
+    // Add owner_id filter if provided
+    if (ownerId) {
+      whereClause.owner_id = ownerId;
+    }
+
     // Get all statements for the specified year and month
     const statements = await this.monthlyStatementRepository.find({
-      where: {
-        year,
-        month,
-      },
+      where: whereClause,
       order: {
         owner_type: 'ASC',
         owner_id: 'ASC',

@@ -59,12 +59,19 @@ export class MonthlyStatementController {
   async getAllStatementPdfs(
     @Query('year') year: number,
     @Query('month') month: number,
+    @Query('owner_type') ownerType?: string,
+    @Query('owner_id') ownerId?: number,
   ) {
     if (!year || !month) {
       throw new UnauthorizedException('Year and month are required');
     }
 
-    return this.monthlyStatementService.getAllStatementPdfs(Number(year), Number(month));
+    return this.monthlyStatementService.getAllStatementPdfs(
+      Number(year), 
+      Number(month), 
+      ownerType, 
+      ownerId ? Number(ownerId) : undefined
+    );
   }
 
   @Get(':id')
