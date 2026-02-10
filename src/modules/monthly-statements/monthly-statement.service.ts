@@ -583,6 +583,9 @@ export class MonthlyStatementService {
       throw new NotFoundException(`No statements found for ${year}-${month}`);
     }
 
+    // Get base URL for constructing full PDF URLs
+    const baseUrl = process.env.APP_URL;
+
     // Ensure all statements have PDFs generated
     const statementPdfs = await Promise.all(
       statements.map(async (statement) => {
@@ -613,6 +616,11 @@ export class MonthlyStatementService {
           ownerName = 'Platform Admin';
         }
 
+        // Construct full PDF URL
+        const fullPdfUrl = statement.pdf_url 
+          ? `${baseUrl}/${statement.pdf_url.replace(/^\//, '')}` 
+          : null;
+
         return {
           id: statement.id,
           owner_type: statement.owner_type,
@@ -620,7 +628,7 @@ export class MonthlyStatementService {
           owner_name: ownerName,
           year: statement.year,
           month: statement.month,
-          pdf_url: statement.pdf_url,
+          pdf_url: fullPdfUrl,
           status: statement.status,
           generated_at: statement.generated_at,
         };
