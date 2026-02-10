@@ -187,13 +187,9 @@ export class CouponService {
             let brandLogo = batch.brand_image || '';
 
             if (brandLogo && !brandLogo.startsWith('http')) {
-              // Use relative path for src attribute
+              // Use relative path for src attribute - just ensure it starts with /
               if (!brandLogo.startsWith('/')) {
                 brandLogo = `/${brandLogo}`;
-              }
-              // Ensure /api prefix for uploaded files
-              if (!brandLogo.startsWith('/api')) {
-                brandLogo = `/api${brandLogo}`;
               }
             }
 
@@ -274,13 +270,9 @@ export class CouponService {
                 let brandLogo = batch.brand_image || '';
 
                 if (brandLogo && !brandLogo.startsWith('http')) {
-                  // Use relative path for src attribute
+                  // Use relative path for src attribute - just ensure it starts with /
                   if (!brandLogo.startsWith('/')) {
                     brandLogo = `/${brandLogo}`;
-                  }
-                  // Ensure /api prefix for uploaded files
-                  if (!brandLogo.startsWith('/api')) {
-                    brandLogo = `/api${brandLogo}`;
                   }
                 }
 
