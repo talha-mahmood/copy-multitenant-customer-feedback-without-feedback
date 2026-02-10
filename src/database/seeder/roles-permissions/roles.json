@@ -12,6 +12,10 @@
     "display_name": "Customer"
   },
   {
+    "name": "admin",
+    "display_name": "Administrator"
+  },
+  {
     "name": "finance_viewer",
     "display_name": "Finance Viewer"
   },
