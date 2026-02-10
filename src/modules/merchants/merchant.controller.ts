@@ -9,6 +9,7 @@ import {
   Query,
   DefaultValuePipe,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { CurrentUser, User } from 'src/common/decorators/current-user';
 import { MerchantService } from './merchant.service';
@@ -17,8 +18,11 @@ import { UpdateMerchantDto } from './dto/update-merchant.dto';
 import { ShowMerchantDto } from './dto/show-merchant.dto';
 import { MerchantDashboardQueryDto } from './dto/merchant-dashboard.dto';
 import { bool } from 'aws-sdk/clients/signer';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
 @Controller('merchants')
+@UseGuards(RolesGuard)
 export class MerchantController {
   constructor(private readonly merchantService: MerchantService) {}
 
@@ -28,6 +32,7 @@ export class MerchantController {
   }
 
   @Get()
+  @Roles('super_admin', 'admin', 'merchant', 'finance_viewer')
   findAll(
     @CurrentUser() user: User,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
@@ -50,6 +55,7 @@ export class MerchantController {
   }
 
   @Get(':id')
+  @Roles('super_admin', 'admin', 'merchant', 'finance_viewer')
   findOne(
     @CurrentUser() user: User,
     @Param() showMerchantDto: ShowMerchantDto,
