@@ -54,6 +54,19 @@ export class MonthlyStatementController {
     return this.monthlyStatementService.findAll(ownerType, ownerId, year, month);
   }
 
+  @Get('pdfs/all')
+  @Roles('super_admin', 'finance_viewer')
+  async getAllStatementPdfs(
+    @Query('year') year: number,
+    @Query('month') month: number,
+  ) {
+    if (!year || !month) {
+      throw new UnauthorizedException('Year and month are required');
+    }
+
+    return this.monthlyStatementService.getAllStatementPdfs(Number(year), Number(month));
+  }
+
   @Get(':id')
   @Roles('super_admin', 'admin', 'merchant', 'finance_viewer')
   async findOne(@Param('id') id: number, @Req() req: any) {
