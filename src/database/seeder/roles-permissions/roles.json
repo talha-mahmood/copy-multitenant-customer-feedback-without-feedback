@@ -4,10 +4,6 @@
     "display_name": "Super Administrator"
   },
   {
-    "name": "admin",
-    "display_name": "Administrator"
-  },
-  {
     "name": "merchant",
     "display_name": "Merchant"
   },

@@ -1,10 +1,8 @@
 import { DataSource } from 'typeorm';
 import { User } from '../../../modules/users/entities/user.entity';
-import { Admin } from '../../../modules/admins/entities/admin.entity';
 import { SuperAdmin } from '../../../modules/super-admins/entities/super-admin.entity';
 import { Merchant } from '../../../modules/merchants/entities/merchant.entity';
 import { Customer } from '../../../modules/customers/entities/customer.entity';
-import { AdminWallet } from '../../../modules/wallets/entities/admin-wallet.entity';
 import { MerchantWallet } from '../../../modules/wallets/entities/merchant-wallet.entity';
 import { SuperAdminWallet } from '../../../modules/wallets/entities/super-admin-wallet.entity';
 import { SuperAdminSettings } from '../../../modules/super-admin-settings/entities/super-admin-settings.entity';
@@ -33,14 +31,6 @@ export async function seedUser(dataSource: DataSource) {
       password: hashedPassword,
       role: 'super_admin',
       phone: '03001234566',
-    });
-
-    users.push({
-      name: 'Administrator',
-      email: 'admin@must.services',
-      password: hashedPassword,
-      role: 'admin',
-      phone: '03001234567',
     });
 
     users.push({
@@ -129,41 +119,6 @@ export async function seedUser(dataSource: DataSource) {
         merchant_annual_fee: 1199.00,
         annual_merchant_subscription_admin_commission_rate: 0.75, // 75%
         currency: 'USD',
-        is_active: true,
-      });
-    }
-
-    const admin = await userRepo.findOne({
-      where: { email: 'admin@must.services' },
-    });
-
-    if (admin) {
-      await userHasRoleRepo.insert({
-        role_id: 2, // admin role
-        user_id: Number(admin?.id ?? 1),
-      });
-
-      // Create admin record
-      const adminRepo = dataSource.getRepository(Admin);
-      const savedAdmin = await adminRepo.save({
-        user_id: admin.id,
-        address: '123 Admin St',
-      });
-
-      // Create admin wallet with subscription fields
-      const oneYearFromNow = new Date();
-      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-
-      const adminWalletRepo = dataSource.getRepository(AdminWallet);
-      await adminWalletRepo.insert({
-        admin_id: savedAdmin.id,
-        balance: 0,
-        total_earnings: 0,
-        total_spent: 0,
-        pending_amount: 0,
-        currency: 'USD',
-        subscription_type: 'annual',
-        subscription_expires_at: oneYearFromNow,
         is_active: true,
       });
     }
