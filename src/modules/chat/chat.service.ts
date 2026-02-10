@@ -19,7 +19,7 @@ export class ChatService {
     ) { }
 
     async getContacts(userId: number, role: string, superAdminId?: number, adminId?: number, merchantId?: number) {
-        if (role === 'super_admin') {
+        if (role === 'super_admin' || role === 'support_staff') {
             // Fetch all agents
             const agents = await this.adminRepository.find({
                 relations: ['user'],
@@ -91,12 +91,15 @@ export class ChatService {
 
         if (role === 'super_admin' && superAdminId) {
             query.where('conversation.super_admin_id = :superAdminId', { superAdminId });
+        } else if (role === 'support_staff') {
+            // Support staff can see all conversations like super_admin
+            query.where('conversation.super_admin_id IS NOT NULL OR conversation.super_admin_id IS NULL');
         } else if ((role === 'admin' || role === 'agent') && adminId) {
             query.where('conversation.agent_id = :adminId', { adminId });
         } else if (role === 'merchant' && merchantId) {
             query.where('conversation.merchant_id = :merchantId', { merchantId });
         } else {
-            if (role === 'super_admin') {
+            if (role === 'super_admin' || role === 'support_staff') {
                 query.where('conversation.super_admin_id = :userId', { userId });
             } else if (role === 'admin' || role === 'agent') {
                 query.where('conversation.agent_id = :userId', { userId });
@@ -191,6 +194,9 @@ export class ChatService {
 
         if (role === 'super_admin' && superAdminId) {
             isParticipant = conversation.super_admin_id === superAdminId;
+        } else if (role === 'support_staff') {
+            // Support staff can access all conversations like super_admin
+            isParticipant = true;
         } else if ((role === 'admin' || role === 'agent') && adminId) {
             isParticipant = conversation.agent_id === adminId;
         } else if (role === 'merchant' && merchantId) {
@@ -198,6 +204,7 @@ export class ChatService {
         } else {
             isParticipant =
                 (role === 'super_admin' && conversation.super_admin_id === userId) ||
+                (role === 'support_staff') ||
                 ((role === 'admin' || role === 'agent') && conversation.agent_id === userId) ||
                 (role === 'merchant' && conversation.merchant_id === userId);
         }
@@ -287,8 +294,8 @@ export class ChatService {
             .orderBy('conversation.last_message_at', 'DESC');
 
         // Apply data isolation based on user role
-        if (user.role === 'super_admin') {
-            // Main platform can see agent messages (SUPERADMIN_AGENT)
+        if (user.role === 'super_admin' || user.role === 'support_staff') {
+            // Main platform and support staff can see agent messages (SUPERADMIN_AGENT)
             query.andWhere(
                 'conversation.type = :agentType',
                 { agentType: ConversationType.SUPERADMIN_AGENT }
@@ -400,8 +407,8 @@ export class ChatService {
     private validateSupportAccess(user: any, conversation: Conversation): void {
         let hasAccess = false;
 
-        if (user.role === 'super_admin') {
-            // Platform can access agent messages only
+        if (user.role === 'super_admin' || user.role === 'support_staff') {
+            // Platform and support staff can access agent messages only
             hasAccess = conversation.type === ConversationType.SUPERADMIN_AGENT;
         } else if (user.role === 'admin') {
             // Agent can access their own conversations
@@ -417,7 +424,7 @@ export class ChatService {
     }
 
     private getSenderId(user: any): number | null {
-        if (user.role === 'super_admin') return user.superAdminId || 1;
+        if (user.role === 'super_admin' || user.role === 'support_staff') return user.superAdminId || user.supportStaffId || 1;
         if (user.role === 'admin') return user.adminId;
         if (user.role === 'merchant') return user.merchantId;
         return null;
