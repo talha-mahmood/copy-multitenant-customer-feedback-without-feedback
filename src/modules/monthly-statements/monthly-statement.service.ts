@@ -517,9 +517,31 @@ export class MonthlyStatementService {
 
     const statements = await queryBuilder.getMany();
 
+    // Construct full PDF URLs for all statements
+    const baseUrl = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+    const statementsWithFullUrls = statements.map(statement => {
+      let fullPdfUrl: string | null = null;
+      
+      if (statement.pdf_url) {
+        // If it's already an absolute path (old format), extract just the relative part
+        if (statement.pdf_url.includes('/uploads/')) {
+          const relativePath = statement.pdf_url.substring(statement.pdf_url.indexOf('/uploads/') + 1);
+          fullPdfUrl = `${baseUrl}/${relativePath}`;
+        } else {
+          // New format - already relative
+          fullPdfUrl = `${baseUrl}/${statement.pdf_url.replace(/^\//, '')}`;
+        }
+      }
+
+      return {
+        ...statement,
+        pdf_url: fullPdfUrl,
+      };
+    });
+
     return {
       message: 'Success',
-      data: statements,
+      data: statementsWithFullUrls,
     };
   }
 
@@ -529,9 +551,27 @@ export class MonthlyStatementService {
       throw new NotFoundException('Statement not found');
     }
 
+    // Construct full PDF URL for response
+    const baseUrl = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+    let fullPdfUrl: string | null = null;
+    
+    if (statement.pdf_url) {
+      // If it's already an absolute path (old format), extract just the relative part
+      if (statement.pdf_url.includes('/uploads/')) {
+        const relativePath = statement.pdf_url.substring(statement.pdf_url.indexOf('/uploads/') + 1);
+        fullPdfUrl = `${baseUrl}/${relativePath}`;
+      } else {
+        // New format - already relative
+        fullPdfUrl = `${baseUrl}/${statement.pdf_url.replace(/^\//, '')}`;
+      }
+    }
+
     return {
       message: 'Success',
-      data: statement,
+      data: {
+        ...statement,
+        pdf_url: fullPdfUrl,
+      },
     };
   }
 
@@ -550,7 +590,12 @@ export class MonthlyStatementService {
       await this.monthlyStatementRepository.save(statement);
     }
 
-    return statement.pdf_url;
+    // Return full file system path for download
+    const fullPath = statement.pdf_url.includes('/uploads/')
+      ? statement.pdf_url // Already a full path (old format)
+      : path.join(process.cwd(), statement.pdf_url); // Relative path (new format)
+
+    return fullPath;
   }
 
   async getAllStatementPdfs(year: number, month: number, ownerType?: string, ownerId?: number) {
@@ -584,7 +629,7 @@ export class MonthlyStatementService {
     }
 
     // Get base URL for constructing full PDF URLs
-    const baseUrl = process.env.APP_URL;
+    const baseUrl = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 
     // Ensure all statements have PDFs generated
     const statementPdfs = await Promise.all(
@@ -616,10 +661,18 @@ export class MonthlyStatementService {
           ownerName = 'Platform Admin';
         }
 
-        // Construct full PDF URL
-        const fullPdfUrl = statement.pdf_url 
-          ? `${baseUrl}/${statement.pdf_url.replace(/^\//, '')}` 
-          : null;
+        // Construct full PDF URL - handle both old (full path) and new (relative path) formats
+        let fullPdfUrl: string | null = null;
+        if (statement.pdf_url) {
+          // If it's already an absolute path (old format), extract just the relative part
+          if (statement.pdf_url.includes('/uploads/')) {
+            const relativePath = statement.pdf_url.substring(statement.pdf_url.indexOf('/uploads/') + 1);
+            fullPdfUrl = `${baseUrl}/${relativePath}`;
+          } else {
+            // New format - already relative
+            fullPdfUrl = `${baseUrl}/${statement.pdf_url.replace(/^\//, '')}`;
+          }
+        }
 
         return {
           id: statement.id,
@@ -701,7 +754,8 @@ export class MonthlyStatementService {
     // Write buffer to file
     fs.writeFileSync(filePath, pdfBuffer);
 
-    return filePath;
+    // Return relative path for URL (not absolute file system path)
+    return `uploads/statements/${fileName}`;
   }
 
   private async createMerchantPdf(m: Merchant, month: string, s: any, l: any[]): Promise<Buffer> {
