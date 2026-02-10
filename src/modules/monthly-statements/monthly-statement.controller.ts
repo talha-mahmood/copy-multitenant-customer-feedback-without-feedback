@@ -4,9 +4,11 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { Response } from 'express';
 import * as fs from 'fs';
 import { Public } from 'src/common/decorators/public.decorator';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
 @Controller('monthly-statements')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class MonthlyStatementController {
   constructor(private readonly monthlyStatementService: MonthlyStatementService) {}
 
@@ -29,6 +31,7 @@ export class MonthlyStatementController {
   }
 
   @Get()
+  @Roles('super_admin', 'admin', 'merchant', 'finance_viewer')
   async findAll(
     @Query('owner_type') ownerType: string,
     @Query('owner_id') ownerId: number,
@@ -52,11 +55,12 @@ export class MonthlyStatementController {
   }
 
   @Get(':id')
+  @Roles('super_admin', 'admin', 'merchant', 'finance_viewer')
   async findOne(@Param('id') id: number, @Req() req: any) {
     const result = await this.monthlyStatementService.findOne(id);
     const statement = result.data;
 
-    // Check permissions
+    // Check permissions (finance_viewer can view all)
     if (req.user.role === 'merchant' && statement.owner_id !== req.user.merchantId) {
       throw new UnauthorizedException('You can only view your own statements');
     }
@@ -69,11 +73,12 @@ export class MonthlyStatementController {
   }
 
   @Get(':id/download')
+  @Roles('super_admin', 'admin', 'merchant', 'finance_viewer')
   async downloadPdf(@Param('id') id: number, @Req() req: any, @Res() res: Response) {
     const result = await this.monthlyStatementService.findOne(id);
     const statement = result.data;
 
-    // Check permissions
+    // Check permissions (finance_viewer can download all)
     if (req.user?.role === 'merchant' && statement.owner_id !== req.user.merchantId) {
       throw new UnauthorizedException('You can only download your own statements');
     }

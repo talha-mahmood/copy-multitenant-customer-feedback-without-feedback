@@ -35,7 +35,7 @@ export class WalletController {
     return await this.walletService.getMerchantWallet(merchantId);
   }
 
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, 'finance_viewer')
   @Get('super-admin')
   async getSuperAdminWallet() {
     return await this.walletService.getSuperAdminWallet();

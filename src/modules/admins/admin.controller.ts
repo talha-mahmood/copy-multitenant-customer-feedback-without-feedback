@@ -9,6 +9,7 @@ import {
   Query,
   DefaultValuePipe,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
@@ -16,8 +17,11 @@ import { UpdateAdminDto } from './dto/update-admin.dto';
 import { ShowAdminDto } from './dto/show-admin.dto';
 import { AdminDashboardQueryDto } from './dto/admin-dashboard.dto';
 import { Public } from 'src/common/decorators/public.decorator';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
 @Controller('admins')
+@UseGuards(RolesGuard)
 export class AdminController {
   constructor(private readonly adminService: AdminService) { }
 
@@ -27,6 +31,7 @@ export class AdminController {
   }
 
   @Get()
+  @Roles('super_admin', 'finance_viewer')
   findAll(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
@@ -57,6 +62,7 @@ export class AdminController {
   }
 
   @Get(':id')
+  @Roles('super_admin', 'admin', 'finance_viewer')
   findOne(@Param() showAdminDto: ShowAdminDto) {
     return this.adminService.findOne(showAdminDto.id);
   }
