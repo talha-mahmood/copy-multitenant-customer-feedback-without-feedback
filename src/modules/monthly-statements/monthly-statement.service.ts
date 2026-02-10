@@ -553,6 +553,91 @@ export class MonthlyStatementService {
     return statement.pdf_url;
   }
 
+  async getAllStatementPdfs(year: number, month: number) {
+    // Get all statements for the specified year and month
+    const statements = await this.monthlyStatementRepository.find({
+      where: {
+        year,
+        month,
+      },
+      order: {
+        owner_type: 'ASC',
+        owner_id: 'ASC',
+      },
+    });
+
+    if (!statements || statements.length === 0) {
+      throw new NotFoundException(`No statements found for ${year}-${month}`);
+    }
+
+    // Ensure all statements have PDFs generated
+    const statementPdfs = await Promise.all(
+      statements.map(async (statement) => {
+        // Generate PDF if not already generated
+        if (!statement.pdf_url) {
+          const pdfPath = await this.generatePdf(statement);
+          statement.pdf_url = pdfPath;
+          statement.viewed_at = new Date();
+          statement.status = 'viewed';
+          await this.monthlyStatementRepository.save(statement);
+        }
+
+        // Fetch owner details for better identification
+        let ownerName = 'Unknown';
+        if (statement.owner_type === 'merchant') {
+          const merchant = await this.merchantRepository.findOne({
+            where: { id: statement.owner_id },
+            relations: ['user'],
+          });
+          ownerName = merchant?.user?.name || merchant?.business_name || `Merchant ${statement.owner_id}`;
+        } else if (statement.owner_type === 'agent') {
+          const agent = await this.adminRepository.findOne({
+            where: { id: statement.owner_id },
+            relations: ['user'],
+          });
+          ownerName = agent?.user?.name || `Agent ${statement.owner_id}`;
+        } else if (statement.owner_type === 'super_admin') {
+          ownerName = 'Platform Admin';
+        }
+
+        return {
+          id: statement.id,
+          owner_type: statement.owner_type,
+          owner_id: statement.owner_id,
+          owner_name: ownerName,
+          year: statement.year,
+          month: statement.month,
+          pdf_url: statement.pdf_url,
+          status: statement.status,
+          generated_at: statement.generated_at,
+        };
+      }),
+    );
+
+    // Group by owner type
+    const groupedStatements = {
+      merchants: statementPdfs.filter((s) => s.owner_type === 'merchant'),
+      agents: statementPdfs.filter((s) => s.owner_type === 'agent'),
+      super_admin: statementPdfs.filter((s) => s.owner_type === 'super_admin'),
+    };
+
+    return {
+      message: 'Success',
+      data: {
+        year,
+        month,
+        total: statementPdfs.length,
+        counts: {
+          merchants: groupedStatements.merchants.length,
+          agents: groupedStatements.agents.length,
+          super_admin: groupedStatements.super_admin.length,
+        },
+        statements: groupedStatements,
+        all_statements: statementPdfs,
+      },
+    };
+  }
+
   private async generatePdf(statement: MonthlyStatement): Promise<string> {
     const fileName = `statement_${statement.owner_type}_${statement.owner_id}_${statement.year}_${statement.month}.pdf`;
     const uploadsDir = path.join(process.cwd(), 'uploads', 'statements');
