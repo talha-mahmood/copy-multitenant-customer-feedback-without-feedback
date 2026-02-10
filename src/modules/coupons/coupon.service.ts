@@ -184,13 +184,17 @@ export class CouponService {
 
           // Inject dynamic fields if HTML exists
           if (renderedHtml) {
+            // const baseUrl = this.configService.get<string>('APP_URL') || 'https://qr-review.mustservices.io';
+            const baseUrl ='https://qr-review.mustservices.io';
             let brandLogo = batch.brand_image || '';
 
             if (brandLogo && !brandLogo.startsWith('http')) {
-              // Use relative path for src attribute - just ensure it starts with /
+              // Ensure it starts with /
               if (!brandLogo.startsWith('/')) {
                 brandLogo = `/${brandLogo}`;
               }
+              // Create absolute URL with /backend/api prefix for nginx routing
+              brandLogo = `${baseUrl}/backend/api${brandLogo}`;
             }
 
             const replacements = {
@@ -267,13 +271,16 @@ export class CouponService {
 
               // Inject dynamic fields if HTML exists
               if (renderedHtml) {
+                const baseUrl = this.configService.get<string>('APP_URL') || 'https://qr-review.mustservices.io';
                 let brandLogo = batch.brand_image || '';
 
                 if (brandLogo && !brandLogo.startsWith('http')) {
-                  // Use relative path for src attribute - just ensure it starts with /
+                  // Ensure it starts with /
                   if (!brandLogo.startsWith('/')) {
                     brandLogo = `/${brandLogo}`;
                   }
+                  // Create absolute URL with /backend/api prefix for nginx routing
+                  brandLogo = `${baseUrl}/backend/api${brandLogo}`;
                 }
 
                 const replacements = {
