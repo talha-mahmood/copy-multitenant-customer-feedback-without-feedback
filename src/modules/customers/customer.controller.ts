@@ -29,8 +29,11 @@ export class CustomerController {
 
   @Public()
   @Get('check-by-phone')
-  checkCustomerByPhone(@Query('phone') phone: string) {
-    return this.customerService.checkCustomerByPhone(phone);
+  checkCustomerByPhone(
+    @Query('phone') phone: string,
+    @Query('merchant_id', ParseIntPipe) merchantId: number,
+  ) {
+    return this.customerService.checkCustomerByPhone(phone, merchantId);
   }
 
   @Public()
