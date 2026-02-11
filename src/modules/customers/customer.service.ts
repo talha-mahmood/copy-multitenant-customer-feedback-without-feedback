@@ -137,9 +137,13 @@ export class CustomerService {
     };
   }
 
-  async checkCustomerByPhone(phone: string) {
+  async checkCustomerByPhone(phone: string, merchantId: number) {
     if (!phone?.trim()) {
       throw new HttpException('Phone number is required', 400);
+    }
+
+    if (!merchantId) {
+      throw new HttpException('Merchant ID is required', 400);
     }
 
     const normalizedPhone = this.normalizePhone(phone);
@@ -153,6 +157,7 @@ export class CustomerService {
         `,
         { phone: `%${normalizedPhone}%` },
       )
+      .andWhere('customer.merchant_id = :merchantId', { merchantId })
       .getOne();
 
     if (!customer) {
