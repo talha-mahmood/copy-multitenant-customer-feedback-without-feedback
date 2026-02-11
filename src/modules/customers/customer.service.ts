@@ -214,9 +214,13 @@ export class CustomerService {
       //   throw new HttpException('Coupon batch has expired', 400);
       // }
 
-      // 3. Check or create customer
+      // 3. Check or create customer FOR THIS MERCHANT
+      // Same customer should not reload for merchant other than own merchant
       let customer = await queryRunner.manager.findOne(Customer, {
-        where: { phone: claimCouponDto.phone },
+        where: { 
+          phone: claimCouponDto.phone,
+          merchant_id: claimCouponDto.merchant_id,
+        },
       });
 
       let isNewCustomer = false;

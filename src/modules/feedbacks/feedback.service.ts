@@ -46,9 +46,13 @@ export class FeedbackService {
     await queryRunner.startTransaction();
 
     try {
-      // 1. Check if customer already exists
+      // 1. Check if customer already exists FOR THIS MERCHANT
+      // Same customer should not reload for merchant other than own merchant
       let savedCustomer = await queryRunner.manager.findOne(Customer, {
-        where: { phone: createFeedbackDto.phoneNumber },
+        where: { 
+          phone: createFeedbackDto.phoneNumber,
+          merchant_id: createFeedbackDto.merchantId,
+        },
       });
 
       let isNewCustomer = false;
