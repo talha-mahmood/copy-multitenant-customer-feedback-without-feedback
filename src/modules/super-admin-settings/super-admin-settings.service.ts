@@ -23,10 +23,13 @@ export class SuperAdminSettingsService {
     if (!settings) {
       settings = this.settingsRepository.create({
         admin_annual_subscription_fee: 1199.00,
-        temporary_merchant_packages_admin_commission_rate: 0.20,
-        annual_merchant_packages_admin_commission_rate: 0.02,
         merchant_annual_fee: 1199.00,
-        annual_merchant_subscription_admin_commission_rate: 0.75,
+        merchant_annual_platform_cost: 299.00,
+        whatsapp_bi_platform_cost: 0.45,
+        whatsapp_ui_annual_platform_cost: 0.12,
+        whatsapp_ui_temporary_platform_cost: 0.12,
+        coupon_annual_platform_cost: 0.05,
+        coupon_temporary_platform_cost: 0.05,
         currency: 'USD',
         is_active: true,
       });
@@ -45,17 +48,26 @@ export class SuperAdminSettingsService {
     if (updateDto.admin_annual_subscription_fee !== undefined) {
       settings.admin_annual_subscription_fee = updateDto.admin_annual_subscription_fee;
     }
-    if (updateDto.temporary_merchant_packages_admin_commission_rate !== undefined) {
-      settings.temporary_merchant_packages_admin_commission_rate = updateDto.temporary_merchant_packages_admin_commission_rate;
-    }
-    if (updateDto.annual_merchant_packages_admin_commission_rate !== undefined) {
-      settings.annual_merchant_packages_admin_commission_rate = updateDto.annual_merchant_packages_admin_commission_rate;
-    }
     if (updateDto.merchant_annual_fee !== undefined) {
       settings.merchant_annual_fee = updateDto.merchant_annual_fee;
     }
-    if (updateDto.annual_merchant_subscription_admin_commission_rate !== undefined) {
-      settings.annual_merchant_subscription_admin_commission_rate = updateDto.annual_merchant_subscription_admin_commission_rate;
+    if (updateDto.merchant_annual_platform_cost !== undefined) {
+      settings.merchant_annual_platform_cost = updateDto.merchant_annual_platform_cost;
+    }
+    if (updateDto.whatsapp_bi_platform_cost !== undefined) {
+      settings.whatsapp_bi_platform_cost = updateDto.whatsapp_bi_platform_cost;
+    }
+    if (updateDto.whatsapp_ui_annual_platform_cost !== undefined) {
+      settings.whatsapp_ui_annual_platform_cost = updateDto.whatsapp_ui_annual_platform_cost;
+    }
+    if (updateDto.whatsapp_ui_temporary_platform_cost !== undefined) {
+      settings.whatsapp_ui_temporary_platform_cost = updateDto.whatsapp_ui_temporary_platform_cost;
+    }
+    if (updateDto.coupon_annual_platform_cost !== undefined) {
+      settings.coupon_annual_platform_cost = updateDto.coupon_annual_platform_cost;
+    }
+    if (updateDto.coupon_temporary_platform_cost !== undefined) {
+      settings.coupon_temporary_platform_cost = updateDto.coupon_temporary_platform_cost;
     }
     if (updateDto.currency !== undefined) {
       settings.currency = updateDto.currency;
@@ -76,21 +88,27 @@ export class SuperAdminSettingsService {
   }
 
   /**
-   * Get commission settings (public)
+   * Get platform cost settings (public)
    */
-  async getCommissionSettings(): Promise<{
-    temporaryMerchantPackagesAdminCommissionRate: number;
-    annualMerchantPackagesAdminCommissionRate: number;
+  async getPlatformCostSettings(): Promise<{
+    merchantAnnualPlatformCost: number;
+    whatsappBiPlatformCost: number;
+    whatsappUiAnnualPlatformCost: number;
+    whatsappUiTemporaryPlatformCost: number;
+    couponAnnualPlatformCost: number;
+    couponTemporaryPlatformCost: number;
     merchantAnnualFee: number;
-    annualMerchantSubscriptionAdminCommissionRate: number;
     currency: string;
   }> {
     const settings = await this.getSettings();
     return {
-      temporaryMerchantPackagesAdminCommissionRate: parseFloat(settings.temporary_merchant_packages_admin_commission_rate.toString()),
-      annualMerchantPackagesAdminCommissionRate: parseFloat(settings.annual_merchant_packages_admin_commission_rate.toString()),
+      merchantAnnualPlatformCost: parseFloat(settings.merchant_annual_platform_cost.toString()),
+      whatsappBiPlatformCost: parseFloat(settings.whatsapp_bi_platform_cost.toString()),
+      whatsappUiAnnualPlatformCost: parseFloat(settings.whatsapp_ui_annual_platform_cost.toString()),
+      whatsappUiTemporaryPlatformCost: parseFloat(settings.whatsapp_ui_temporary_platform_cost.toString()),
+      couponAnnualPlatformCost: parseFloat(settings.coupon_annual_platform_cost.toString()),
+      couponTemporaryPlatformCost: parseFloat(settings.coupon_temporary_platform_cost.toString()),
       merchantAnnualFee: parseFloat(settings.merchant_annual_fee.toString()),
-      annualMerchantSubscriptionAdminCommissionRate: parseFloat(settings.annual_merchant_subscription_admin_commission_rate.toString()),
       currency: settings.currency,
     };
   }
