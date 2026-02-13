@@ -27,6 +27,9 @@ export class Approval extends BaseEntity {
     @Column({ name: 'approval_status', type: 'varchar', length: 20, default: 'pending' })
     approval_status: string;
 
+    @Column({ name: 'ad_type', type: 'varchar', length: 20, nullable: true })
+    ad_type: string;
+
     @Column({ name: 'admin_id', nullable: true })
     admin_id: number;
 

@@ -147,6 +147,12 @@ export class BirthdayMessageService {
     settings: MerchantSetting,
   ) {
     try {
+      // Check if batch_id is configured
+      if (!settings.birthday_coupon_batch_id) {
+        this.logger.warn(`Birthday coupon batch not configured for merchant ${merchant.id}`);
+        return;
+      }
+
       // Check if birthday message was already sent this year
       const currentYear = new Date().getFullYear();
       const yearStart = new Date(currentYear, 0, 1); // January 1st of current year
