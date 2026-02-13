@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "8e0054f2-7870-495f-b5aa-c11d23a38b34",
-    "name": "41QR Review & Coupon SaaS API - With Campaigns",
-    "description": "Complete API collection including wallet system, automated campaigns (inactive recall, festival broadcasts, scheduled campaigns)",
+    "_postman_id": "e5f38197-088e-403e-831c-8593c18de44b",
+    "name": "53QR Review & Coupon SaaS API - With Credits Ledger",
+    "description": "Complete API collection including wallet system, automated campaigns, Credits Ledger (bank-style accounting), and Monthly PDF Statements",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "22622973"
   },
@@ -39,7 +39,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "// Super Admin Login\n{\n  \"email\": \"superadmin@must.services\",\n  \"password\": \"Pakistan@123\"\n}\n\n// Admin/Agent Login\n// {\n//   \"email\": \"agent1@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Staff Login (Finance Viewer)\n// {\n//   \"email\": \"finance@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Staff Login (Ad Approver)\n// {\n//   \"email\": \"adapprover@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Staff Login (Support Staff)\n// {\n//   \"email\": \"support@example.com\",\n//   \"password\": \"password123\"\n// }\n"
+              "raw": "// Super Admin Login\n{\n  \"email\": \"superadmin@must.services\",\n  \"password\": \"Pakistan@123\"\n}\n\n// Merchant\n// {\n//   \"email\": \"restaurantannual@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Admin/Agent Login\n// {\n//   \"email\": \"agent1@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Staff Login (Finance Viewer)\n// {\n//   \"email\": \"finance@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Staff Login (Ad Approver)\n// {\n//   \"email\": \"adapprover@example.com\",\n//   \"password\": \"password123\"\n// }\n\n// Staff Login (Support Staff)\n// {\n//   \"email\": \"support@example.com\",\n//   \"password\": \"password123\"\n// }\n"
             },
             "url": {
               "raw": "{{base_url}}/auth/login",
@@ -226,520 +226,7 @@
                 }
               ]
             },
-            "description": "Get comprehensive admin dashboard analytics including:\n- Platform overview (merchants by type/status)\n- Merchant statistics (recent, top performers)\n- Revenue tracking (annual fees, credit sales, commissions)\n- Wallet statistics\n- Coupon performance platform-wide\n- WhatsApp usage and costs\n- Customer engagement metrics\n- Platform growth timeline\n\nDefault: Last 3 months"
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Finance Viewers",
-      "item": [
-        {
-          "name": "Create Finance Viewer",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201 || pm.response.code === 200) {",
-                  "    var jsonData = pm.response.json();",
-                  "    if (jsonData.data && jsonData.data.id) {",
-                  "        pm.collectionVariables.set('finance_viewer_id', jsonData.data.id);",
-                  "        console.log('Finance Viewer ID saved:', jsonData.data.id);",
-                  "    }",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Jane Finance\",\n  \"email\": \"finance@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456789\",\n  \"address\": \"123 Finance Street\",\n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"notes\": \"Financial reports viewer\",\n  \"is_active\": true\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/finance-viewers",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "finance-viewers"
-              ]
-            },
-            "description": "Create a new Finance Viewer staff member. Can view financial reports and analytics."
-          },
-          "response": []
-        },
-        {
-          "name": "Get All Finance Viewers",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/finance-viewers?page=1&pageSize=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "finance-viewers"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "pageSize",
-                  "value": "20"
-                },
-                {
-                  "key": "search",
-                  "value": "",
-                  "disabled": true
-                }
-              ]
-            },
-            "description": "Get all Finance Viewers with pagination"
-          },
-          "response": []
-        },
-        {
-          "name": "Get Finance Viewer by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/finance-viewers/{{finance_viewer_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "finance-viewers",
-                "{{finance_viewer_id}}"
-              ]
-            },
-            "description": "Get a specific Finance Viewer by ID"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Finance Viewer",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Jane Finance Updated\",\n  \"notes\": \"Senior Financial Analyst\",\n  \"is_active\": true\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/finance-viewers/{{finance_viewer_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "finance-viewers",
-                "{{finance_viewer_id}}"
-              ]
-            },
-            "description": "Update Finance Viewer details"
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Finance Viewer",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/finance-viewers/{{finance_viewer_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "finance-viewers",
-                "{{finance_viewer_id}}"
-              ]
-            },
-            "description": "Delete (soft delete) a Finance Viewer"
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Ad Approvers",
-      "item": [
-        {
-          "name": "Create Ad Approver",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201 || pm.response.code === 200) {",
-                  "    var jsonData = pm.response.json();",
-                  "    if (jsonData.data && jsonData.data.id) {",
-                  "        pm.collectionVariables.set('ad_approver_id', jsonData.data.id);",
-                  "        console.log('Ad Approver ID saved:', jsonData.data.id);",
-                  "    }",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"John Ad Manager\",\n  \"email\": \"adapprover@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456790\",\n  \"address\": \"456 Marketing Street\",\n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"notes\": \"Approves paid advertisements\",\n  \"is_active\": true\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/ad-approvers",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "ad-approvers"
-              ]
-            },
-            "description": "Create a new Ad Approver staff member. Can approve/reject paid ad submissions."
-          },
-          "response": []
-        },
-        {
-          "name": "Get All Ad Approvers",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/ad-approvers?page=1&pageSize=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "ad-approvers"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "pageSize",
-                  "value": "20"
-                },
-                {
-                  "key": "search",
-                  "value": "",
-                  "disabled": true
-                }
-              ]
-            },
-            "description": "Get all Ad Approvers with pagination"
-          },
-          "response": []
-        },
-        {
-          "name": "Get Ad Approver by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/ad-approvers/{{ad_approver_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "ad-approvers",
-                "{{ad_approver_id}}"
-              ]
-            },
-            "description": "Get a specific Ad Approver by ID"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Ad Approver",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"John Ad Manager Updated\",\n  \"notes\": \"Senior Ad Approval Manager\",\n  \"is_active\": true\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/ad-approvers/{{ad_approver_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "ad-approvers",
-                "{{ad_approver_id}}"
-              ]
-            },
-            "description": "Update Ad Approver details"
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Ad Approver",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/ad-approvers/{{ad_approver_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "ad-approvers",
-                "{{ad_approver_id}}"
-              ]
-            },
-            "description": "Delete (soft delete) an Ad Approver"
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Support Staff",
-      "item": [
-        {
-          "name": "Create Support Staff",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201 || pm.response.code === 200) {",
-                  "    var jsonData = pm.response.json();",
-                  "    if (jsonData.data && jsonData.data.id) {",
-                  "        pm.collectionVariables.set('support_staff_id', jsonData.data.id);",
-                  "        console.log('Support Staff ID saved:', jsonData.data.id);",
-                  "    }",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Sarah Support\",\n  \"email\": \"support@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456791\",\n  \"address\": \"789 Support Street\",\n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"notes\": \"Customer support representative\",\n  \"is_active\": true\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/support-staff",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "support-staff"
-              ]
-            },
-            "description": "Create a new Support Staff member. Can handle customer support queries."
-          },
-          "response": []
-        },
-        {
-          "name": "Get All Support Staff",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/support-staff?page=1&pageSize=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "support-staff"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "pageSize",
-                  "value": "20"
-                },
-                {
-                  "key": "search",
-                  "value": "",
-                  "disabled": true
-                }
-              ]
-            },
-            "description": "Get all Support Staff with pagination"
-          },
-          "response": []
-        },
-        {
-          "name": "Get Support Staff by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/support-staff/{{support_staff_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "support-staff",
-                "{{support_staff_id}}"
-              ]
-            },
-            "description": "Get a specific Support Staff by ID"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Support Staff",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Sarah Support Updated\",\n  \"notes\": \"Senior Support Representative\",\n  \"is_active\": true\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/support-staff/{{support_staff_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "support-staff",
-                "{{support_staff_id}}"
-              ]
-            },
-            "description": "Update Support Staff details"
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Support Staff",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/support-staff/{{support_staff_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "support-staff",
-                "{{support_staff_id}}"
-              ]
-            },
-            "description": "Delete (soft delete) a Support Staff member"
+            "description": "Get comprehensive admin dashboard analytics including:\n- Platform overview (merchants by type/status)\n- Merchant statistics (recent, top performers)\n- Revenue tracking (annual fees, credit sales, platform costs deducted)\n- Wallet statistics (prepaid balance, total earnings, spending)\n- Coupon performance platform-wide\n- WhatsApp usage and costs\n- Customer engagement metrics\n- Platform growth timeline\n\nDefault: Last 3 months"
           },
           "response": []
         }
@@ -777,7 +264,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"admin_id\": 1,\n  \"name\": \"John's Restaurant23\",\n  \"email\": \"restaurantannual@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"merchant\",\n  \"business_name\": \"John's Fine Dining\",\n  \"business_type\": \"Restaurant\",\n  \"merchant_type\": \"annual\",\n  \"address\": \"123 Main St\", \n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"map_link\": \"https://maps.google.com/?q=3.139,101.687\",\n  \"latitude\": 3.139003,\n  \"longitude\": 101.686855,\n  \"tax_id\": \"TX123456\",\n  \"is_active\":true\n}"
+              "raw": "{\n  \"admin_id\": {{admin_id}},\n  \"name\": \"John's Restaurant23\",\n  \"email\": \"restaurantannual6@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"merchant\",\n  \"business_name\": \"John's Fine Dining\",\n  \"business_type\": \"Restaurant\",\n  \"merchant_type\": \"annual\",\n  \"address\": \"123 Main St\", \n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"map_link\": \"https://maps.google.com/?q=3.139,101.687\",\n  \"latitude\": 3.139003,\n  \"longitude\": 101.686855,\n  \"tax_id\": \"TX123456\",\n  \"is_active\":true\n}"
             },
             "url": {
               "raw": "{{base_url}}/merchants",
@@ -797,7 +284,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/merchants?page=1&pageSize=20&isActive=false",
+              "raw": "{{base_url}}/merchants?page=1&pageSize=20",
               "host": [
                 "{{base_url}}"
               ],
@@ -812,10 +299,6 @@
                 {
                   "key": "pageSize",
                   "value": "20"
-                },
-                {
-                  "key": "isActive",
-                  "value": "false"
                 }
               ]
             }
@@ -994,6 +477,42 @@
               "response": []
             },
             {
+              "name": "Top Up Admin Wallet",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 1050,\n  \"description\": \"Standard Top-Up Package - Stripe Checkout\",\n  \"metadata\": {\n    \"packageId\": \"topup_1000\",\n    \"packageName\": \"Standard Top-Up\",\n    \"baseAmount\": 1000,\n    \"bonusAmount\": 50,\n    \"stripeSessionId\": \"cs_test_xxxxxxxxxxxxx\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/wallets/admin/{{admin_id}}/topup",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "admin",
+                    "{{admin_id}}",
+                    "topup"
+                  ]
+                },
+                "description": "Top up admin prepaid wallet with specified amount (including bonus). Creates a credit transaction and updates wallet balance.\n\n**Request Body:**\n- `amount` (number, required): Total amount to credit including bonus (e.g., 1050 for RM1000 + RM50 bonus)\n- `description` (string, optional): Transaction description\n- `metadata` (object, optional): Package details for analytics\n  - `packageId`: Package identifier (e.g., topup_1000)\n  - `packageName`: Display name (e.g., Standard Top-Up)\n  - `baseAmount`: Base payment amount\n  - `bonusAmount`: Platform bonus credit\n  - `stripeSessionId`: Stripe checkout session ID for reconciliation\n\n**Top-Up Packages:**\n- Starter: RM500 (no bonus)\n- Standard: RM1000 + RM50 bonus = RM1050 total ⭐\n- Business: RM2500 + RM150 bonus = RM2650 total\n- Professional: RM5000 + RM500 bonus = RM5500 total\n- Enterprise: RM10000 + RM1500 bonus = RM11500 total\n\n**Response:**\nReturns transaction details with updated balance"
+              },
+              "response": []
+            },
+            {
               "name": "Get Admin Subscription Fee",
               "request": {
                 "method": "GET",
@@ -1086,7 +605,7 @@
                     "add-credits"
                   ]
                 },
-                "description": "Add credits to merchant wallet from a credit package. REQUIRED: package_id must be provided and package must exist. System verifies package compatibility with merchant type (temporary merchants cannot purchase WhatsApp BI packages). Automatically credits admin with commission."
+                "description": "Add credits to merchant wallet from a credit package. REQUIRED: package_id must be provided and package must exist. System verifies package compatibility with merchant type (temporary merchants cannot purchase WhatsApp BI packages).\n\n**Prepaid Wallet Model:**\nWhen merchant purchases credits, 100% payment goes to agent's Stripe account. Platform automatically deducts platform costs from agent's prepaid wallet based on package contents (WhatsApp UI, BI, coupons). Agent keeps the profit = merchant payment - platform cost.\n\n**Requires:** Agent must have sufficient prepaid wallet balance to cover platform costs."
               },
               "response": []
             },
@@ -1116,7 +635,7 @@
                     "upgrade-to-annual"
                   ]
                 },
-                "description": "Upgrade merchant from temporary to annual subscription. Credits admin wallet with 75% commission (RM900)"
+                "description": "Upgrade merchant from temporary to annual subscription.\n\n**Prepaid Wallet Model:**\nWhen merchant upgrades, 100% payment (RM1499) goes to agent's Stripe account. Platform automatically deducts RM299 platform cost from agent's prepaid wallet. Agent profit = RM1499 - RM299 = RM1200.\n\n**Changes:**\n- merchant_type: 'temporary' → 'annual'\n- subscription_type: 'temporary' → 'annual'\n- subscription_expires_at: Set to 1 year from upgrade date\n\n**Requires:** Agent must have at least RM299 in prepaid wallet balance."
               },
               "response": []
             }
@@ -1315,7 +834,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Starter Package3\",\n  \"description\": \"Perfect for small businesses\",\n  \"credits\": 1,\n  \"credit_type\": \"paid ads\",\n  \"price\": 50.00,\n  \"price_per_credit\": 0.50,\n  \"currency\": \"USD\",\n  \"merchant_type\": \"annual\",\n  \"is_active\": true,\n  \"sort_order\": 1,\n  \"bonus_credits\": 0\n}"
+                  "raw": "{\n  \"name\": \"Starter Package\",\n  \"description\": \"Perfect for small businesses\",\n  \"credits\": 100,\n  \"credit_type\": \"whatsapp bi message\",\n  \"price\": 50.00,\n  \"price_per_credit\": 0.50,\n  \"currency\": \"USD\",\n  \"merchant_type\": \"annual\",\n  \"is_active\": true,\n  \"sort_order\": 1,\n  \"bonus_credits\": 0\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/wallets/credit-packages",
@@ -1415,7 +934,7 @@
                 "super-admin-settings"
               ]
             },
-            "description": "Get all super admin settings including commission rates, fees, and currency (Super Admin only)"
+            "description": "Get all super admin settings including platform costs, fees, and currency (Super Admin only). Returns prepaid wallet model configuration."
           },
           "response": []
         },
@@ -1435,7 +954,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"admin_annual_subscription_fee\": 1499.00,\n  \"temporary_merchant_packages_admin_commission_rate\": 0.25,\n  \"annual_merchant_packages_admin_commission_rate\": 0.03,\n  \"merchant_annual_fee\": 1499.00,\n  \"annual_merchant_subscription_admin_commission_rate\": 0.80,\n  \"currency\": \"USD\"\n}"
+              "raw": "{\n  \"admin_annual_subscription_fee\": 1499.00,\n  \"merchant_annual_fee\": 1499.00,\n  \"merchant_annual_platform_cost\": 299.00,\n  \"whatsapp_bi_platform_cost\": 0.45,\n  \"whatsapp_ui_annual_platform_cost\": 0.12,\n  \"whatsapp_ui_temporary_platform_cost\": 0.12,\n  \"coupon_annual_platform_cost\": 0.05,\n  \"coupon_temporary_platform_cost\": 0.05,\n  \"currency\": \"MYR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/super-admin-settings",
@@ -1446,7 +970,7 @@
                 "super-admin-settings"
               ]
             },
-            "description": "Update super admin settings. All fields are optional. Rates are decimal values (e.g., 0.20 = 20%, 0.02 = 2%). Fields:\n- admin_annual_subscription_fee: Admin annual subscription fee\n- temporary_merchant_packages_admin_commission_rate: Commission for temporary merchant packages\n- annual_merchant_packages_admin_commission_rate: Commission for annual merchant packages\n- merchant_annual_fee: Merchant annual subscription fee\n- annual_merchant_subscription_admin_commission_rate: Admin commission for merchant annual subscriptions"
+            "description": "Update super admin settings for prepaid wallet model. All fields are optional. Platform costs are deducted from agent's prepaid wallet. Fields:\n\n**Fees:**\n- admin_annual_subscription_fee: Agent annual subscription fee (default: RM1499)\n- merchant_annual_fee: Merchant annual subscription fee (default: RM1499)\n\n**Platform Costs (deducted from agent wallet):**\n- merchant_annual_platform_cost: Cost per annual merchant activation (default: RM299)\n- whatsapp_bi_platform_cost: Cost per WhatsApp BI message (default: RM0.45)\n- whatsapp_ui_annual_platform_cost: Cost per WhatsApp UI for annual merchants (default: RM0.12)\n- whatsapp_ui_temporary_platform_cost: Cost per WhatsApp UI for temporary merchants (default: RM0.12)\n- coupon_annual_platform_cost: Cost per coupon for annual merchants (default: RM0.05)\n- coupon_temporary_platform_cost: Cost per coupon for temporary merchants (default: RM0.05)\n\n**Other:**\n- currency: Platform currency (e.g., MYR, USD)"
           },
           "response": []
         },
@@ -1470,159 +994,21 @@
           "response": []
         },
         {
-          "name": "Get Commission Settings (Public)",
+          "name": "Get Platform Cost Settings (Public)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/super-admin-settings/commission-settings",
+              "raw": "{{base_url}}/super-admin-settings/platform-cost-settings",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "super-admin-settings",
-                "commission-settings"
+                "platform-cost-settings"
               ]
             },
-            "description": "Get all commission rates and fees. No authentication required. Returns:\n- temporaryMerchantCommissionRate (default: 0.20 = 20%)\n- annualMerchantCommissionRate (default: 0.02 = 2%)\n- merchantAnnualFee (default: 1199.00)\n- adminAnnualCommissionRate (default: 0.75 = 75%)\n- currency"
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Customers",
-      "item": [
-        {
-          "name": "Create Customer",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.collectionVariables.set('customer_id', jsonData.data.id);",
-                  "    console.log('Customer ID saved:', jsonData.data.id);",
-                  "}"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Jane\",\n  \"email\": \"customer1@example.com\",\n  \"phone\": \"+60123456789\",\n  \"date_of_birth\": \"1990-05-15\",\n  \"gender\":\"male\"\n  \n}   "
-            },
-            "url": {
-              "raw": "{{base_url}}/customers",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "customers"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get All Customers",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/customers?page=1&pageSize=20",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "customers"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "pageSize",
-                  "value": "20"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Customer by ID",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/customers/1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "customers",
-                "1"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Customer",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"phoneNumber\": \"1111111111\",\n  \"address\": \"Updated Address\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/customers/1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "customers",
-                "1"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Customer",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/customers/1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "customers",
-                "1"
-              ]
-            }
+            "description": "Get platform cost configuration for prepaid wallet model. No authentication required. Returns costs that will be deducted from agent's prepaid wallet:\n\n**Response:**\n- merchantAnnualPlatformCost: Cost per annual merchant (default: RM299)\n- whatsappBIPlatformCost: Cost per WhatsApp BI message (default: RM0.45)\n- whatsappUIAnnualPlatformCost: Cost per WhatsApp UI for annual merchants (default: RM0.12)\n- whatsappUITemporaryPlatformCost: Cost per WhatsApp UI for temporary merchants (default: RM0.12)\n- couponAnnualPlatformCost: Cost per coupon for annual merchants (default: RM0.05)\n- couponTemporaryPlatformCost: Cost per coupon for temporary merchants (default: RM0.05)\n- currency: Platform currency (e.g., MYR)\n\n**Business Model:**\nAgent maintains prepaid wallet balance. Platform automatically deducts these costs when agent's merchants make purchases or activate subscriptions. Agent keeps the profit (merchant payment - platform cost)."
           },
           "response": []
         }
@@ -1660,7 +1046,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"batch_name\": \"Winter Sale 2029\",\n  \"batch_type\": \"temporary\",\n  \"total_quantity\": 3,\n  \"start_date\": \"2026-01-01\",\n  \"end_date\": \"2026-02-05\",\n  \"is_active\": true,\n//   \"whatsapp_enabled\": false,\n//   \"lucky_draw_enabled\": false,\n  \"template_id\": 2,\n  \"header\": \"Special Offer\",\n  \"title\": \"50% Off\",\n  \"description\": \"Use this coupon to get 50% off your next purchase.\",\n  \"ishalal\": true\n\n}"
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"batch_name\": \"Winter Sale 2029\",\n  \"batch_type\": \"annual\",\n  \"total_quantity\": 20,\n  \"start_date\": \"2026-01-01\",\n  \"end_date\": \"2026-02-09\",\n  \"is_active\": true,\n//   \"whatsapp_enabled\": false,\n//   \"lucky_draw_enabled\": false,\n  \"template_id\": 2,\n  \"header\": \"Special Offer\",\n  \"title\": \"50% Off\",\n  \"description\": \"Use this coupon to get 50% off your next purchase.\",\n  \"ishalal\": true,\n  \"brand_image\":\"bac\"\n\n}"
             },
             "url": {
               "raw": "{{base_url}}/coupon-batches",
@@ -1845,7 +1231,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/system-logs?page=1&pageSize=20&level=error",
+              "raw": "{{base_url}}/system-logs?page=1&pageSize=20",
               "host": [
                 "{{base_url}}"
               ],
@@ -1875,8 +1261,9 @@
                 },
                 {
                   "key": "level",
-                  "value": "error",
-                  "description": "Filter by level: info, warning, error, critical"
+                  "value": "info",
+                  "description": "Filter by level: info, warning, error, critical",
+                  "disabled": true
                 },
                 {
                   "key": "userId",
@@ -3842,7 +3229,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "// Basic Settings Example:\n// {\n//   \"enableGoogleReviews\": true,\n//   \"enableFacebookReviews\": true,\n//   \"googleReviewUrl\": \"https://g.page/r/updated-url\",\n//   \"facebookPageUrl\": \"https://facebook.com/updated-page\"\n// }\n\n// Full Settings with Campaigns:\n{\n    \"whatsapp_enabled_for_batch_id\": 2,\n    \"luckydraw_enabled\": false,\n    \"birthday_message_enabled\": true,\n    \"days_before_birthday\": 3,\n    \"days_after_birthday\": 0,\n    \"birthday_coupon_batch_id\": 2,\n    \"inactive_recall_enabled\": true,\n    \"inactive_recall_days\": 30,\n    \"inactive_recall_coupon_batch_id\": 2,\n    \"festival_campaign_enabled\": true,\n    \"festival_coupon_batch_id\": 2\n}"
+              "raw": "// Basic Settings Example:\n// {\n//   \"enableGoogleReviews\": true,\n//   \"enableFacebookReviews\": true,\n//   \"googleReviewUrl\": \"https://g.page/r/updated-url\",\n//   \"facebookPageUrl\": \"https://facebook.com/updated-page\"\n// }\n\n// Full Settings with Campaigns:\n{\n    \"whatsapp_enabled_for_batch_id\": 4,\n    \"luckydraw_enabled\": false,\n    \"birthday_message_enabled\": true,\n    \"days_before_birthday\": 4,\n    \"days_after_birthday\": 0,\n    \"birthday_coupon_batch_id\": 4,\n    \"inactive_recall_enabled\": true,\n    \"inactive_recall_days\": 30,\n    \"inactive_recall_coupon_batch_id\": 4,\n    \"festival_campaign_enabled\": true,\n    \"scheduled_campaign_enabled\": true\n    // \"paid_ads\": true\n}"
             },
             "url": {
               "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
@@ -4238,7 +3625,7 @@
                 }
               ]
             },
-            "description": "Get comprehensive platform analytics for super admin including:\n- Admin stats (total, active, inactive)\n- Merchant stats (total, active, inactive, annual, temporary)\n- Customer stats\n- Feedback submissions\n- Coupon stats (issued, redeemed, expired, active)\n- Revenue totals (commission, annual fees, credit purchases)\n- Monthly revenue breakdown\n- Merchant and customer growth\n- Top 10 merchants by coupons redeemed\n\nAll metrics support date filtering via startDate and endDate query parameters."
+            "description": "Get comprehensive platform analytics for super admin including:\n- Admin stats (total, active, inactive)\n- Merchant stats (total, active, inactive, annual, temporary)\n- Customer stats\n- Feedback submissions\n- Coupon stats (issued, redeemed, expired, active)\n- Revenue totals (platform costs collected, annual fees, credit purchases)\n- Monthly revenue breakdown\n- Merchant and customer growth\n- Top 10 merchants by coupons redeemed\n\n**Prepaid Wallet Model:** Revenue includes platform costs automatically deducted from agent wallets when merchants make purchases.\n\nAll metrics support date filtering via startDate and endDate query parameters."
           },
           "response": []
         },
@@ -4274,7 +3661,7 @@
                 }
               ]
             },
-            "description": "Get comprehensive platform analytics for super admin including:\n- Admin stats (total, active, inactive)\n- Merchant stats (total, active, inactive, annual, temporary)\n- Customer stats\n- Feedback submissions\n- Coupon stats (issued, redeemed, expired, active)\n- Revenue totals (commission, annual fees, credit purchases)\n- Monthly revenue breakdown\n- Merchant and customer growth\n- Top 10 merchants by coupons redeemed\n\nAll metrics support date filtering via startDate and endDate query parameters."
+            "description": "Get comprehensive platform analytics for super admin including:\n- Admin stats (total, active, inactive)\n- Merchant stats (total, active, inactive, annual, temporary)\n- Customer stats\n- Feedback submissions\n- Coupon stats (issued, redeemed, expired, active)\n- Revenue totals (platform costs collected, annual fees, credit purchases)\n- Monthly revenue breakdown\n- Merchant and customer growth\n- Top 10 merchants by coupons redeemed\n\n**Prepaid Wallet Model:** Revenue includes platform costs automatically deducted from agent wallets when merchants make purchases.\n\nAll metrics support date filtering via startDate and endDate query parameters."
           },
           "response": []
         }
@@ -4298,9 +3685,7 @@
                   "    }",
                   "}"
                 ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
+                "type": "text/javascript"
               }
             }
           ],
@@ -4318,7 +3703,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"campaign_name\": \"Grand Opening Special\",\n  \"campaign_message\": \"Hi {customer_name}, we're excited to invite you to our grand opening at {business_name}! Don't miss out on exclusive offers!\",\n  \"scheduled_date\": \"2026-01-28\",\n  \"target_audience\": \"all\",\n  \"send_coupons\": true,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n// Target Audience Options:\n// \"all\" - All customers\n// \"active\" - Customers with feedback in last 30 days\n// \"inactive\" - Customers without feedback in last 90 days\n// \"first_time\" - Customers with only 1 feedback\n// \"returning\" - Customers with more than 1 feedback"
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"campaign_name\": \"Grand Opening Special\",\n  \"campaign_message\": \"Hi {customer_name}, we're excited to invite you to our grand opening at {business_name}! Don't miss out on exclusive offers!\",\n  \"scheduled_date\": \"2026-02-01T10:00:00Z\",\n  \"target_audience\": \"all\",\n  \"send_coupons\": true,\n  \"coupon_batch_id\": {{batch_id}}\n}\n\n// Target Audience Options:\n// \"all\" - All customers\n// \"active\" - Customers with feedback in last 30 days\n// \"inactive\" - Customers without feedback in last 90 days\n// \"first_time\" - Customers with only 1 feedback\n// \"returning\" - Customers with more than 1 feedback"
             },
             "url": {
               "raw": "{{base_url}}/scheduled-campaigns",
@@ -4344,7 +3729,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/scheduled-campaigns?merchant_id={{merchant_id}}&status=scheduled",
+              "raw": "{{base_url}}/scheduled-campaigns?merchant_id={{merchant_id}}&status=all",
               "host": [
                 "{{base_url}}"
               ],
@@ -4354,13 +3739,11 @@
               "query": [
                 {
                   "key": "merchant_id",
-                  "value": "{{merchant_id}}",
-                  "description": "Filter by merchant ID"
+                  "value": "{{merchant_id}}"
                 },
                 {
                   "key": "status",
-                  "value": "scheduled",
-                  "description": "Filter by status: scheduled, processing, completed, cancelled, failed"
+                  "value": "all"
                 }
               ]
             },
@@ -4425,7 +3808,7 @@
           "response": []
         },
         {
-          "name": "Cancel Campaign",
+          "name": "Delete Campaign",
           "request": {
             "method": "DELETE",
             "header": [
@@ -4503,6 +3886,1492 @@
             "description": "Get all completed campaigns with statistics (total customers, messages sent, messages failed)."
           },
           "response": []
+        },
+        {
+          "name": "Cancel Campaign",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/scheduled-campaigns/{{campaign_id}}/cancel",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scheduled-campaigns",
+                "{{campaign_id}}",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Festival Messages",
+      "item": [
+        {
+          "name": "Enable Festival Campaign",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"festival_campaign_enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Enable festival campaigns for a merchant. The system will automatically send WhatsApp messages on festival dates to all active customers based on festival messages configured for the merchant.\n\n**Requirements:**\n- Only available for annual merchants\n- Festival messages must be created with coupon batch IDs\n- System checks WhatsApp BI credits before sending\n- Automatically assigns coupons from the batch specified in each festival message\n\n**Note:** This is an automated background service (cron job). Messages are sent automatically on festival dates at 8 AM. Create festival messages to define which festivals to celebrate."
+          },
+          "response": []
+        },
+        {
+          "name": "Disable Festival Campaign",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"festival_campaign_enabled\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Disable festival campaigns for a merchant. No festival messages will be sent automatically."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Festival Campaign Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Get merchant settings including festival campaign configuration.\n\n**Response fields:**\n- festival_campaign_enabled (boolean): Whether festival campaigns are enabled\n- scheduled_campaign_enabled (boolean): Whether scheduled campaigns are enabled\n\n**Note:** Festival coupon batches are now configured per festival message, not globally in settings."
+          },
+          "response": []
+        },
+        {
+          "name": "Enable Scheduled Campaign",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduled_campaign_enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/merchant-settings/merchant/{{merchant_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "merchant-settings",
+                "merchant",
+                "{{merchant_id}}"
+              ]
+            },
+            "description": "Enable scheduled campaigns for a merchant. Allows creating and sending scheduled WhatsApp messages to customers at specific dates and times.\n\n**Requirements:**\n- Only available for annual merchants\n- System checks WhatsApp BI credits before sending\n- Scheduled messages are processed by a background cron job"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Festival Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set('festival_message_id', jsonData.data.id);",
+                  "        console.log('Festival Message ID saved:', jsonData.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"festival_name\": \"Eid Mubarak\",\n  \"festival_date\": \"2026-03-21\",\n  \"message\": \"Eid Mubarak! Celebrate this blessed occasion with special offers from us!\",\n  \"coupon_batch_id\": {{batch_id}},\n  \"is_active\": true,\n  \"is_recurring\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/festival-messages",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages"
+              ]
+            },
+            "description": "Create a custom festival message for a merchant. The system will automatically send this message to all customers on the specified festival date.\n\n**Fields:**\n- merchant_id: ID of the merchant (optional, system-wide if null)\n- festival_name: Name of the festival\n- festival_date: Date in YYYY-MM-DD format\n- message: Custom message to send (supports placeholders)\n- coupon_batch_id: ID of the coupon batch to use for this festival (optional)\n- is_active: Whether this festival is active\n- is_recurring: If true, sends every year on the same date\n\n**Note:** Requires merchant to have festival campaigns enabled in settings."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Festival Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/festival-messages?is_active=inactive",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages"
+              ],
+              "query": [
+                {
+                  "key": "is_active",
+                  "value": "inactive"
+                }
+              ]
+            },
+            "description": "Get all festival messages with optional filtering by merchant and active status."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Festival Message by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/festival-messages/{{festival_message_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages",
+                "{{festival_message_id}}"
+              ]
+            },
+            "description": "Get a specific festival message by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Festival Message",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"festival_name\": \"Eid Mubarak (Updated)\",\n  \"message\": \"Eid Mubarak! Celebrate this blessed occasion with our special offers and discounts!\",\n  \"coupon_batch_id\": {{batch_id}},\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/festival-messages/{{festival_message_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages",
+                "{{festival_message_id}}"
+              ]
+            },
+            "description": "Update an existing festival message. All fields are optional."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Festival Message",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/festival-messages/{{festival_message_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "festival-messages",
+                "{{festival_message_id}}"
+              ]
+            },
+            "description": "Soft delete a festival message. The message will be marked as deleted but not removed from the database."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Credits Ledger & Monthly Statements",
+      "item": [
+        {
+          "name": "Credits Ledger",
+          "item": [
+            {
+              "name": "Get Credit Ledger Entries",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/credit-ledgers?owner_type=merchant&owner_id={{merchant_id}}&page=1&limit=50",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "credit-ledgers"
+                  ],
+                  "query": [
+                    {
+                      "key": "owner_type",
+                      "value": "merchant",
+                      "description": "merchant | agent | master"
+                    },
+                    {
+                      "key": "owner_id",
+                      "value": "{{merchant_id}}"
+                    },
+                    {
+                      "key": "credit_type",
+                      "value": "coupon",
+                      "description": "coupon | wa_ui | wa_bi | paid_ads",
+                      "disabled": true
+                    },
+                    {
+                      "key": "action",
+                      "value": "purchase",
+                      "description": "purchase | deduct | refund | adjustment",
+                      "disabled": true
+                    },
+                    {
+                      "key": "start_date",
+                      "value": "2026-01-01",
+                      "disabled": true
+                    },
+                    {
+                      "key": "end_date",
+                      "value": "2026-01-31",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "50"
+                    }
+                  ]
+                },
+                "description": "Get all credit ledger entries with filtering. Merchants see only their own ledger, agents see own ledger, superadmin sees all."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Credit Balances",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/credit-ledgers/balances?owner_type=merchant&owner_id={{merchant_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "credit-ledgers",
+                    "balances"
+                  ],
+                  "query": [
+                    {
+                      "key": "owner_type",
+                      "value": "merchant",
+                      "description": "merchant | agent | master"
+                    },
+                    {
+                      "key": "owner_id",
+                      "value": "{{merchant_id}}"
+                    }
+                  ]
+                },
+                "description": "Get current credit balances for a specific owner (merchant/agent/master)."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Ledger for Purchase Action",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/credit-ledgers?owner_type=merchant&owner_id={{merchant_id}}&action=purchase&limit=10",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "credit-ledgers"
+                  ],
+                  "query": [
+                    {
+                      "key": "owner_type",
+                      "value": "merchant"
+                    },
+                    {
+                      "key": "owner_id",
+                      "value": "{{merchant_id}}"
+                    },
+                    {
+                      "key": "action",
+                      "value": "purchase"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Get ledger entries for credit purchases only."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Ledger for Deduct Action",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/credit-ledgers?owner_type=merchant&owner_id={{merchant_id}}&action=deduct&credit_type=coupon&limit=10",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "credit-ledgers"
+                  ],
+                  "query": [
+                    {
+                      "key": "owner_type",
+                      "value": "merchant"
+                    },
+                    {
+                      "key": "owner_id",
+                      "value": "{{merchant_id}}"
+                    },
+                    {
+                      "key": "action",
+                      "value": "deduct"
+                    },
+                    {
+                      "key": "credit_type",
+                      "value": "coupon"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Get ledger entries for credit deductions (coupon batch generation, WhatsApp messages, etc.)."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Ledger for Refund Action",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/credit-ledgers?owner_type=merchant&owner_id={{merchant_id}}&action=refund&limit=10",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "credit-ledgers"
+                  ],
+                  "query": [
+                    {
+                      "key": "owner_type",
+                      "value": "merchant"
+                    },
+                    {
+                      "key": "owner_id",
+                      "value": "{{merchant_id}}"
+                    },
+                    {
+                      "key": "action",
+                      "value": "refund"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Get ledger entries for credit refunds (expired coupon batches with untaken coupons)."
+              },
+              "response": []
+            },
+            {
+              "name": "Get WhatsApp UI Ledger Entries",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/credit-ledgers?owner_type=merchant&owner_id={{merchant_id}}&credit_type=wa_ui&action=deduct&limit=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "credit-ledgers"
+                  ],
+                  "query": [
+                    {
+                      "key": "owner_type",
+                      "value": "merchant"
+                    },
+                    {
+                      "key": "owner_id",
+                      "value": "{{merchant_id}}"
+                    },
+                    {
+                      "key": "credit_type",
+                      "value": "wa_ui"
+                    },
+                    {
+                      "key": "action",
+                      "value": "deduct"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Get ledger entries for WhatsApp User-Initiated messages (feedback, homepage coupons)."
+              },
+              "response": []
+            },
+            {
+              "name": "Get WhatsApp BI Ledger Entries",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/credit-ledgers?owner_type=merchant&owner_id={{merchant_id}}&credit_type=wa_bi&action=deduct&limit=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "credit-ledgers"
+                  ],
+                  "query": [
+                    {
+                      "key": "owner_type",
+                      "value": "merchant"
+                    },
+                    {
+                      "key": "owner_id",
+                      "value": "{{merchant_id}}"
+                    },
+                    {
+                      "key": "credit_type",
+                      "value": "wa_bi"
+                    },
+                    {
+                      "key": "action",
+                      "value": "deduct"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Get ledger entries for WhatsApp Business-Initiated messages (birthday, festivals, inactive recall)."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Monthly Statements",
+          "item": [
+            {
+              "name": "Generate Monthly Statement",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201 || pm.response.code === 200) {",
+                      "    var jsonData = pm.response.json();",
+                      "    if (jsonData.data && jsonData.data.id) {",
+                      "        pm.collectionVariables.set('statement_id', jsonData.data.id);",
+                      "        console.log('Statement ID saved:', jsonData.data.id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "// {\n//   \"year\": 2026,\n//   \"month\": 2,\n//   \"owner_type\": \"merchant\",\n//   \"owner_id\": {{merchant_id}}\n// }"
+                },
+                "url": {
+                  "raw": "{{base_url}}/monthly-statements/generate?year=2026&month=1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "monthly-statements",
+                    "generate"
+                  ],
+                  "query": [
+                    {
+                      "key": "year",
+                      "value": "2026"
+                    },
+                    {
+                      "key": "month",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "Manually trigger generation of monthly statement for specific merchant, agent, or master. Omit owner_type and owner_id to generate for all."
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Monthly Statements",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/monthly-statements?owner_type=merchant&owner_id={{merchant_id}}&year=2026&month=2&page=1&limit=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "monthly-statements"
+                  ],
+                  "query": [
+                    {
+                      "key": "owner_type",
+                      "value": "merchant"
+                    },
+                    {
+                      "key": "owner_id",
+                      "value": "{{merchant_id}}"
+                    },
+                    {
+                      "key": "year",
+                      "value": "2026"
+                    },
+                    {
+                      "key": "month",
+                      "value": "2"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "status",
+                      "value": "generated",
+                      "description": "generated | sent | viewed",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Get all monthly statements with filtering. Merchants see own statements, agents see own, superadmin sees all."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Single Monthly Statement",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/monthly-statements/{{statement_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "monthly-statements",
+                    "{{statement_id}}"
+                  ]
+                },
+                "description": "Get details of a specific monthly statement including full statement_data (coupons, WhatsApp usage, credit balances)."
+              },
+              "response": []
+            },
+            {
+              "name": "Download Statement PDF",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/monthly-statements/{{statement_id}}/download",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "monthly-statements",
+                    "{{statement_id}}",
+                    "download"
+                  ]
+                },
+                "description": "Download the PDF file of a monthly statement. Response will be a PDF file download."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Statements by Year",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/monthly-statements?owner_type=merchant&owner_id={{merchant_id}}&year=2026",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "monthly-statements"
+                  ],
+                  "query": [
+                    {
+                      "key": "owner_type",
+                      "value": "merchant"
+                    },
+                    {
+                      "key": "owner_id",
+                      "value": "{{merchant_id}}"
+                    },
+                    {
+                      "key": "year",
+                      "value": "2026"
+                    }
+                  ]
+                },
+                "description": "Get all statements for a specific year."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Statement for Specific Month",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/monthly-statements?owner_type=merchant&owner_id={{merchant_id}}&year=2026&month=1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "monthly-statements"
+                  ],
+                  "query": [
+                    {
+                      "key": "owner_type",
+                      "value": "merchant"
+                    },
+                    {
+                      "key": "owner_id",
+                      "value": "{{merchant_id}}"
+                    },
+                    {
+                      "key": "year",
+                      "value": "2026"
+                    },
+                    {
+                      "key": "month",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "Get statement for a specific month and year."
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Pdfs",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/monthly-statements/pdfs/all?year=2026&month=2&owner_type=agent",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "monthly-statements",
+                    "pdfs",
+                    "all"
+                  ],
+                  "query": [
+                    {
+                      "key": "year",
+                      "value": "2026"
+                    },
+                    {
+                      "key": "month",
+                      "value": "2"
+                    },
+                    {
+                      "key": "owner_type",
+                      "value": "agent"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ad Approvers",
+      "item": [
+        {
+          "name": "Create Ad Approver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set('ad_approver_id', jsonData.data.id);",
+                  "        console.log('Ad Approver ID saved:', jsonData.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Ad Manager\",\n  \"email\": \"adapprover@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456790\",\n  \"address\": \"456 Marketing Street\",\n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"notes\": \"Approves paid advertisements\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ad-approvers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ad-approvers"
+              ]
+            },
+            "description": "Create a new Ad Approver staff member. Can approve/reject paid ad submissions."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Ad Approvers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ad-approvers?page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ad-approvers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all Ad Approvers with pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Ad Approver by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ad-approvers/{{ad_approver_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ad-approvers",
+                "{{ad_approver_id}}"
+              ]
+            },
+            "description": "Get a specific Ad Approver by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Ad Approver",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Ad Manager Updated\",\n  \"notes\": \"Senior Ad Approval Manager\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ad-approvers/{{ad_approver_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ad-approvers",
+                "{{ad_approver_id}}"
+              ]
+            },
+            "description": "Update Ad Approver details"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Ad Approver",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ad-approvers/{{ad_approver_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ad-approvers",
+                "{{ad_approver_id}}"
+              ]
+            },
+            "description": "Delete (soft delete) an Ad Approver"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Support Staff",
+      "item": [
+        {
+          "name": "Create Support Staff",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set('support_staff_id', jsonData.data.id);",
+                  "        console.log('Support Staff ID saved:', jsonData.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sarah Support\",\n  \"email\": \"support@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456791\",\n  \"address\": \"789 Support Street\",\n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"notes\": \"Customer support representative\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/support-staff",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "support-staff"
+              ]
+            },
+            "description": "Create a new Support Staff member. Can handle customer support queries."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Support Staff",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/support-staff?page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "support-staff"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all Support Staff with pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Support Staff by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/support-staff/{{support_staff_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "support-staff",
+                "{{support_staff_id}}"
+              ]
+            },
+            "description": "Get a specific Support Staff by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Support Staff",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sarah Support Updated\",\n  \"notes\": \"Senior Support Representative\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/support-staff/{{support_staff_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "support-staff",
+                "{{support_staff_id}}"
+              ]
+            },
+            "description": "Update Support Staff details"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Support Staff",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/support-staff/{{support_staff_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "support-staff",
+                "{{support_staff_id}}"
+              ]
+            },
+            "description": "Delete (soft delete) a Support Staff member"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Finance Viewers",
+      "item": [
+        {
+          "name": "Create Finance Viewer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        pm.collectionVariables.set('finance_viewer_id', jsonData.data.id);",
+                  "        console.log('Finance Viewer ID saved:', jsonData.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Finance\",\n  \"email\": \"finance@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456789\",\n  \"address\": \"123 Finance Street\",\n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"notes\": \"Financial reports viewer\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/finance-viewers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finance-viewers"
+              ]
+            },
+            "description": "Create a new Finance Viewer staff member. Can view financial reports and analytics."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Finance Viewers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finance-viewers?page=1&pageSize=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finance-viewers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all Finance Viewers with pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Finance Viewer by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finance-viewers/{{finance_viewer_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finance-viewers",
+                "{{finance_viewer_id}}"
+              ]
+            },
+            "description": "Get a specific Finance Viewer by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Finance Viewer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Finance Updated\",\n  \"notes\": \"Senior Financial Analyst\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/finance-viewers/{{finance_viewer_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finance-viewers",
+                "{{finance_viewer_id}}"
+              ]
+            },
+            "description": "Update Finance Viewer details"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Finance Viewer",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/finance-viewers/{{finance_viewer_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "finance-viewers",
+                "{{finance_viewer_id}}"
+              ]
+            },
+            "description": "Delete (soft delete) a Finance Viewer"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Homepage Coupon Claim",
+      "item": [
+        {
+          "name": "claim coupon",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Alice Customer\",\n    \"phone\": \"+1234567890\",\n  \"date_of_birth\": \"27-01-1990\"\n\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/customers/claim-coupon",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "customers",
+                "claim-coupon"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "check customer by phone",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/customers/check-by-phone?phone=+923351968117",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "customers",
+                "check-by-phone"
+              ],
+              "query": [
+                {
+                  "key": "phone",
+                  "value": "+923351968117"
+                }
+              ]
+            }
+          },
+          "response": []
         }
       ]
     }
@@ -4566,6 +5435,11 @@
       "type": "string"
     },
     {
+      "key": "festival_message_id",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "finance_viewer_id",
       "value": "",
       "type": "string"
@@ -4577,6 +5451,11 @@
     },
     {
       "key": "support_staff_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "statement_id",
       "value": "",
       "type": "string"
     }

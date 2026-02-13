@@ -17,6 +17,7 @@ import { AddCreditsDto } from './dto/add-credits.dto';
 import { UpgradeToAnnualDto } from './dto/upgrade-to-annual.dto';
 import { CreateCreditPackageDto } from './dto/create-credit-package.dto';
 import { UpdateCreditPackageDto } from './dto/update-credit-package.dto';
+import { TopUpWalletDto } from './dto/topup-wallet.dto';
 import { SkipSubscription } from 'src/common/decorators/skip-subscription.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
 
@@ -45,6 +46,25 @@ export class WalletController {
   @Post('admin/:adminId/subscribe')
   async processAdminSubscription(@Param('adminId') adminId: number) {
     return await this.walletService.processAdminSubscriptionPayment(adminId);
+  }
+
+  @SkipSubscription()
+  @Post('admin/:adminId/topup')
+  async topUpAdminWallet(
+    @Param('adminId') adminId: number,
+    @Body() topUpDto: TopUpWalletDto,
+  ) {
+    const transaction = await this.walletService.creditAdminWallet(
+      adminId,
+      topUpDto.amount,
+      topUpDto.description || 'Wallet top-up via Stripe',
+      topUpDto.metadata,
+    );
+
+    return {
+      message: 'Wallet topped up successfully',
+      data: transaction,
+    };
   }
 
   @Get('admin/:adminId/transactions')
