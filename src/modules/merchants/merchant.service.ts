@@ -183,7 +183,7 @@ export class MerchantService {
         // Create agent transaction
         await queryRunner.manager.save(WalletTransaction, {
           admin_wallet_id: adminWallet.id,
-          type: 'merchant_package_commission',
+          type: 'merchant_annual_subscription_commission',
           amount: agentProfit,
           status: 'completed',
           description: `Profit from annual merchant #${savedMerchant.id} creation (Merchant paid: ${ANNUAL_FEE.toFixed(2)}, Platform cost: ${PLATFORM_COST.toFixed(2)})`,
@@ -217,7 +217,7 @@ export class MerchantService {
           // Create super admin transaction
           await queryRunner.manager.save(WalletTransaction, {
             super_admin_wallet_id: superAdminWallet.id,
-            type: 'merchant_package_commission',
+            type: 'merchant_annual_subscription_commission',
             amount: PLATFORM_COST,
             status: 'completed',
             description: `Platform cost from agent #${createMerchantDto.admin_id} for annual merchant #${savedMerchant.id} creation`,

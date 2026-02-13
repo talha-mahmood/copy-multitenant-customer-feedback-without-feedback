@@ -394,7 +394,7 @@ await queryRunner.manager.save(WalletTransaction, {
 ```
 
 **Transaction Recording:**
-- Type: `merchant_package_commission` (consistent with credit packages)
+- Type: `merchant_annual_subscription_commission` (annual fee specific)
 - Amount: Agent profit (RM299 - RM299 = RM0 in default config)
 - Description: Clear breakdown of merchant payment and platform cost
 - Metadata: Complete financial context for auditing
@@ -431,7 +431,7 @@ await queryRunner.manager.save(WalletTransaction, {
 ```
 
 **Transaction Recording:**
-- Type: `merchant_package_commission` (consistent with credit packages)
+- Type: `merchant_annual_subscription_commission` (annual fee specific)
 - Amount: Platform cost (RM299 default)
 - Description: References source agent and merchant
 - Metadata: Complete context including agent profit for reconciliation
@@ -459,7 +459,7 @@ await queryRunner.manager.save(WalletTransaction, {
    - Platform cost deducted: RM299
    - Balance after: RM201
    - **Transaction:**
-     - Type: `merchant_package_commission`
+     - Type: `merchant_annual_subscription_commission`
      - Amount: RM0 (agent profit = 299 - 299)
      - Description: "Profit from annual merchant #123 creation (Merchant paid: 299.00, Platform cost: 299.00)"
 
@@ -468,7 +468,7 @@ await queryRunner.manager.save(WalletTransaction, {
    - Platform cost added: RM299
    - Balance after: RM10,299
    - **Transaction:**
-     - Type: `merchant_package_commission`
+     - Type: `merchant_annual_subscription_commission`
      - Amount: RM299
      - Description: "Platform cost from agent #45 for annual merchant #123 creation"
 
@@ -502,7 +502,7 @@ if (currentBalance < PLATFORM_COST) {
 // Returns: { success: true, expires_at, annual_fee, agent_profit, platform_cost }
 ```
 
-**Transaction Type:** `merchant_package_commission` with `fee_type: 'annual_upgrade'` in metadata
+**Transaction Type:** `merchant_annual_subscription_commission` with `fee_type: 'annual_upgrade'` in metadata
 
 ---
 
@@ -605,5 +605,9 @@ npm run migration:revert
 - **Transaction Transparency:** Clear metadata for financial reconciliation
 - **Atomicity:** All wallet operations use database transactions for consistency
 - **Backward Compatible:** Existing credits continue working; only new purchases require prepaid balance
+- **Transaction Type Consistency:**
+  - Credit packages: `merchant_package_commission`
+  - Annual merchant fees: `merchant_annual_subscription_commission`
+  - This distinction helps separate recurring subscription revenue from per-credit transaction revenue in reports
 - **Reporting Compatibility:** Transaction type `merchant_annual_subscription_commission` still referenced in existing reports/analytics for historical data
 - **API Endpoint Change:** `/commission-settings` replaced with `/platform-cost-settings` - frontend may need update if using old endpoint
