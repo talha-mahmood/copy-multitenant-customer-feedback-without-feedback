@@ -13,6 +13,7 @@ import { MerchantSettingService } from './merchant-setting.service';
 import { CreateMerchantSettingDto } from './dto/create-merchant-setting.dto';
 import { UpdateMerchantSettingDto } from './dto/update-merchant-setting.dto';
 import { UploadPaidAdImageDto } from './dto/upload-paid-ad-image.dto';
+import { UploadPaidAdVideoDto } from './dto/upload-paid-ad-video.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { FormDataRequest } from 'nestjs-form-data';
 import { Public } from 'src/common/decorators/public.decorator';
@@ -59,7 +60,35 @@ export class MerchantSettingController {
       merchantId,
       uploadPaidAdImageDto.paidAdImage,
       uploadPaidAdImageDto.paidAdPlacement,
+      uploadPaidAdImageDto.paidAdDuration,
     );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('merchant/:merchantId/paid-ad-video')
+  @FormDataRequest()
+  uploadPaidAdVideo(
+    @Param('merchantId', ParseIntPipe) merchantId: number,
+    @Body() uploadPaidAdVideoDto: UploadPaidAdVideoDto,
+  ) {
+    return this.merchantSettingService.uploadPaidAdVideo(
+      merchantId,
+      uploadPaidAdVideoDto.paidAdVideo,
+      uploadPaidAdVideoDto.paidAdPlacement,
+      uploadPaidAdVideoDto.paidAdDuration,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('merchant/:merchantId/paid-ad-image')
+  deletePaidAdImage(@Param('merchantId', ParseIntPipe) merchantId: number) {
+    return this.merchantSettingService.deletePaidAdImage(merchantId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('merchant/:merchantId/paid-ad-video')
+  deletePaidAdVideo(@Param('merchantId', ParseIntPipe) merchantId: number) {
+    return this.merchantSettingService.deletePaidAdVideo(merchantId);
   }
 
   @UseGuards(JwtAuthGuard)

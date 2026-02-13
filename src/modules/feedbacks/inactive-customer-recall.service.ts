@@ -148,6 +148,12 @@ export class InactiveCustomerRecallService {
         return;
       }
 
+      // Check if batch_id is configured
+      if (!settings.inactive_recall_coupon_batch_id) {
+        this.logger.warn(`Inactive recall coupon batch not configured for merchant ${merchant.id}`);
+        return;
+      }
+
       // Get coupon batch
       const batch = await this.couponBatchRepository.findOne({
         where: {

@@ -187,6 +187,7 @@ export class ApprovalService {
             ...approval.merchant,
             paid_ad_image: approval.merchant?.settings?.paid_ad_image,
             paid_ad_placement: approval.merchant?.settings?.paid_ad_placement,
+            paid_ad_video: approval.merchant?.settings?.paid_ad_video,
         }));
     }
 

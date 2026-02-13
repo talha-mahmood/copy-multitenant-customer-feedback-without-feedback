@@ -255,7 +255,7 @@ export class MerchantSettingService {
     };
   }
 
-  async uploadPaidAdImage(merchantId: number, paidAdImage: any, paidAdPlacement?: string) {
+  async uploadPaidAdImage(merchantId: number, paidAdImage: any, paidAdPlacement?: string, paidAdDuration?: number) {
     const setting = await this.merchantSettingRepository.findOne({
       where: { merchant_id: merchantId },
     });
@@ -281,8 +281,14 @@ export class MerchantSettingService {
     );
 
     setting.paid_ad_image = uploadResult.relativePath;
+    setting.paid_ad_video_status = false; // Set video status to false when uploading image
+    
     if (paidAdPlacement) {
       setting.paid_ad_placement = paidAdPlacement;
+    }
+    
+    if (paidAdDuration) {
+      setting.paid_ad_duration = paidAdDuration;
     }
 
     const updated = await this.merchantSettingRepository.save(setting);
@@ -295,6 +301,7 @@ export class MerchantSettingService {
       agent_id: merchant.admin_id, // Set the admin who created this merchant
       request_from: 'merchant',
       approval_status: 'pending',
+      ad_type: 'image',
     });
 
     return {
@@ -302,8 +309,106 @@ export class MerchantSettingService {
       data: {
         paid_ad_image: updated.paid_ad_image,
         paid_ad_placement: updated.paid_ad_placement,
+        paid_ad_duration: updated.paid_ad_duration,
         approval: approval,
       },
+    };
+  }
+
+  async uploadPaidAdVideo(merchantId: number, paidAdVideo: any, paidAdPlacement?: string, paidAdDuration?: number) {
+    const setting = await this.merchantSettingRepository.findOne({
+      where: { merchant_id: merchantId },
+    });
+
+    if (!setting) {
+      throw new NotFoundException(`Settings for merchant ID ${merchantId} not found`);
+    }
+
+    // Get merchant to retrieve admin_id
+    const merchant = await this.merchantRepository.findOne({
+      where: { id: merchantId },
+    });
+
+    if (!merchant) {
+      throw new NotFoundException(`Merchant with ID ${merchantId} not found`);
+    }
+
+    const timestamp = Date.now();
+    const uploadResult = await uploadFile(
+      paidAdVideo,
+      `merchant-ads/${merchantId}/${timestamp}`,
+      FileUploadStorageType.LOCAL_STORAGE,
+    );
+
+    setting.paid_ad_video = uploadResult.relativePath;
+    setting.paid_ad_video_status = true; // Set video status to true when uploading video
+    
+    if (paidAdPlacement) {
+      setting.paid_ad_placement = paidAdPlacement;
+    }
+    
+    if (paidAdDuration) {
+      setting.paid_ad_duration = paidAdDuration;
+    }
+
+    const updated = await this.merchantSettingRepository.save(setting);
+
+    // Create approval record with merchant's admin_id as agent_id
+    const approval = await this.approvalService.create({
+      merchant_id: merchantId,
+      approval_type: 'paid_ad',
+      approval_owner: 'agent',
+      agent_id: merchant.admin_id,
+      request_from: 'merchant',
+      approval_status: 'pending',
+      ad_type: 'video',
+    });
+
+    return {
+      message: 'Paid ad video uploaded successfully and approval request created',
+      data: {
+        url: updated.paid_ad_video,
+        paid_ad_placement: updated.paid_ad_placement,
+        paid_ad_duration: updated.paid_ad_duration,
+        approval: approval,
+      },
+    };
+  }
+
+  async deletePaidAdImage(merchantId: number) {
+    const setting = await this.merchantSettingRepository.findOne({
+      where: { merchant_id: merchantId },
+    });
+
+    if (!setting) {
+      throw new NotFoundException(`Settings for merchant ID ${merchantId} not found`);
+    }
+
+    setting.paid_ad_image = null;
+    await this.merchantSettingRepository.save(setting);
+
+    return {
+      message: 'Paid ad image deleted successfully',
+      data: null,
+    };
+  }
+
+  async deletePaidAdVideo(merchantId: number) {
+    const setting = await this.merchantSettingRepository.findOne({
+      where: { merchant_id: merchantId },
+    });
+
+    if (!setting) {
+      throw new NotFoundException(`Settings for merchant ID ${merchantId} not found`);
+    }
+
+    setting.paid_ad_video = null;
+    setting.paid_ad_video_status = false;
+    await this.merchantSettingRepository.save(setting);
+
+    return {
+      message: 'Paid ad video deleted successfully',
+      data: null,
     };
   }
 
