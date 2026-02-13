@@ -41,4 +41,8 @@ export class CreateAdminDto {
   @IsOptional()
   @IsString()
   country?: string;
+
+  @IsOptional()
+  @IsString()
+  stripe_secret_key?: string;
 }

@@ -22,6 +22,10 @@ export class Admin extends BaseEntity {
   @Column({ length: 100, nullable: true })
   country: string;
 
+  @Column({ type: 'text', nullable: true })
+  @Exclude()
+  stripe_secret_key: string;
+
   @OneToMany(() => Merchant, (merchant) => merchant.admin)
   merchants: Merchant[];
 }

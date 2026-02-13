@@ -66,6 +66,7 @@ export class AdminService {
         address: createAdminDto.address,
         city: createAdminDto.city,
         country: createAdminDto.country,
+        stripe_secret_key: createAdminDto.stripe_secret_key,
       });
       const savedAdmin = await queryRunner.manager.save(admin);
 
@@ -216,6 +217,7 @@ export class AdminService {
       if (updateAdminDto.address !== undefined) adminUpdateData.address = updateAdminDto.address;
       if (updateAdminDto.city !== undefined) adminUpdateData.city = updateAdminDto.city;
       if (updateAdminDto.country !== undefined) adminUpdateData.country = updateAdminDto.country;
+      if (updateAdminDto.stripe_secret_key !== undefined) adminUpdateData.stripe_secret_key = updateAdminDto.stripe_secret_key;
 
       if (Object.keys(adminUpdateData).length > 0) {
         await queryRunner.manager.update(Admin, id, adminUpdateData);
