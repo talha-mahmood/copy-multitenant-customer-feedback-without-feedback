@@ -109,6 +109,120 @@ Admin Not Found (404):
 4. Wallet balance refreshes immediately
 5. Success toast displays total credited
 
+### ✨ Agent Stripe API Key Configuration (Feb 16, 2026)
+
+Agents can now configure their own Stripe API keys to receive merchant payments directly to their Stripe accounts.
+
+#### Updated Endpoint: Get Admin by ID
+**Method**: `GET`  
+**Path**: `/admins/:adminId`  
+**Location**: Admins > Get Admin by ID
+
+**Response Enhancement:**
+```json
+{
+  "message": "Success fetching admin",
+  "data": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "has_stripe_key": true,  // ✨ NEW: Indicates if Stripe key is configured
+    // ... other fields
+  }
+}
+```
+
+**New Field:**
+- `has_stripe_key` (boolean): Indicates whether agent has configured a Stripe API key
+- The actual `stripe_secret_key` is **never returned** for security (uses `@Exclude()` decorator)
+
+#### Enhanced Endpoint: Create Admin
+**Method**: `POST`  
+**Path**: `/admins`  
+**Location**: Admins > Create Admin
+
+**Request Body (Enhanced):**
+```json
+{
+  "name": "John Agent",
+  "email": "agent1@example.com",
+  "password": "password123",
+  "phone": "+60123456789",
+  "address": "123 Agent Street, KL",
+  "city": "Kuala Lumpur",
+  "country": "Malaysia",
+  "is_active": true,
+  "stripe_secret_key": "sk_test_xxxxxxxxxxxxx"  // ✨ OPTIONAL: Configure during creation
+}
+```
+
+**New Optional Field:**
+- `stripe_secret_key`: Agent's Stripe API key can now be configured during account creation
+- If not provided, agent can configure it later via update endpoint or settings UI
+- Same validation and security rules apply as update endpoint
+- Response includes `has_stripe_key` flag
+- Key is encrypted and stored securely
+
+**Use Cases:**
+- **Bulk agent onboarding:** Configure Stripe keys during initial account creation
+- **Self-service:** Admin can add their Stripe key later via settings
+- **Security:** Optional field ensures flexibility without forcing immediate configuration
+
+#### Updated Endpoint: Update Admin
+**Method**: `PATCH`  
+**Path**: `/admins/:adminId`  
+**Location**: Admins > Update Admin
+
+**Request Body (Enhanced):**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "phone": "+60123456789",
+  "address": "123 Agent St",
+  "city": "Kuala Lumpur",
+  "country": "Malaysia",
+  "is_active": true,
+  "stripe_secret_key": "sk_test_xxxxxxxxxxxxx"  // ✨ NEW: Configure Stripe key
+}
+```
+
+**Stripe Key Configuration:**
+- **Set Key:** Provide `stripe_secret_key` with valid Stripe secret key
+- **Remove Key:** Set `stripe_secret_key: null`
+- **Validation:** Key must start with `sk_test_` or `sk_live_`
+- **Security:** Key is encrypted in database, never returned in API responses
+- **Response:** Returns `has_stripe_key: true/false` after update
+
+**Frontend Implementation:**
+- New **Stripe API** tab in agent settings (`/agent/settings?tab=stripe`)
+- Visual connection status indicator
+- Masked key display for configured keys
+- Input field with show/hide toggle
+- Instructions on obtaining Stripe API key
+- Payment flow diagram explaining prepaid wallet model
+- **Stripe key field in agent creation/update forms** (`/master-admin/agents/create` and `/master-admin/agents/:id/edit`)
+  - Optional field during agent creation
+  - Can be configured or updated later
+  - Show/hide toggle for security
+  - Monospaced font for key display
+  - Helpful placeholder text with examples
+
+**Business Model:**
+1. Agent configures Stripe secret key once
+2. Merchant makes payment → 100% goes to agent's Stripe account
+3. Platform deducts costs from agent's prepaid wallet
+4. Agent keeps profit (merchant payment - platform cost)
+
+**Security Features:**
+- Stripe key encrypted at rest
+- Uses `@Exclude()` decorator - never exposed in API responses
+- Only `has_stripe_key` flag indicates presence
+- Frontend never displays actual key after saving
+- Key validated on input (must start with sk_test_ or sk_live_)
+
+---
+
 ### ✨ SuperAdminSettings - Platform Cost Model (Feb 13, 2026)
 
 Major update from commission-based model to prepaid wallet platform cost model. Agents now maintain prepaid balance and platform deducts costs per operation.

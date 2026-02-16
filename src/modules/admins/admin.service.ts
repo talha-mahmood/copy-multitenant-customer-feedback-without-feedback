@@ -176,9 +176,17 @@ export class AdminService {
     if (user && user.role === 'admin' && user.adminId && admin.id !== user.adminId) {
       throw new HttpException('Admin not found', 404);
     }
+    
+    // Add flag to indicate if stripe key exists (before transforming to plain)
+    const hasStripeKey = !!admin.stripe_secret_key;
+    const plainAdmin = instanceToPlain(admin);
+    
     return {
       message: 'Success fetching admin',
-      data: instanceToPlain(admin),
+      data: {
+        ...plainAdmin,
+        has_stripe_key: hasStripeKey,
+      },
     };
   }
 
@@ -251,9 +259,16 @@ export class AdminService {
         },
       });
 
+      // Add flag to indicate if stripe key exists
+      const hasStripeKey = !!updatedAdmin.stripe_secret_key;
+      const plainAdmin = instanceToPlain(updatedAdmin);
+
       return {
         message: 'Admin updated successfully',
-        data: instanceToPlain(updatedAdmin),
+        data: {
+          ...plainAdmin,
+          has_stripe_key: hasStripeKey,
+        },
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();

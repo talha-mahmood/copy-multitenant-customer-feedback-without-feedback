@@ -88,7 +88,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"John Agent\",\n  \"email\": \"agent1@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456789\",\n  \"address\": \"123 Agent Street, KL\"\n\n}"
+              "raw": "{\n  \"name\": \"John Agent\",\n  \"email\": \"agent1@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456789\",\n  \"address\": \"123 Agent Street, KL\",\n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"is_active\": true,\n  \"stripe_secret_key\": \"sk_test_xxxxxxxxxxxxx\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/admins",
@@ -99,7 +104,7 @@
                 "admins"
               ]
             },
-            "description": "Create a new admin/agent. Optionally specify subscription_type ('annual' or 'monthly') and subscription_expires_at date."
+            "description": "Create a new admin/agent account.\\n\\n**Required Fields:**\\n- name: Agent's full name\\n- email: Unique email address\\n- password: Minimum 6 characters\\n- phone: Contact phone number\\n\\n**Optional Fields:**\\n- address, city, country: Location details\\n- is_active (boolean): Account status (default: true)\\n- **stripe_secret_key**: Stripe API key for payment processing\\n\\n**Stripe Configuration:**\\nCan be set during creation or later via update endpoint or agent settings. When configured, 100% of merchant payments go to agent's Stripe account, with platform costs deducted from agent's prepaid wallet.\\n\\n**Response:**\\nReturns created agent details with `has_stripe_key` flag indicating if Stripe key was configured."
           },
           "response": []
         },
@@ -149,7 +154,8 @@
                 "admins",
                 "{{admin_id}}"
               ]
-            }
+            },
+            "description": "Get admin/agent details by ID. Response includes:\n- Personal information (name, email, phone)\n- Location details (address, city, country)\n- Account status (is_active)\n- **has_stripe_key** (boolean): Indicates if Stripe API key is configured\n\n**Security:** The actual stripe_secret_key value is never returned for security reasons. Only the has_stripe_key flag indicates its presence."
           },
           "response": []
         },
@@ -165,7 +171,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "// {\n//   \"department\": \"HR\"\n// }\n\n{\n    \"is_active\":true\n}"
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+60123456789\",\n  \"address\": \"123 Agent St\",\n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"is_active\": true,\n  \"stripe_secret_key\": \"sk_test_xxxxxxxxxxxxx\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/admins/1",
@@ -176,7 +187,8 @@
                 "admins",
                 "1"
               ]
-            }
+            },
+            "description": "Update admin/agent information. All fields are optional.\n\n**Fields:**\n- name, email, phone: Personal information\n- address, city, country: Location details\n- is_active (boolean): Account status\n- password: New password (if changing)\n- **stripe_secret_key**: Stripe API secret key for payment processing\n\n**Stripe Configuration:**\n- Set stripe_secret_key to configure agent's Stripe account\n- Must start with sk_test_ (test mode) or sk_live_ (live mode)\n- Set to null to remove existing key\n- Key is encrypted and never returned in responses\n- Response includes has_stripe_key flag\n\n**Business Model:**\nWhen configured, 100% of merchant payments go to agent's Stripe account. Platform costs are automatically deducted from agent's prepaid wallet."
           },
           "response": []
         },
