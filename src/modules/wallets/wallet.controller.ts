@@ -18,6 +18,7 @@ import { UpgradeToAnnualDto } from './dto/upgrade-to-annual.dto';
 import { CreateCreditPackageDto } from './dto/create-credit-package.dto';
 import { UpdateCreditPackageDto } from './dto/update-credit-package.dto';
 import { TopUpWalletDto } from './dto/topup-wallet.dto';
+import { InitialSubscriptionDto } from './dto/initial-subscription.dto';
 import { SkipSubscription } from 'src/common/decorators/skip-subscription.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
 
@@ -46,6 +47,19 @@ export class WalletController {
   @Post('admin/:adminId/subscribe')
   async processAdminSubscription(@Param('adminId') adminId: number) {
     return await this.walletService.processAdminSubscriptionPayment(adminId);
+  }
+
+  @SkipSubscription()
+  @Post('admin/:adminId/subscribe-with-balance')
+  async processAdminSubscriptionWithBalance(
+    @Param('adminId') adminId: number,
+    @Body() dto: InitialSubscriptionDto,
+  ) {
+    return await this.walletService.processAdminSubscriptionWithBalance(
+      adminId,
+      dto.walletBalance || 0,
+      dto.metadata,
+    );
   }
 
   @SkipSubscription()

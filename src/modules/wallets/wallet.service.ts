@@ -69,7 +69,7 @@ export class WalletService {
       total_spent: 0,
       pending_amount: 0,
       currency,
-      is_active: true,
+      is_active: false, // New agents start with inactive subscription
     });
 
     return await this.adminWalletRepository.save(wallet);
@@ -1351,6 +1351,7 @@ export class WalletService {
       await queryRunner.manager.update(AdminWallet, adminWallet.id, {
         subscription_expires_at: oneYearFromNow,
         is_subscription_expired: false,
+        is_active: true, // Activate the subscription
       });
 
       // Create debit transaction for admin wallet
@@ -1408,6 +1409,146 @@ export class WalletService {
         data: {
           adminId,
           subscriptionFee,
+          subscriptionExpiresAt: oneYearFromNow,
+          isSubscriptionExpired: false,
+        },
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
+   * Process admin initial subscription with optional wallet balance
+   * This combines subscription activation and wallet top-up in a single transaction
+   */
+  async processAdminSubscriptionWithBalance(
+    adminId: number,
+    walletBalance: number = 0,
+    metadata?: any,
+  ): Promise<any> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Get subscription fee from settings
+      const settings = await this.superAdminSettingsService.getSettings();
+      const subscriptionFee = parseFloat(settings.admin_annual_subscription_fee.toString());
+
+      // Get admin wallet
+      const adminWallet = await queryRunner.manager.findOne(AdminWallet, {
+        where: { admin_id: adminId },
+      });
+
+      if (!adminWallet) {
+        throw new NotFoundException('Admin wallet not found');
+      }
+
+      // Set subscription expiration to one year from now
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+      // Calculate new balance if wallet balance is provided
+      const currentBalance = parseFloat(adminWallet.balance.toString());
+      const newBalance = currentBalance + walletBalance;
+
+      // Update admin wallet subscription and balance
+      await queryRunner.manager.update(AdminWallet, adminWallet.id, {
+        subscription_expires_at: oneYearFromNow,
+        is_subscription_expired: false,
+        is_active: true, // Activate the subscription
+        balance: newBalance,
+        total_earnings: parseFloat(adminWallet.total_earnings.toString()) + walletBalance,
+      });
+
+      // Create subscription fee transaction for admin wallet
+      await queryRunner.manager.save(WalletTransaction, {
+        admin_wallet_id: adminWallet.id,
+        type: 'agent_subscription_fee',
+        amount: subscriptionFee,
+        status: 'completed',
+        description: `Annual subscription payment to platform`,
+        metadata: JSON.stringify({ 
+          subscription_expires_at: oneYearFromNow,
+          ...metadata 
+        }),
+        completed_at: new Date(),
+      });
+
+      // If wallet balance was added, create a credit transaction
+      if (walletBalance > 0) {
+        await queryRunner.manager.save(WalletTransaction, {
+          admin_wallet_id: adminWallet.id,
+          type: 'credit',
+          amount: walletBalance,
+          status: 'completed',
+          description: `Initial wallet balance top-up`,
+          balance_before: currentBalance,
+          balance_after: newBalance,
+          metadata: metadata ? JSON.stringify(metadata) : undefined,
+          completed_at: new Date(),
+        });
+      }
+
+      // Get super admin wallet within transaction
+      const superAdminWallet = await queryRunner.manager.findOne(SuperAdminWallet, {
+        where: { is_active: true },
+      });
+
+      if (!superAdminWallet) {
+        throw new NotFoundException('Super admin wallet not found');
+      }
+
+      // Credit super admin wallet with subscription fee only (not the prepaid balance)
+      await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
+        balance: parseFloat(superAdminWallet.balance.toString()) + subscriptionFee,
+        total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + subscriptionFee,
+        revenue_admin_annual_subscription_fee: parseFloat(superAdminWallet.revenue_admin_annual_subscription_fee.toString()) + subscriptionFee,
+      });
+
+      // Create transaction for super admin
+      await queryRunner.manager.save(WalletTransaction, {
+        super_admin_wallet_id: superAdminWallet.id,
+        type: 'agent_subscription_fee',
+        amount: subscriptionFee,
+        status: 'completed',
+        description: `Admin subscription payment from admin #${adminId}${walletBalance > 0 ? ` (+ ${walletBalance} wallet balance)` : ''}`,
+        metadata: JSON.stringify({ 
+          admin_id: adminId,
+          wallet_balance_added: walletBalance,
+        }),
+        completed_at: new Date(),
+      });
+
+      // Log the transaction
+      await this.systemLogService.logWallet(
+        SystemLogAction.CREDIT_ADD,
+        `Admin subscription fee ${settings.currency} ${subscriptionFee} received from admin #${adminId}${walletBalance > 0 ? ` with ${settings.currency} ${walletBalance} wallet balance` : ''}`,
+        superAdminWallet.super_admin_id,
+        'super_admin',
+        subscriptionFee,
+        { 
+          admin_id: adminId,
+          subscription_expires_at: oneYearFromNow,
+          is_subscription_expired: false,
+          wallet_balance_added: walletBalance,
+        },
+      );
+
+      await queryRunner.commitTransaction();
+
+      return {
+        message: 'Admin subscription and wallet balance processed successfully',
+        data: {
+          adminId,
+          subscriptionFee,
+          walletBalance,
+          totalPaid: subscriptionFee + walletBalance,
+          newWalletBalance: newBalance,
           subscriptionExpiresAt: oneYearFromNow,
           isSubscriptionExpired: false,
         },
