@@ -187,7 +187,7 @@ const platformCost = await this.calculatePlatformCost(
 const currentBalance = parseFloat(adminWallet.balance.toString());
 if (currentBalance < platformCost) {
   throw new BadRequestException(
-    `Insufficient agent wallet balance. Required: ${platformCost.toFixed(2)}, Available: ${currentBalance.toFixed(2)}. Please top up your wallet to complete this purchase.`
+    `Insufficient agent wallet balance. Required: ${platformCost.toFixed(2)}, Available: ${currentBalance.toFixed(2)}. Please top up your wallet to complete this purchase.`,
   );
 }
 ```
@@ -510,7 +510,7 @@ const PLATFORM_COST = parseFloat(settings.merchant_annual_platform_cost.toString
 const currentBalance = parseFloat(adminWallet.balance.toString());
 if (currentBalance < PLATFORM_COST) {
   throw new BadRequestException(
-    `Insufficient agent wallet balance. Required: ${PLATFORM_COST.toFixed(2)}, Available: ${currentBalance.toFixed(2)}. Please top up your wallet to upgrade merchant to annual.`
+    `Insufficient agent wallet balance. Required: ${PLATFORM_COST.toFixed(2)}, Available: ${currentBalance.toFixed(2)}. Please top up your wallet to upgrade merchant to annual.`,
   );
 }
 
