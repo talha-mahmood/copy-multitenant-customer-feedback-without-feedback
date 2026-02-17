@@ -27,6 +27,7 @@ import { SystemLogService } from '../system-logs/system-log.service';
 import { SystemLogAction } from 'src/common/enums/system-log.enum';
 import { SuperAdminSettingsService } from '../super-admin-settings/super-admin-settings.service';
 import { CreditLedgerService } from '../credits-ledger/credit-ledger.service';
+import { th } from '@faker-js/faker/.';
 
 @Injectable()
 export class WalletService {
@@ -1006,7 +1007,7 @@ export class WalletService {
       const currentBalance = parseFloat(adminWallet.balance.toString());
       if (currentBalance < PLATFORM_COST) {
         throw new BadRequestException(
-          `Insufficient agent wallet balance. Required: ${PLATFORM_COST.toFixed(2)}, Available: ${currentBalance.toFixed(2)}. Please top up your wallet to upgrade merchant to annual.`
+          `Insufficient agent wallet balance. Required: ${PLATFORM_COST.toFixed(2)}, Available: ${currentBalance.toFixed(2)}. Please top up your wallet to upgrade merchant to annual.`,
         );
       }
 
@@ -1559,5 +1560,50 @@ export class WalletService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  /**
+   * Validate admin wallet balance for a given package ID
+   */
+  async validateWalletBalance(
+    packageId: number,
+    adminId: number | null | undefined,
+  ): Promise<{ isValid: boolean; required: number; available: number }> {
+    const creditPackage = await this.creditPackageRepository.findOne({
+      where: { id: packageId },
+    });
+
+    if (!creditPackage) {
+      throw new NotFoundException('Credit package not found');
+    }
+
+    if (!adminId) {
+      throw new BadRequestException('Admin ID is required to validate wallet balance');
+    }
+
+    const adminWallet = await this.adminWalletRepository.findOne({
+      where: { admin_id: adminId },
+    });
+
+    if (!adminWallet) {
+      throw new NotFoundException('Admin wallet not found');
+    }
+
+    const requiredBalance = creditPackage.price;
+    const availableBalance = adminWallet.balance;
+
+    if (availableBalance < requiredBalance) {
+      return {
+        isValid: false,
+        required: requiredBalance,
+        available: availableBalance,
+      };
+    }
+
+    return {
+      isValid: true,
+      required: requiredBalance,
+      available: availableBalance,
+    };
   }
 }

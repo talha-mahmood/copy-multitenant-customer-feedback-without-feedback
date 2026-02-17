@@ -21,7 +21,7 @@ import { TopUpWalletDto } from './dto/topup-wallet.dto';
 import { InitialSubscriptionDto } from './dto/initial-subscription.dto';
 import { SkipSubscription } from 'src/common/decorators/skip-subscription.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
-
+import { CurrentUser, User } from 'src/common/decorators/current-user';
 @Controller('wallets')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class WalletController {
@@ -182,5 +182,12 @@ export class WalletController {
     @Param('id') id: number,
   ) {
     return await this.walletService.deleteCreditPackage(id);
+  }
+
+  @Get('validate-balance')
+  async validateWalletBalance(
+    @Query('package_id') packageId: number,
+    @Query('admin_id') adminId: number,  ) {
+    return await this.walletService.validateWalletBalance(packageId, adminId);
   }
 }
