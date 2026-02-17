@@ -49,7 +49,7 @@ export class WalletService {
     private systemLogService: SystemLogService,
     private superAdminSettingsService: SuperAdminSettingsService,
     private creditLedgerService: CreditLedgerService,
-  ) {}
+  ) { }
 
   /**
    * Create admin wallet when admin is created
@@ -356,7 +356,18 @@ export class WalletService {
       return 0;
     }
 
-    return credits * costPerCredit;
+    const platformCost = credits * costPerCredit;
+
+    console.log('Calculating Platform Cost:', {
+      creditType,
+      merchantType,
+      credits,
+      whatsapp_ui_annual_platform_cost: settings.whatsapp_ui_annual_platform_cost,
+      whatsapp_ui_temporary_platform_cost: settings.whatsapp_ui_temporary_platform_cost,
+      calculatedCost: platformCost,
+    });
+
+    return platformCost;
   }
 
   /**
@@ -465,7 +476,7 @@ export class WalletService {
         // Check if agent has sufficient balance
         if (currentBalance < platformCost) {
           throw new BadRequestException(
-            `Insufficient agent wallet balance. Required: ${platformCost.toFixed(2)}, Available: ${currentBalance.toFixed(2)}. Please top up your wallet to complete this purchase.`
+            `Insufficient agent wallet balance. Required: ${platformCost.toFixed(2)}, Available: ${currentBalance.toFixed(2)}. Please top up your wallet to complete this purchase.`,
           );
         }
 
@@ -517,8 +528,8 @@ export class WalletService {
           // Determine which field to update based on credit type
           let commissionField = 'commission_annual_merchant_packages';
           if (creditType === 'whatsapp ui message' || creditType === 'whatsapp bi message') {
-            commissionField = merchant.merchant_type === 'annual' 
-              ? 'commission_annual_merchant_packages' 
+            commissionField = merchant.merchant_type === 'annual'
+              ? 'commission_annual_merchant_packages'
               : 'commission_temporary_merchant_packages';
           } else if (creditType === 'coupon') {
             commissionField = merchant.merchant_type === 'annual'
@@ -746,8 +757,8 @@ export class WalletService {
 
       const balanceAfter = creditType === 'whatsapp ui message' ? updates.whatsapp_ui_credits :
         creditType === 'whatsapp bi message' ? updates.whatsapp_bi_credits :
-        creditType === 'paid ads' ? updates.paid_ad_credits :
-        updates.coupon_credits;
+          creditType === 'paid ads' ? updates.paid_ad_credits :
+            updates.coupon_credits;
 
       await this.creditLedgerService.create({
         owner_type: 'merchant',
@@ -1473,9 +1484,9 @@ export class WalletService {
         amount: subscriptionFee,
         status: 'completed',
         description: `Annual subscription payment to platform`,
-        metadata: JSON.stringify({ 
+        metadata: JSON.stringify({
           subscription_expires_at: oneYearFromNow,
-          ...metadata 
+          ...metadata
         }),
         completed_at: new Date(),
       });
@@ -1518,7 +1529,7 @@ export class WalletService {
         amount: subscriptionFee,
         status: 'completed',
         description: `Admin subscription payment from admin #${adminId}${walletBalance > 0 ? ` (+ ${walletBalance} wallet balance)` : ''}`,
-        metadata: JSON.stringify({ 
+        metadata: JSON.stringify({
           admin_id: adminId,
           wallet_balance_added: walletBalance,
         }),
@@ -1532,7 +1543,7 @@ export class WalletService {
         superAdminWallet.super_admin_id,
         'super_admin',
         subscriptionFee,
-        { 
+        {
           admin_id: adminId,
           subscription_expires_at: oneYearFromNow,
           is_subscription_expired: false,
@@ -1588,22 +1599,28 @@ export class WalletService {
     if (!adminWallet) {
       throw new NotFoundException('Admin wallet not found');
     }
+    console.log(`Validating wallet balance for admin ${adminId} and package ${packageId}: required=${creditPackage.price}, available=${adminWallet.balance}`);
 
-    const requiredBalance = creditPackage.price;
-    const availableBalance = adminWallet.balance;
+    const requiredBalance = parseFloat(creditPackage.price as any);
+    const availableBalance = parseFloat(adminWallet.balance as any);
 
-    if (availableBalance < requiredBalance) {
+    if (availableBalance >= requiredBalance) {
+      
+      return {
+        isValid: true,
+        required: requiredBalance,
+        available: availableBalance,
+      };
+    }
+    else {
       return {
         isValid: false,
         required: requiredBalance,
         available: availableBalance,
       };
+
     }
 
-    return {
-      isValid: true,
-      required: requiredBalance,
-      available: availableBalance,
-    };
+
   }
 }
