@@ -903,9 +903,29 @@ export class WalletService {
   }
 
   /**
-   * Create a new credit package (super admin only)
+   * Create a new credit package (super admin and agents can create)
    */
-  async createCreditPackage(createDto: CreateCreditPackageDto) {
+  async createCreditPackage(createDto: CreateCreditPackageDto, user?: any) {
+    console.log('Creating credit package with data:', user , createDto);
+    
+    const userRole = user?.role;
+
+    // Validate: Paid ads packages can ONLY be created by agents (not super admin)
+    if (createDto.credit_type === 'paid ads') {
+      if (userRole !== 'admin') {
+        throw new BadRequestException(
+          'Paid ads credit packages can only be created by agents. Please contact your agent to create paid ads packages.'
+        );
+      }
+    }
+
+    // Validate: Agents can ONLY create paid ads packages (not WhatsApp UI/BI, coupons)
+    if (userRole === 'admin' && createDto.credit_type !== 'paid ads') {
+      throw new BadRequestException(
+        'Agents can only create paid ads credit packages. Other package types can only be created by super admin.'
+      );
+    }
+
     // Validate: WhatsApp BI packages cannot be created for temporary merchants
     if (createDto.credit_type === 'whatsapp bi message' && createDto.merchant_type === 'temporary') {
       throw new BadRequestException(
@@ -954,15 +974,33 @@ export class WalletService {
   }
 
   /**
-   * Update a credit package (super admin only)
+   * Update a credit package (super admin and agents can update)
    */
-  async updateCreditPackage(id: number, updateDto: UpdateCreditPackageDto) {
+  async updateCreditPackage(id: number, updateDto: UpdateCreditPackageDto, user?: any) {
     const creditPackage = await this.creditPackageRepository.findOne({
       where: { id },
     });
 
     if (!creditPackage) {
       throw new NotFoundException('Credit package not found');
+    }
+
+    const userRole = user?.role;
+
+    // Validate: Paid ads packages can ONLY be managed by agents (not super admin)
+    if (creditPackage.credit_type === 'paid ads' || updateDto.credit_type === 'paid ads') {
+      if (userRole !== 'admin') {
+        throw new BadRequestException(
+          'Paid ads credit packages can only be managed by agents.'
+        );
+      }
+    }
+
+    // Validate: Agents can ONLY manage paid ads packages (not other types)
+    if (userRole === 'admin' && creditPackage.credit_type !== 'paid ads' && updateDto.credit_type !== 'paid ads') {
+      throw new BadRequestException(
+        'Agents can only manage paid ads credit packages. Other package types can only be managed by super admin.'
+      );
     }
 
     // Update fields
@@ -994,15 +1032,33 @@ export class WalletService {
   }
 
   /**
-   * Delete a credit package (super admin only)
+   * Delete a credit package (super admin and agents can delete)
    */
-  async deleteCreditPackage(id: number) {
+  async deleteCreditPackage(id: number, user?: any) {
     const creditPackage = await this.creditPackageRepository.findOne({
       where: { id },
     });
 
     if (!creditPackage) {
       throw new NotFoundException('Credit package not found');
+    }
+
+    const userRole = user?.role;
+
+    // Validate: Paid ads packages can ONLY be managed by agents (not super admin)
+    if (creditPackage.credit_type === 'paid ads') {
+      if (userRole !== 'admin') {
+        throw new BadRequestException(
+          'Paid ads credit packages can only be managed by agents.'
+        );
+      }
+    }
+
+    // Validate: Agents can ONLY manage paid ads packages (not other types)
+    if (userRole === 'admin' && creditPackage.credit_type !== 'paid ads') {
+      throw new BadRequestException(
+        'Agents can only manage paid ads credit packages. Other package types can only be managed by super admin.'
+      );
     }
 
     await this.creditPackageRepository.softDelete(id);

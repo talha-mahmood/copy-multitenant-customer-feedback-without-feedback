@@ -161,27 +161,32 @@ export class WalletController {
     return await this.walletService.getCreditPackages(merchantType);
   }
 
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @Post('credit-packages')
-  async createCreditPackage(@Body() createDto: CreateCreditPackageDto) {
-    return await this.walletService.createCreditPackage(createDto);
+  async createCreditPackage(
+    @Body() createDto: CreateCreditPackageDto,
+    @CurrentUser() user: User,
+  ) {
+    return await this.walletService.createCreditPackage(createDto, user);
   }
 
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @Patch('credit-packages/:id')
   async updateCreditPackage(
     @Param('id') id: number,
     @Body() updateDto: UpdateCreditPackageDto,
+    @CurrentUser() user: User,
   ) {
-    return await this.walletService.updateCreditPackage(id, updateDto);
+    return await this.walletService.updateCreditPackage(id, updateDto, user);
   }
 
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @Delete('credit-packages/:id')
   async deleteCreditPackage(
     @Param('id') id: number,
+    @CurrentUser() user: User,
   ) {
-    return await this.walletService.deleteCreditPackage(id);
+    return await this.walletService.deleteCreditPackage(id, user);
   }
 
   @Get('validate-balance')
