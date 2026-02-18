@@ -80,3 +80,6 @@ export { CreditLedgerModule } from './credits-ledger/credit-ledger.module';
 
 // Monthly Statements
 export { MonthlyStatementModule } from './monthly-statements/monthly-statement.module';
+
+// Analytics
+export { AnalyticsModule } from './analytics/analytics.module';

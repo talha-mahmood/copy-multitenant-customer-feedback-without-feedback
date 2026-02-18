@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException, Inject } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { Injectable, NotFoundException, Inject, BadRequestException } from '@nestjs/common';
+import { Repository, LessThan } from 'typeorm';
 import { Approval } from './entities/approval.entity';
 import { CreateApprovalDto } from './dto/create-approval.dto';
 import { UpdateApprovalDto } from './dto/update-approval.dto';
@@ -132,14 +132,75 @@ export class ApprovalService {
     async approve(id: number, adminId: number): Promise<Approval> {
         const approval = await this.findOne(id);
 
-        approval.approval_status = 'approved';
-        approval.admin_id = adminId;
+        // Check if this is a paid_ad approval
+        if (approval.approval_type === 'paid_ad') {
+            // Check if there are already 4 active paid ads for this admin
+            const allActiveAds = await this.approvalRepository.find({
+                where: {
+                    admin_id: adminId,
+                    approval_type: 'paid_ad',
+                    approval_status: 'approved',
+                },
+            });
 
-        console.log(`[ApprovalService] Approving ${id}, new status: ${approval.approval_status}`);
-        await this.approvalRepository.update(id, {
-            approval_status: 'approved',
-            admin_id: adminId
-        });
+            // Filter to count only non-expired ads
+            const currentDate = new Date();
+            const nonExpiredAdsCount = allActiveAds.filter(ad => {
+                if (!ad.ad_expired_at) return true;
+                return new Date(ad.ad_expired_at) > currentDate;
+            }).length;
+
+            if (nonExpiredAdsCount >= 4) {
+                throw new BadRequestException('There are not enough slots right now for the advertisement. Maximum 4 ads allowed per admin.');
+            }
+
+            // Fetch merchant settings to get duration and placement
+            const merchantSettings = await this.merchantSettingRepository.findOne({
+                where: { merchant_id: approval.merchant_id },
+            });
+
+            if (!merchantSettings) {
+                throw new NotFoundException(`Merchant settings not found for merchant ID ${approval.merchant_id}`);
+            }
+
+            // Set ad_created_at to now
+            const adCreatedAt = new Date();
+            
+            // Calculate ad_expired_at based on paid_ad_duration
+            const duration = merchantSettings.paid_ad_duration || 7; // Default 7 days
+            const adExpiredAt = new Date(adCreatedAt);
+            adExpiredAt.setDate(adExpiredAt.getDate() + duration);
+
+            // Get placement from merchant settings
+            const placement = merchantSettings.paid_ad_placement || 'top';
+
+            // Update approval with dates and placement
+            approval.approval_status = 'approved';
+            approval.admin_id = adminId;
+            approval.ad_created_at = adCreatedAt;
+            approval.ad_expired_at = adExpiredAt;
+            approval.placement = placement;
+
+            console.log(`[ApprovalService] Approving paid_ad ${id} with placement: ${placement}, expires at: ${adExpiredAt}`);
+            
+            await this.approvalRepository.update(id, {
+                approval_status: 'approved',
+                admin_id: adminId,
+                ad_created_at: adCreatedAt,
+                ad_expired_at: adExpiredAt,
+                placement: placement,
+            });
+        } else {
+            // For non paid_ad approvals, just update status
+            approval.approval_status = 'approved';
+            approval.admin_id = adminId;
+
+            console.log(`[ApprovalService] Approving ${id}, new status: ${approval.approval_status}`);
+            await this.approvalRepository.update(id, {
+                approval_status: 'approved',
+                admin_id: adminId
+            });
+        }
 
         // RAW QUERY VERIFICATION
         const raw = await this.approvalRepository.query('SELECT approval_status FROM approvals WHERE id = $1', [id]);
@@ -174,6 +235,8 @@ export class ApprovalService {
     }
 
     async getApprovedPaidAdds(adminId: number) {
+        const currentDate = new Date();
+        
         const approvals = await this.approvalRepository.find({
             where: {
                 admin_id: adminId,
@@ -183,12 +246,97 @@ export class ApprovalService {
             relations: ['merchant', 'merchant.settings'],
         });
 
-        return approvals.map((approval) => ({
+        // Filter out expired ads
+        const activeApprovals = approvals.filter(approval => {
+            if (!approval.ad_expired_at) return true; // Include if no expiration date set
+            return new Date(approval.ad_expired_at) > currentDate;
+        });
+
+        return activeApprovals.map((approval) => ({
             ...approval.merchant,
             paid_ad_image: approval.merchant?.settings?.paid_ad_image,
-            paid_ad_placement: approval.merchant?.settings?.paid_ad_placement,
+            paid_ad_placement: approval.placement || approval.merchant?.settings?.paid_ad_placement,
             paid_ad_video: approval.merchant?.settings?.paid_ad_video,
+            ad_created_at: approval.ad_created_at,
+            ad_expired_at: approval.ad_expired_at,
         }));
+    }
+
+    async getAvailablePlacements(adminId: number): Promise<string[]> {
+        const allPlacements = ['top', 'bottom', 'left', 'right'];
+        const currentDate = new Date();
+
+        // Get all active (approved and not expired) paid ads for this admin
+        const activeAds = await this.approvalRepository.find({
+            where: {
+                admin_id: adminId,
+                approval_status: 'approved',
+                approval_type: 'paid_ad',
+            },
+        });
+
+        // Filter out expired ads and get their placements
+        const occupiedPlacements = activeAds
+            .filter(ad => {
+                if (!ad.ad_expired_at) return true;
+                return new Date(ad.ad_expired_at) > currentDate;
+            })
+            .map(ad => ad.placement)
+            .filter(placement => placement); // Remove null/undefined
+
+        // Return placements that are not occupied
+        const availablePlacements = allPlacements.filter(
+            placement => !occupiedPlacements.includes(placement)
+        );
+
+        return availablePlacements;
+    }
+
+    async getAvailablePlacementsSystemWide(): Promise<string[]> {
+        const allPlacements = ['top', 'bottom', 'left', 'right'];
+        const currentDate = new Date();
+
+        // Get ALL active (approved and not expired) paid ads across entire system
+        const activeAds = await this.approvalRepository.find({
+            where: {
+                approval_status: 'approved',
+                approval_type: 'paid_ad',
+            },
+        });
+
+        // Filter out expired ads and get their placements
+        const occupiedPlacements = activeAds
+            .filter(ad => {
+                if (!ad.ad_expired_at) return true;
+                return new Date(ad.ad_expired_at) > currentDate;
+            })
+            .map(ad => ad.placement)
+            .filter(placement => placement); // Remove null/undefined
+
+        // Return placements that are not occupied
+        const availablePlacements = allPlacements.filter(
+            placement => !occupiedPlacements.includes(placement)
+        );
+
+        return availablePlacements;
+    }
+
+    async getAvailablePlacementsForMerchant(merchantId: number): Promise<string[]> {
+        // First, get the merchant to find their admin_id
+        const merchant = await this.merchantRepository.findOne({
+            where: { id: merchantId },
+        });
+
+        if (!merchant) {
+            throw new NotFoundException(`Merchant with ID ${merchantId} not found`);
+        }
+
+        if (!merchant.admin_id) {
+            throw new NotFoundException(`Merchant ${merchantId} does not have an assigned admin`);
+        }
+
+        // Return available placements for the merchant's admin (per-admin basis)
+        return this.getAvailablePlacements(merchant.admin_id);
     }
 
     private async handleApprovalSideEffects(approval: Approval): Promise<void> {

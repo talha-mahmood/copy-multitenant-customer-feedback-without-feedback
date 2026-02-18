@@ -36,4 +36,13 @@ export class Approval extends BaseEntity {
     @ManyToOne(() => Admin, { onDelete: 'SET NULL' })
     @JoinColumn({ name: 'admin_id' })
     admin: Admin;
+
+    @Column({ name: 'ad_created_at', type: 'timestamp', nullable: true })
+    ad_created_at: Date;
+
+    @Column({ name: 'ad_expired_at', type: 'timestamp', nullable: true })
+    ad_expired_at: Date;
+
+    @Column({ name: 'placement', type: 'varchar', length: 50, nullable: true })
+    placement: string;
 }
