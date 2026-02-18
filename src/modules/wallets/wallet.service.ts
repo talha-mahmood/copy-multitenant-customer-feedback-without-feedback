@@ -460,19 +460,52 @@ export class WalletService {
 
       let agentDeductionTransaction: WalletTransaction | undefined;
 
-      // Deduct platform cost from agent wallet (if applicable)
-      // Paid ads do NOT deduct from agent wallet
-      if (platformCost > 0 && creditType !== 'paid ads') {
-        const adminWallet = await queryRunner.manager.findOne(AdminWallet, {
-          where: { admin_id: adminId },
+      // Get agent wallet
+      const adminWallet = await queryRunner.manager.findOne(AdminWallet, {
+        where: { admin_id: adminId },
+      });
+
+      if (!adminWallet) {
+        throw new NotFoundException('Agent wallet not found');
+      }
+
+      const currentBalance = parseFloat(adminWallet.balance.toString());
+
+      // Handle paid ads (agent gets 100% revenue, no platform cost)
+      if (creditType === 'paid ads') {
+        // For paid ads, agent gets the full amount as revenue (no platform cost)
+        // Update agent wallet earnings
+        await queryRunner.manager.update(AdminWallet, adminWallet.id, {
+          total_earnings: parseFloat(adminWallet.total_earnings.toString()) + amount,
         });
 
-        if (!adminWallet) {
-          throw new NotFoundException('Agent wallet not found');
-        }
+        // Create commission transaction
+        agentDeductionTransaction = queryRunner.manager.create(WalletTransaction, {
+          admin_wallet_id: adminWallet.id,
+          type: 'merchant_package_commission',
+          amount: amount, // Full amount goes to agent
+          status: 'completed',
+          description: `Revenue from merchant #${merchantId} ${creditType} package purchase (Full amount: ${amount.toFixed(2)}, No platform cost)`,
+          metadata: JSON.stringify({
+            merchant_id: merchantId,
+            package_id: creditPackage.id,
+            package_name: creditPackage.name,
+            credits,
+            credit_type: creditType,
+            merchant_payment: amount,
+            platform_cost_deducted: 0,
+            agent_profit: amount,
+          }),
+          balance_before: currentBalance,
+          balance_after: currentBalance, // Balance unchanged since no deduction
+          completed_at: new Date(),
+        });
 
-        const currentBalance = parseFloat(adminWallet.balance.toString());
-
+        const savedAgentTransaction = await queryRunner.manager.save(agentDeductionTransaction);
+        agentDeductionTransaction = savedAgentTransaction;
+      } 
+      // Handle other credit types (deduct platform cost from agent wallet)
+      else if (platformCost > 0) {
         // Check if agent has sufficient balance
         if (currentBalance < platformCost) {
           throw new BadRequestException(
