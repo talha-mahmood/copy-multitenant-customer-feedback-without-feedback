@@ -27,6 +27,7 @@ import { SystemLogService } from '../system-logs/system-log.service';
 import { SystemLogAction } from 'src/common/enums/system-log.enum';
 import { SuperAdminSettingsService } from '../super-admin-settings/super-admin-settings.service';
 import { CreditLedgerService } from '../credits-ledger/credit-ledger.service';
+import { th } from '@faker-js/faker/.';
 
 @Injectable()
 export class WalletService {
@@ -48,7 +49,7 @@ export class WalletService {
     private systemLogService: SystemLogService,
     private superAdminSettingsService: SuperAdminSettingsService,
     private creditLedgerService: CreditLedgerService,
-  ) {}
+  ) { }
 
   /**
    * Create admin wallet when admin is created
@@ -69,7 +70,7 @@ export class WalletService {
       total_spent: 0,
       pending_amount: 0,
       currency,
-      is_active: true,
+      is_active: false, // New agents start with inactive subscription
     });
 
     return await this.adminWalletRepository.save(wallet);
@@ -231,10 +232,9 @@ export class WalletService {
       const balanceBefore = parseFloat(wallet.balance.toString());
       const newBalance = balanceBefore + amount;
 
-      // Update wallet
+      // Update wallet - only update balance, not earnings (top-up is not commission income)
       await queryRunner.manager.update(AdminWallet, wallet.id, {
         balance: newBalance,
-        total_earnings: parseFloat(wallet.total_earnings.toString()) + amount,
       });
 
       // Create transaction
@@ -326,7 +326,52 @@ export class WalletService {
   }
 
   /**
+   * Calculate platform cost based on credit type and merchant type
+   */
+  private async calculatePlatformCost(
+    creditType: string,
+    merchantType: string,
+    credits: number,
+  ): Promise<number> {
+    // Fetch platform cost settings
+    const settings = await this.superAdminSettingsService.getSettings();
+
+    let costPerCredit = 0;
+
+    // Determine cost per credit based on credit type and merchant type
+    if (creditType === 'whatsapp ui message') {
+      costPerCredit = merchantType === 'annual'
+        ? parseFloat(settings.whatsapp_ui_annual_platform_cost.toString())
+        : parseFloat(settings.whatsapp_ui_temporary_platform_cost.toString());
+    } else if (creditType === 'whatsapp bi message') {
+      // BI messages only for annual merchants
+      costPerCredit = parseFloat(settings.whatsapp_bi_platform_cost.toString());
+    } else if (creditType === 'coupon') {
+      costPerCredit = merchantType === 'annual'
+        ? parseFloat(settings.coupon_annual_platform_cost.toString())
+        : parseFloat(settings.coupon_temporary_platform_cost.toString());
+    } else if (creditType === 'paid ads') {
+      // Paid ads do NOT deduct from agent wallet
+      return 0;
+    }
+
+    const platformCost = credits * costPerCredit;
+
+    console.log('Calculating Platform Cost:', {
+      creditType,
+      merchantType,
+      credits,
+      whatsapp_ui_annual_platform_cost: settings.whatsapp_ui_annual_platform_cost,
+      whatsapp_ui_temporary_platform_cost: settings.whatsapp_ui_temporary_platform_cost,
+      calculatedCost: platformCost,
+    });
+
+    return platformCost;
+  }
+
+  /**
    * Add credits to merchant wallet
+   * NEW MODEL: Deduct platform cost from agent prepaid wallet
    */
   async addMerchantCredits(
     merchantId: number,
@@ -337,7 +382,7 @@ export class WalletService {
     adminId: number,
     description: string,
     metadata?: any,
-  ): Promise<{ merchantTransaction: WalletTransaction; adminTransaction: WalletTransaction; commission: number }> {
+  ): Promise<{ merchantTransaction: WalletTransaction; agentDeductionTransaction?: WalletTransaction; platformCost: number }> {
     // Validate credit type
     const validCreditTypes = ['whatsapp ui message', 'whatsapp bi message', 'paid ads', 'coupon'];
     if (!validCreditTypes.includes(creditType)) {
@@ -377,7 +422,7 @@ export class WalletService {
         throw new NotFoundException('Merchant wallet not found');
       }
 
-      // Get merchant to determine commission rate
+      // Get merchant to determine platform cost
       const merchant = await queryRunner.manager.findOne(Merchant, {
         where: { id: merchantId },
       });
@@ -409,13 +454,152 @@ export class WalletService {
         );
       }
 
-      // Get commission rates from settings
-      const settings = await this.superAdminSettingsService.getSettings();
-      const commissionRate = merchant.merchant_type === 'temporary'
-        ? parseFloat(settings.temporary_merchant_packages_admin_commission_rate.toString())
-        : parseFloat(settings.annual_merchant_packages_admin_commission_rate.toString());
-      const adminCommission = amount * commissionRate;
-      const platformAmount = amount - adminCommission;
+      // Calculate platform cost (prepaid wallet deduction model)
+      const platformCost = await this.calculatePlatformCost(creditType, merchant.merchant_type, credits);
+
+      let agentDeductionTransaction: WalletTransaction | undefined;
+
+      // Get agent wallet
+      const adminWallet = await queryRunner.manager.findOne(AdminWallet, {
+        where: { admin_id: adminId },
+      });
+
+      if (!adminWallet) {
+        throw new NotFoundException('Agent wallet not found');
+      }
+
+      const currentBalance = parseFloat(adminWallet.balance.toString());
+
+      // Handle paid ads (agent gets 100% revenue, no platform cost)
+      if (creditType === 'paid ads') {
+        // For paid ads, agent gets the full amount as revenue (no platform cost)
+        // Update agent wallet earnings
+        await queryRunner.manager.update(AdminWallet, adminWallet.id, {
+          total_earnings: parseFloat(adminWallet.total_earnings.toString()) + amount,
+        });
+
+        // Create commission transaction
+        agentDeductionTransaction = queryRunner.manager.create(WalletTransaction, {
+          admin_wallet_id: adminWallet.id,
+          type: 'merchant_package_commission',
+          amount: amount, // Full amount goes to agent
+          status: 'completed',
+          description: `Revenue from merchant #${merchantId} ${creditType} package purchase (Full amount: ${amount.toFixed(2)}, No platform cost)`,
+          metadata: JSON.stringify({
+            merchant_id: merchantId,
+            package_id: creditPackage.id,
+            package_name: creditPackage.name,
+            credits,
+            credit_type: creditType,
+            merchant_payment: amount,
+            platform_cost_deducted: 0,
+            agent_profit: amount,
+          }),
+          balance_before: currentBalance,
+          balance_after: currentBalance, // Balance unchanged since no deduction
+          completed_at: new Date(),
+        });
+
+        const savedAgentTransaction = await queryRunner.manager.save(agentDeductionTransaction);
+        agentDeductionTransaction = savedAgentTransaction;
+      } 
+      // Handle other credit types (deduct platform cost from agent wallet)
+      else if (platformCost > 0) {
+        // Check if agent has sufficient balance
+        if (currentBalance < platformCost) {
+          throw new BadRequestException(
+            `Insufficient agent wallet balance. Required: ${platformCost.toFixed(2)}, Available: ${currentBalance.toFixed(2)}. Please top up your wallet to complete this purchase.`,
+          );
+        }
+
+        // Deduct platform cost from agent wallet
+        const newAgentBalance = currentBalance - platformCost;
+
+        // Calculate agent profit (commission earned)
+        const agentProfit = amount - platformCost;
+
+        await queryRunner.manager.update(AdminWallet, adminWallet.id, {
+          balance: newAgentBalance,
+          total_spent: parseFloat(adminWallet.total_spent.toString()) + platformCost,
+          total_earnings: parseFloat(adminWallet.total_earnings.toString()) + agentProfit,
+        });
+
+        // Create agent transaction (recording profit, not deduction)
+        agentDeductionTransaction = queryRunner.manager.create(WalletTransaction, {
+          admin_wallet_id: adminWallet.id,
+          type: 'merchant_package_commission',
+          amount: agentProfit,
+          status: 'completed',
+          description: `Profit from merchant #${merchantId} ${creditType} package purchase (Merchant paid: ${amount.toFixed(2)}, Platform cost: ${platformCost.toFixed(2)})`,
+          metadata: JSON.stringify({
+            merchant_id: merchantId,
+            package_id: creditPackage.id,
+            package_name: creditPackage.name,
+            credits,
+            credit_type: creditType,
+            merchant_payment: amount,
+            platform_cost_deducted: platformCost,
+            agent_profit: agentProfit,
+          }),
+          balance_before: currentBalance,
+          balance_after: newAgentBalance,
+          completed_at: new Date(),
+        });
+
+        const savedAgentTransaction = await queryRunner.manager.save(agentDeductionTransaction);
+        agentDeductionTransaction = savedAgentTransaction;
+
+        // Credit super admin wallet with platform cost
+        const superAdminWallet = await queryRunner.manager.findOne(SuperAdminWallet, {
+          where: { is_active: true },
+        });
+
+        if (superAdminWallet) {
+          const superAdminBalanceBefore = parseFloat(superAdminWallet.balance.toString());
+          const newSuperAdminBalance = superAdminBalanceBefore + platformCost;
+
+          // Determine which field to update based on credit type
+          let commissionField = 'commission_annual_merchant_packages';
+          if (creditType === 'whatsapp ui message' || creditType === 'whatsapp bi message') {
+            commissionField = merchant.merchant_type === 'annual'
+              ? 'commission_annual_merchant_packages'
+              : 'commission_temporary_merchant_packages';
+          } else if (creditType === 'coupon') {
+            commissionField = merchant.merchant_type === 'annual'
+              ? 'commission_annual_merchant_packages'
+              : 'commission_temporary_merchant_packages';
+          }
+
+          await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
+            balance: newSuperAdminBalance,
+            total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + platformCost,
+            [commissionField]: parseFloat(superAdminWallet[commissionField].toString()) + platformCost,
+          });
+
+          // Create super admin transaction (platform cost)
+          await queryRunner.manager.save(WalletTransaction, {
+            super_admin_wallet_id: superAdminWallet.id,
+            type: 'merchant_package_commission',
+            amount: platformCost,
+            status: 'completed',
+            description: `Platform cost from agent #${adminId} for merchant #${merchantId} ${creditType} purchase`,
+            metadata: JSON.stringify({
+              merchant_id: merchantId,
+              admin_id: adminId,
+              package_id: creditPackage.id,
+              package_name: creditPackage.name,
+              credits,
+              credit_type: creditType,
+              platform_cost: platformCost,
+              merchant_payment: amount,
+              agent_profit: amount - platformCost,
+            }),
+            balance_before: superAdminBalanceBefore,
+            balance_after: newSuperAdminBalance,
+            completed_at: new Date(),
+          });
+        }
+      }
 
       // Update merchant credit balance based on credit type
       const updates: any = {
@@ -448,13 +632,11 @@ export class WalletService {
         description,
         metadata: metadata ? JSON.stringify({
           ...metadata,
-          commission_rate: commissionRate,
-          platform_amount: platformAmount,
+          platform_cost: platformCost,
           package_id: creditPackage.id,
           package_name: creditPackage.name,
         }) : JSON.stringify({
-          commission_rate: commissionRate,
-          platform_amount: platformAmount,
+          platform_cost: platformCost,
           package_id: creditPackage.id,
           package_name: creditPackage.name,
         }),
@@ -462,89 +644,6 @@ export class WalletService {
       });
 
       const savedMerchantTransaction = await queryRunner.manager.save(merchantTransaction);
-
-      // Credit admin wallet with commission
-      const adminWallet = await queryRunner.manager.findOne(AdminWallet, {
-        where: { admin_id: adminId },
-      });
-
-      if (!adminWallet) {
-        throw new NotFoundException('Admin wallet not found');
-      }
-
-      const adminBalanceBefore = parseFloat(adminWallet.balance.toString());
-      const newAdminBalance = adminBalanceBefore + adminCommission;
-
-      await queryRunner.manager.update(AdminWallet, adminWallet.id, {
-        balance: newAdminBalance,
-        total_earnings: parseFloat(adminWallet.total_earnings.toString()) + adminCommission,
-      });
-
-      // Create admin transaction
-      const adminTransaction = queryRunner.manager.create(WalletTransaction, {
-        admin_wallet_id: adminWallet.id,
-        type: 'merchant_package_commission',
-        amount: adminCommission,
-        status: 'completed',
-        description: `Commission from merchant credit purchase (${(commissionRate * 100).toFixed(0)}%)`,
-        metadata: JSON.stringify({
-          merchant_id: merchantId,
-          purchase_amount: amount,
-          commission_rate: commissionRate,
-          credits,
-          credit_type: creditType,
-          package_id: creditPackage.id,
-          package_name: creditPackage.name,
-        }),
-        balance_before: adminBalanceBefore,
-        balance_after: newAdminBalance,
-        completed_at: new Date(),
-      });
-
-      const savedAdminTransaction = await queryRunner.manager.save(adminTransaction);
-
-      // Credit super admin wallet with remaining commission (platform share)
-      const superAdminWallet = await queryRunner.manager.findOne(SuperAdminWallet, {
-        where: { is_active: true },
-      });
-
-      if (superAdminWallet) {
-        const superAdminBalanceBefore = parseFloat(superAdminWallet.balance.toString());
-        const newSuperAdminBalance = superAdminBalanceBefore + platformAmount;
-
-        // Determine which commission field to update based on merchant type
-        const commissionField = merchant.merchant_type === 'temporary'
-          ? 'commission_temporary_merchant_packages'
-          : 'commission_annual_merchant_packages';
-
-        await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
-          balance: newSuperAdminBalance,
-          total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + platformAmount,
-          [commissionField]: parseFloat(superAdminWallet[commissionField].toString()) + platformAmount,
-        });
-
-        // Create super admin transaction
-        await queryRunner.manager.save(WalletTransaction, {
-          super_admin_wallet_id: superAdminWallet.id,
-          type: 'merchant_package_commission',
-          amount: platformAmount,
-          status: 'completed',
-          description: `Platform commission from merchant #${merchantId} credit purchase (${((1 - commissionRate) * 100).toFixed(0)}%)`,
-          metadata: JSON.stringify({
-            merchant_id: merchantId,
-            admin_id: adminId,
-            purchase_amount: amount,
-            commission_rate: (1 - commissionRate),
-            credits,
-            credit_type: creditType,
-            package_id: creditPackage.id,
-            package_name: creditPackage.name,
-          }),
-          balance_before: superAdminBalanceBefore,
-          balance_after: newSuperAdminBalance,
-          completed_at: new Date(),
-        });
-      }
 
       await queryRunner.commitTransaction();
 
@@ -571,7 +670,7 @@ export class WalletService {
           package_name: creditPackage.name,
           amount,
           admin_id: adminId,
-          commission: adminCommission,
+          platform_cost: platformCost,
         },
       });
 
@@ -588,8 +687,8 @@ export class WalletService {
           credit_type: creditType,
           amount,
           admin_id: adminId,
-          commission: adminCommission,
-          commission_rate: commissionRate,
+          platform_cost: platformCost,
+          agent_profit: amount - platformCost,
           package_id: creditPackage.id,
           package_name: creditPackage.name,
         },
@@ -597,8 +696,8 @@ export class WalletService {
 
       return {
         merchantTransaction: savedMerchantTransaction,
-        adminTransaction: savedAdminTransaction,
-        commission: adminCommission,
+        agentDeductionTransaction,
+        platformCost,
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -691,8 +790,8 @@ export class WalletService {
 
       const balanceAfter = creditType === 'whatsapp ui message' ? updates.whatsapp_ui_credits :
         creditType === 'whatsapp bi message' ? updates.whatsapp_bi_credits :
-        creditType === 'paid ads' ? updates.paid_ad_credits :
-        updates.coupon_credits;
+          creditType === 'paid ads' ? updates.paid_ad_credits :
+            updates.coupon_credits;
 
       await this.creditLedgerService.create({
         owner_type: 'merchant',
@@ -804,9 +903,29 @@ export class WalletService {
   }
 
   /**
-   * Create a new credit package (super admin only)
+   * Create a new credit package (super admin and agents can create)
    */
-  async createCreditPackage(createDto: CreateCreditPackageDto) {
+  async createCreditPackage(createDto: CreateCreditPackageDto, user?: any) {
+    console.log('Creating credit package with data:', user , createDto);
+    
+    const userRole = user?.role;
+
+    // Validate: Paid ads packages can ONLY be created by agents (not super admin)
+    if (createDto.credit_type === 'paid ads') {
+      if (userRole !== 'admin') {
+        throw new BadRequestException(
+          'Paid ads credit packages can only be created by agents. Please contact your agent to create paid ads packages.'
+        );
+      }
+    }
+
+    // Validate: Agents can ONLY create paid ads packages (not WhatsApp UI/BI, coupons)
+    if (userRole === 'admin' && createDto.credit_type !== 'paid ads') {
+      throw new BadRequestException(
+        'Agents can only create paid ads credit packages. Other package types can only be created by super admin.'
+      );
+    }
+
     // Validate: WhatsApp BI packages cannot be created for temporary merchants
     if (createDto.credit_type === 'whatsapp bi message' && createDto.merchant_type === 'temporary') {
       throw new BadRequestException(
@@ -855,15 +974,33 @@ export class WalletService {
   }
 
   /**
-   * Update a credit package (super admin only)
+   * Update a credit package (super admin and agents can update)
    */
-  async updateCreditPackage(id: number, updateDto: UpdateCreditPackageDto) {
+  async updateCreditPackage(id: number, updateDto: UpdateCreditPackageDto, user?: any) {
     const creditPackage = await this.creditPackageRepository.findOne({
       where: { id },
     });
 
     if (!creditPackage) {
       throw new NotFoundException('Credit package not found');
+    }
+
+    const userRole = user?.role;
+
+    // Validate: Paid ads packages can ONLY be managed by agents (not super admin)
+    if (creditPackage.credit_type === 'paid ads' || updateDto.credit_type === 'paid ads') {
+      if (userRole !== 'admin') {
+        throw new BadRequestException(
+          'Paid ads credit packages can only be managed by agents.'
+        );
+      }
+    }
+
+    // Validate: Agents can ONLY manage paid ads packages (not other types)
+    if (userRole === 'admin' && creditPackage.credit_type !== 'paid ads' && updateDto.credit_type !== 'paid ads') {
+      throw new BadRequestException(
+        'Agents can only manage paid ads credit packages. Other package types can only be managed by super admin.'
+      );
     }
 
     // Update fields
@@ -895,15 +1032,33 @@ export class WalletService {
   }
 
   /**
-   * Delete a credit package (super admin only)
+   * Delete a credit package (super admin and agents can delete)
    */
-  async deleteCreditPackage(id: number) {
+  async deleteCreditPackage(id: number, user?: any) {
     const creditPackage = await this.creditPackageRepository.findOne({
       where: { id },
     });
 
     if (!creditPackage) {
       throw new NotFoundException('Credit package not found');
+    }
+
+    const userRole = user?.role;
+
+    // Validate: Paid ads packages can ONLY be managed by agents (not super admin)
+    if (creditPackage.credit_type === 'paid ads') {
+      if (userRole !== 'admin') {
+        throw new BadRequestException(
+          'Paid ads credit packages can only be managed by agents.'
+        );
+      }
+    }
+
+    // Validate: Agents can ONLY manage paid ads packages (not other types)
+    if (userRole === 'admin' && creditPackage.credit_type !== 'paid ads') {
+      throw new BadRequestException(
+        'Agents can only manage paid ads credit packages. Other package types can only be managed by super admin.'
+      );
     }
 
     await this.creditPackageRepository.softDelete(id);
@@ -917,10 +1072,10 @@ export class WalletService {
    * Upgrade merchant to annual subscription
    */
   async upgradeToAnnual(merchantId: number, adminId: number) {
-    // Get fees and rates from settings
+    // Get fees and platform cost from settings
     const settings = await this.superAdminSettingsService.getSettings();
     const ANNUAL_FEE = parseFloat(settings.merchant_annual_fee.toString());
-    const COMMISSION_RATE = parseFloat(settings.annual_merchant_subscription_admin_commission_rate.toString());
+    const PLATFORM_COST = parseFloat(settings.merchant_annual_platform_cost.toString());
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -940,6 +1095,22 @@ export class WalletService {
         throw new BadRequestException('Merchant is already on annual subscription');
       }
 
+      // Check agent wallet balance
+      const adminWallet = await queryRunner.manager.findOne(AdminWallet, {
+        where: { admin_id: adminId },
+      });
+
+      if (!adminWallet) {
+        throw new NotFoundException('Agent wallet not found');
+      }
+
+      const currentBalance = parseFloat(adminWallet.balance.toString());
+      if (currentBalance < PLATFORM_COST) {
+        throw new BadRequestException(
+          `Insufficient agent wallet balance. Required: ${PLATFORM_COST.toFixed(2)}, Available: ${currentBalance.toFixed(2)}. Please top up your wallet to upgrade merchant to annual.`,
+        );
+      }
+
       // Update to annual
       const expiresAt = new Date();
       expiresAt.setFullYear(expiresAt.getFullYear() + 1);
@@ -955,59 +1126,74 @@ export class WalletService {
         merchant_type: 'annual',
       });
 
-      // Credit admin wallet with commission
-      const adminWallet = await queryRunner.manager.findOne(AdminWallet, {
-        where: { admin_id: adminId },
+      // Deduct platform cost from agent wallet
+      const agentBalanceBefore = currentBalance;
+      const newAgentBalance = agentBalanceBefore - PLATFORM_COST;
+      const agentProfit = ANNUAL_FEE - PLATFORM_COST;
+
+      await queryRunner.manager.update(AdminWallet, adminWallet.id, {
+        balance: newAgentBalance,
+        total_earnings: parseFloat(adminWallet.total_earnings.toString()) + agentProfit,
       });
 
-      if (adminWallet) {
-        const adminCommission = ANNUAL_FEE * COMMISSION_RATE; // Agent gets configured % (e.g., 75%)
-        const superAdminCommission = ANNUAL_FEE * (1 - COMMISSION_RATE); // Super admin gets remaining % (e.g., 25%)
-        
-        await queryRunner.manager.update(AdminWallet, adminWallet.id, {
-          balance: parseFloat(adminWallet.balance.toString()) + adminCommission,
-          total_earnings: parseFloat(adminWallet.total_earnings.toString()) + adminCommission,
+      // Create agent transaction
+      await queryRunner.manager.save(WalletTransaction, {
+        admin_wallet_id: adminWallet.id,
+        type: 'merchant_annual_subscription_commission',
+        amount: agentProfit,
+        status: 'completed',
+        description: `Profit from merchant #${merchantId} annual upgrade (Merchant paid: ${ANNUAL_FEE.toFixed(2)}, Platform cost: ${PLATFORM_COST.toFixed(2)})`,
+        metadata: JSON.stringify({
+          merchant_id: merchantId,
+          merchant_payment: ANNUAL_FEE,
+          platform_cost_deducted: PLATFORM_COST,
+          agent_profit: agentProfit,
+          fee_type: 'annual_upgrade',
+        }),
+        balance_before: agentBalanceBefore,
+        balance_after: newAgentBalance,
+        completed_at: new Date(),
+      });
+
+      // Credit super admin wallet with platform cost
+      const superAdminWallet = await queryRunner.manager.findOne(SuperAdminWallet, {
+        where: { is_active: true },
+      });
+
+      if (superAdminWallet) {
+        const superAdminBalanceBefore = parseFloat(superAdminWallet.balance.toString());
+        const newSuperAdminBalance = superAdminBalanceBefore + PLATFORM_COST;
+
+        await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
+          balance: newSuperAdminBalance,
+          total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + PLATFORM_COST,
+          commission_merchant_annual_fee: parseFloat(superAdminWallet.commission_merchant_annual_fee.toString()) + PLATFORM_COST,
         });
 
-        // Create admin transaction
+        // Create super admin transaction
         await queryRunner.manager.save(WalletTransaction, {
-          admin_wallet_id: adminWallet.id,
+          super_admin_wallet_id: superAdminWallet.id,
           type: 'merchant_annual_subscription_commission',
-          amount: adminCommission,
+          amount: PLATFORM_COST,
           status: 'completed',
-          description: `Annual subscription commission from merchant #${merchantId} (${(COMMISSION_RATE * 100).toFixed(0)}%)`,
-          metadata: JSON.stringify({ merchant_id: merchantId, total_amount: ANNUAL_FEE, commission_rate: COMMISSION_RATE }),
+          description: `Platform cost from agent #${adminId} for merchant #${merchantId} annual upgrade`,
+          metadata: JSON.stringify({
+            merchant_id: merchantId,
+            admin_id: adminId,
+            platform_cost: PLATFORM_COST,
+            merchant_payment: ANNUAL_FEE,
+            agent_profit: agentProfit,
+            fee_type: 'annual_upgrade',
+          }),
+          balance_before: superAdminBalanceBefore,
+          balance_after: newSuperAdminBalance,
           completed_at: new Date(),
         });
-
-        // Credit super admin wallet with remaining commission
-        const superAdminWallet = await queryRunner.manager.findOne(SuperAdminWallet, {
-          where: { is_active: true },
-        });
-
-        if (superAdminWallet) {
-          await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
-            balance: parseFloat(superAdminWallet.balance.toString()) + superAdminCommission,
-            total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + superAdminCommission,
-            commission_merchant_annual_fee: parseFloat(superAdminWallet.commission_merchant_annual_fee.toString()) + superAdminCommission,
-          });
-
-          // Create super admin transaction
-          await queryRunner.manager.save(WalletTransaction, {
-            super_admin_wallet_id: superAdminWallet.id,
-            type: 'merchant_annual_subscription_commission',
-            amount: superAdminCommission,
-            status: 'completed',
-            description: `Annual subscription commission from merchant #${merchantId} upgrade (${((1 - COMMISSION_RATE) * 100).toFixed(0)}%)`,
-            metadata: JSON.stringify({ merchant_id: merchantId, admin_id: adminId, total_amount: ANNUAL_FEE, commission_rate: (1 - COMMISSION_RATE) }),
-            completed_at: new Date(),
-          });
-        }
       }
 
       await queryRunner.commitTransaction();
 
-      return { success: true, expires_at: expiresAt, annual_fee: ANNUAL_FEE, commission: ANNUAL_FEE * COMMISSION_RATE };
+      return { success: true, expires_at: expiresAt, annual_fee: ANNUAL_FEE, agent_profit: agentProfit, platform_cost: PLATFORM_COST };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -1266,6 +1452,7 @@ export class WalletService {
       await queryRunner.manager.update(AdminWallet, adminWallet.id, {
         subscription_expires_at: oneYearFromNow,
         is_subscription_expired: false,
+        is_active: true, // Activate the subscription
       });
 
       // Create debit transaction for admin wallet
@@ -1333,5 +1520,195 @@ export class WalletService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  /**
+   * Process admin initial subscription with optional wallet balance
+   * This combines subscription activation and wallet top-up in a single transaction
+   */
+  async processAdminSubscriptionWithBalance(
+    adminId: number,
+    walletBalance: number = 0,
+    metadata?: any,
+  ): Promise<any> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Get subscription fee from settings
+      const settings = await this.superAdminSettingsService.getSettings();
+      const subscriptionFee = parseFloat(settings.admin_annual_subscription_fee.toString());
+
+      // Get admin wallet
+      const adminWallet = await queryRunner.manager.findOne(AdminWallet, {
+        where: { admin_id: adminId },
+      });
+
+      if (!adminWallet) {
+        throw new NotFoundException('Admin wallet not found');
+      }
+
+      // Set subscription expiration to one year from now
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+      // Calculate new balance if wallet balance is provided
+      const currentBalance = parseFloat(adminWallet.balance.toString());
+      const newBalance = currentBalance + walletBalance;
+
+      // Update admin wallet subscription and balance (balance top-up is not commission income)
+      await queryRunner.manager.update(AdminWallet, adminWallet.id, {
+        subscription_expires_at: oneYearFromNow,
+        is_subscription_expired: false,
+        is_active: true, // Activate the subscription
+        balance: newBalance,
+      });
+
+      // Create subscription fee transaction for admin wallet
+      await queryRunner.manager.save(WalletTransaction, {
+        admin_wallet_id: adminWallet.id,
+        type: 'agent_subscription_fee',
+        amount: subscriptionFee,
+        status: 'completed',
+        description: `Annual subscription payment to platform`,
+        metadata: JSON.stringify({
+          subscription_expires_at: oneYearFromNow,
+          ...metadata
+        }),
+        completed_at: new Date(),
+      });
+
+      // If wallet balance was added, create a credit transaction
+      if (walletBalance > 0) {
+        await queryRunner.manager.save(WalletTransaction, {
+          admin_wallet_id: adminWallet.id,
+          type: 'credit',
+          amount: walletBalance,
+          status: 'completed',
+          description: `Initial wallet balance top-up`,
+          balance_before: currentBalance,
+          balance_after: newBalance,
+          metadata: metadata ? JSON.stringify(metadata) : undefined,
+          completed_at: new Date(),
+        });
+      }
+
+      // Get super admin wallet within transaction
+      const superAdminWallet = await queryRunner.manager.findOne(SuperAdminWallet, {
+        where: { is_active: true },
+      });
+
+      if (!superAdminWallet) {
+        throw new NotFoundException('Super admin wallet not found');
+      }
+
+      // Credit super admin wallet with subscription fee only (not the prepaid balance)
+      await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
+        balance: parseFloat(superAdminWallet.balance.toString()) + subscriptionFee,
+        total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + subscriptionFee,
+        revenue_admin_annual_subscription_fee: parseFloat(superAdminWallet.revenue_admin_annual_subscription_fee.toString()) + subscriptionFee,
+      });
+
+      // Create transaction for super admin
+      await queryRunner.manager.save(WalletTransaction, {
+        super_admin_wallet_id: superAdminWallet.id,
+        type: 'agent_subscription_fee',
+        amount: subscriptionFee,
+        status: 'completed',
+        description: `Admin subscription payment from admin #${adminId}${walletBalance > 0 ? ` (+ ${walletBalance} wallet balance)` : ''}`,
+        metadata: JSON.stringify({
+          admin_id: adminId,
+          wallet_balance_added: walletBalance,
+        }),
+        completed_at: new Date(),
+      });
+
+      // Log the transaction
+      await this.systemLogService.logWallet(
+        SystemLogAction.CREDIT_ADD,
+        `Admin subscription fee ${settings.currency} ${subscriptionFee} received from admin #${adminId}${walletBalance > 0 ? ` with ${settings.currency} ${walletBalance} wallet balance` : ''}`,
+        superAdminWallet.super_admin_id,
+        'super_admin',
+        subscriptionFee,
+        {
+          admin_id: adminId,
+          subscription_expires_at: oneYearFromNow,
+          is_subscription_expired: false,
+          wallet_balance_added: walletBalance,
+        },
+      );
+
+      await queryRunner.commitTransaction();
+
+      return {
+        message: 'Admin subscription and wallet balance processed successfully',
+        data: {
+          adminId,
+          subscriptionFee,
+          walletBalance,
+          totalPaid: subscriptionFee + walletBalance,
+          newWalletBalance: newBalance,
+          subscriptionExpiresAt: oneYearFromNow,
+          isSubscriptionExpired: false,
+        },
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
+   * Validate admin wallet balance for a given package ID
+   */
+  async validateWalletBalance(
+    packageId: number,
+    adminId: number | null | undefined,
+  ): Promise<{ isValid: boolean; required: number; available: number }> {
+    const creditPackage = await this.creditPackageRepository.findOne({
+      where: { id: packageId },
+    });
+
+    if (!creditPackage) {
+      throw new NotFoundException('Credit package not found');
+    }
+
+    if (!adminId) {
+      throw new BadRequestException('Admin ID is required to validate wallet balance');
+    }
+
+    const adminWallet = await this.adminWalletRepository.findOne({
+      where: { admin_id: adminId },
+    });
+
+    if (!adminWallet) {
+      throw new NotFoundException('Admin wallet not found');
+    }
+    console.log(`Validating wallet balance for admin ${adminId} and package ${packageId}: required=${creditPackage.price}, available=${adminWallet.balance}`);
+
+    const requiredBalance = parseFloat(creditPackage.price as any);
+    const availableBalance = parseFloat(adminWallet.balance as any);
+
+    if (availableBalance >= requiredBalance) {
+      
+      return {
+        isValid: true,
+        required: requiredBalance,
+        available: availableBalance,
+      };
+    }
+    else {
+      return {
+        isValid: false,
+        required: requiredBalance,
+        available: availableBalance,
+      };
+
+    }
+
+
   }
 }

@@ -144,58 +144,93 @@ export class MerchantService {
       // Create default merchant settings
       await this.merchantSettingService.createDefaultSettings(savedMerchant.id, queryRunner.manager);
 
-      // If annual merchant, credit admin wallet with commission
+      // If annual merchant, deduct platform cost from agent prepaid wallet
       if (isAnnual && createMerchantDto.admin_id) {
         // Get settings from super admin settings
         const settings = await this.superAdminSettingsService.getSettings();
         
         const ANNUAL_FEE = parseFloat(settings.merchant_annual_fee.toString());
-        const ADMIN_COMMISSION_RATE = parseFloat(settings.annual_merchant_subscription_admin_commission_rate.toString());
-        const adminCommission = ANNUAL_FEE * ADMIN_COMMISSION_RATE;
-        const superAdminCommission = ANNUAL_FEE * (1 - ADMIN_COMMISSION_RATE);
+        const PLATFORM_COST = parseFloat(settings.merchant_annual_platform_cost.toString());
+        const agentRevenue = ANNUAL_FEE; // Agent receives full payment from merchant via Stripe
 
         const adminWallet = await queryRunner.manager.findOne(AdminWallet, {
           where: { admin_id: createMerchantDto.admin_id },
         });
 
-        if (adminWallet) {
-          await queryRunner.manager.update(AdminWallet, adminWallet.id, {
-            balance: parseFloat(adminWallet.balance.toString()) + adminCommission,
-            total_earnings: parseFloat(adminWallet.total_earnings.toString()) + adminCommission,
-          });
-
-          // Create admin transaction
-          await queryRunner.manager.save(WalletTransaction, {
-            admin_wallet_id: adminWallet.id,
-            type: 'merchant_annual_subscription_commission',
-            amount: adminCommission,
-            status: 'completed',
-            description: `Annual subscription commission from new merchant #${savedMerchant.id} (${(ADMIN_COMMISSION_RATE * 100).toFixed(0)}%)`,
-            metadata: JSON.stringify({ merchant_id: savedMerchant.id, total_amount: ANNUAL_FEE, commission_rate: ADMIN_COMMISSION_RATE }),
-            completed_at: new Date(),
-          });
+        if (!adminWallet) {
+          throw new HttpException('Agent wallet not found', 404);
         }
 
-        // Credit super admin wallet with remaining commission
+        // Check if agent has sufficient balance
+        const currentBalance = parseFloat(adminWallet.balance.toString());
+        if (currentBalance < PLATFORM_COST) {
+          throw new HttpException(
+            `Insufficient agent wallet balance. Required: ${PLATFORM_COST.toFixed(2)}, Available: ${currentBalance.toFixed(2)}. Please top up your wallet to create an annual merchant.`,
+            400,
+          );
+        }
+
+        // Deduct platform cost from agent wallet
+        const agentBalanceBefore = currentBalance;
+        const newAgentBalance = agentBalanceBefore - PLATFORM_COST;
+        const agentProfit = agentRevenue - PLATFORM_COST;
+
+        await queryRunner.manager.update(AdminWallet, adminWallet.id, {
+          balance: newAgentBalance,
+          total_earnings: parseFloat(adminWallet.total_earnings.toString()) + agentProfit,
+        });
+
+        // Create agent transaction
+        await queryRunner.manager.save(WalletTransaction, {
+          admin_wallet_id: adminWallet.id,
+          type: 'merchant_annual_subscription_commission',
+          amount: agentProfit,
+          status: 'completed',
+          description: `Profit from annual merchant #${savedMerchant.id} creation (Merchant paid: ${ANNUAL_FEE.toFixed(2)}, Platform cost: ${PLATFORM_COST.toFixed(2)})`,
+          metadata: JSON.stringify({
+            merchant_id: savedMerchant.id,
+            merchant_payment: agentRevenue,
+            platform_cost_deducted: PLATFORM_COST,
+            agent_profit: agentProfit,
+            fee_type: 'annual_subscription',
+          }),
+          balance_before: agentBalanceBefore,
+          balance_after: newAgentBalance,
+          completed_at: new Date(),
+        });
+
+        // Credit super admin wallet with platform cost
         const superAdminWallet = await queryRunner.manager.findOne(SuperAdminWallet, {
           where: { is_active: true },
         });
 
         if (superAdminWallet) {
+          const superAdminBalanceBefore = parseFloat(superAdminWallet.balance.toString());
+          const newSuperAdminBalance = superAdminBalanceBefore + PLATFORM_COST;
+
           await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
-            balance: parseFloat(superAdminWallet.balance.toString()) + superAdminCommission,
-            total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + superAdminCommission,
-            commission_merchant_annual_fee: parseFloat(superAdminWallet.commission_merchant_annual_fee.toString()) + superAdminCommission,
+            balance: newSuperAdminBalance,
+            total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + PLATFORM_COST,
+            commission_merchant_annual_fee: parseFloat(superAdminWallet.commission_merchant_annual_fee.toString()) + PLATFORM_COST,
           });
 
           // Create super admin transaction
           await queryRunner.manager.save(WalletTransaction, {
             super_admin_wallet_id: superAdminWallet.id,
             type: 'merchant_annual_subscription_commission',
-            amount: superAdminCommission,
+            amount: PLATFORM_COST,
             status: 'completed',
-            description: `Annual subscription commission from new merchant #${savedMerchant.id} (${((1 - ADMIN_COMMISSION_RATE) * 100).toFixed(0)}%)`,
-            metadata: JSON.stringify({ merchant_id: savedMerchant.id, admin_id: createMerchantDto.admin_id, total_amount: ANNUAL_FEE, commission_rate: (1 - ADMIN_COMMISSION_RATE) }),
+            description: `Platform cost from agent #${createMerchantDto.admin_id} for annual merchant #${savedMerchant.id} creation`,
+            metadata: JSON.stringify({
+              merchant_id: savedMerchant.id,
+              admin_id: createMerchantDto.admin_id,
+              platform_cost: PLATFORM_COST,
+              merchant_payment: agentRevenue,
+              agent_profit: agentProfit,
+              fee_type: 'annual_subscription',
+            }),
+            balance_before: superAdminBalanceBefore,
+            balance_after: newSuperAdminBalance,
             completed_at: new Date(),
           });
         }

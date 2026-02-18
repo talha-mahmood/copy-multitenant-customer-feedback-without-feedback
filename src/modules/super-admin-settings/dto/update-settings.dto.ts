@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, IsString, Min, Max } from 'class-validator';
+import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class UpdateSuperAdminSettingsDto {
   @IsOptional()
@@ -9,25 +9,38 @@ export class UpdateSuperAdminSettingsDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
-  @Max(1)
-  temporary_merchant_packages_admin_commission_rate?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(1)
-  annual_merchant_packages_admin_commission_rate?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
   merchant_annual_fee?: number;
 
+  // Platform Costs
   @IsOptional()
   @IsNumber()
   @Min(0)
-  @Max(1)
-  annual_merchant_subscription_admin_commission_rate?: number;
+  merchant_annual_platform_cost?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  whatsapp_bi_platform_cost?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  whatsapp_ui_annual_platform_cost?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  whatsapp_ui_temporary_platform_cost?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  coupon_annual_platform_cost?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  coupon_temporary_platform_cost?: number;
 
   @IsOptional()
   @IsString()

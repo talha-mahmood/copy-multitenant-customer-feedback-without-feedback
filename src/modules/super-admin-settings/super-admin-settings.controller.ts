@@ -49,11 +49,11 @@ export class SuperAdminSettingsController {
   }
 
   @SkipSubscription()
-  @Get('commission-settings')
-  async getCommissionSettings() {
-    const settings = await this.settingsService.getCommissionSettings();
+  @Get('platform-cost-settings')
+  async getPlatformCostSettings() {
+    const settings = await this.settingsService.getPlatformCostSettings();
     return {
-      message: 'Commission settings retrieved successfully',
+      message: 'Platform cost settings retrieved successfully',
       data: settings,
     };
   }

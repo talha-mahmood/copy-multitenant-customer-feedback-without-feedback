@@ -114,10 +114,13 @@ export async function seedUser(dataSource: DataSource) {
       const superAdminSettingsRepo = dataSource.getRepository(SuperAdminSettings);
       await superAdminSettingsRepo.insert({
         admin_annual_subscription_fee: 1199.00,
-        temporary_merchant_packages_admin_commission_rate: 0.20, // 20%
-        annual_merchant_packages_admin_commission_rate: 0.02, // 2%
         merchant_annual_fee: 1199.00,
-        annual_merchant_subscription_admin_commission_rate: 0.75, // 75%
+        merchant_annual_platform_cost: 299.00,
+        whatsapp_bi_platform_cost: 0.45,
+        whatsapp_ui_annual_platform_cost: 0.12,
+        whatsapp_ui_temporary_platform_cost: 0.12,
+        coupon_annual_platform_cost: 0.05,
+        coupon_temporary_platform_cost: 0.05,
         currency: 'USD',
         is_active: true,
       });

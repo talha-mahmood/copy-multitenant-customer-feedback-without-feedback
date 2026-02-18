@@ -17,9 +17,11 @@ import { AddCreditsDto } from './dto/add-credits.dto';
 import { UpgradeToAnnualDto } from './dto/upgrade-to-annual.dto';
 import { CreateCreditPackageDto } from './dto/create-credit-package.dto';
 import { UpdateCreditPackageDto } from './dto/update-credit-package.dto';
+import { TopUpWalletDto } from './dto/topup-wallet.dto';
+import { InitialSubscriptionDto } from './dto/initial-subscription.dto';
 import { SkipSubscription } from 'src/common/decorators/skip-subscription.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
-
+import { CurrentUser, User } from 'src/common/decorators/current-user';
 @Controller('wallets')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class WalletController {
@@ -45,6 +47,38 @@ export class WalletController {
   @Post('admin/:adminId/subscribe')
   async processAdminSubscription(@Param('adminId') adminId: number) {
     return await this.walletService.processAdminSubscriptionPayment(adminId);
+  }
+
+  @SkipSubscription()
+  @Post('admin/:adminId/subscribe-with-balance')
+  async processAdminSubscriptionWithBalance(
+    @Param('adminId') adminId: number,
+    @Body() dto: InitialSubscriptionDto,
+  ) {
+    return await this.walletService.processAdminSubscriptionWithBalance(
+      adminId,
+      dto.walletBalance || 0,
+      dto.metadata,
+    );
+  }
+
+  @SkipSubscription()
+  @Post('admin/:adminId/topup')
+  async topUpAdminWallet(
+    @Param('adminId') adminId: number,
+    @Body() topUpDto: TopUpWalletDto,
+  ) {
+    const transaction = await this.walletService.creditAdminWallet(
+      adminId,
+      topUpDto.amount,
+      topUpDto.description || 'Wallet top-up via Stripe',
+      topUpDto.metadata,
+    );
+
+    return {
+      message: 'Wallet topped up successfully',
+      data: transaction,
+    };
   }
 
   @Get('admin/:adminId/transactions')
@@ -127,26 +161,38 @@ export class WalletController {
     return await this.walletService.getCreditPackages(merchantType);
   }
 
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @Post('credit-packages')
-  async createCreditPackage(@Body() createDto: CreateCreditPackageDto) {
-    return await this.walletService.createCreditPackage(createDto);
+  async createCreditPackage(
+    @Body() createDto: CreateCreditPackageDto,
+    @CurrentUser() user: User,
+  ) {
+    return await this.walletService.createCreditPackage(createDto, user);
   }
 
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @Patch('credit-packages/:id')
   async updateCreditPackage(
     @Param('id') id: number,
     @Body() updateDto: UpdateCreditPackageDto,
+    @CurrentUser() user: User,
   ) {
-    return await this.walletService.updateCreditPackage(id, updateDto);
+    return await this.walletService.updateCreditPackage(id, updateDto, user);
   }
 
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @Delete('credit-packages/:id')
   async deleteCreditPackage(
     @Param('id') id: number,
+    @CurrentUser() user: User,
   ) {
-    return await this.walletService.deleteCreditPackage(id);
+    return await this.walletService.deleteCreditPackage(id, user);
+  }
+
+  @Get('validate-balance')
+  async validateWalletBalance(
+    @Query('package_id') packageId: number,
+    @Query('admin_id') adminId: number,  ) {
+    return await this.walletService.validateWalletBalance(packageId, adminId);
   }
 }
