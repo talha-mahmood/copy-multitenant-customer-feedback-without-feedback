@@ -232,10 +232,9 @@ export class WalletService {
       const balanceBefore = parseFloat(wallet.balance.toString());
       const newBalance = balanceBefore + amount;
 
-      // Update wallet
+      // Update wallet - only update balance, not earnings (top-up is not commission income)
       await queryRunner.manager.update(AdminWallet, wallet.id, {
         balance: newBalance,
-        total_earnings: parseFloat(wallet.total_earnings.toString()) + amount,
       });
 
       // Create transaction
@@ -516,13 +515,14 @@ export class WalletService {
         // Deduct platform cost from agent wallet
         const newAgentBalance = currentBalance - platformCost;
 
+        // Calculate agent profit (commission earned)
+        const agentProfit = amount - platformCost;
+
         await queryRunner.manager.update(AdminWallet, adminWallet.id, {
           balance: newAgentBalance,
           total_spent: parseFloat(adminWallet.total_spent.toString()) + platformCost,
+          total_earnings: parseFloat(adminWallet.total_earnings.toString()) + agentProfit,
         });
-
-        // Calculate agent profit
-        const agentProfit = amount - platformCost;
 
         // Create agent transaction (recording profit, not deduction)
         agentDeductionTransaction = queryRunner.manager.create(WalletTransaction, {
@@ -1501,13 +1501,12 @@ export class WalletService {
       const currentBalance = parseFloat(adminWallet.balance.toString());
       const newBalance = currentBalance + walletBalance;
 
-      // Update admin wallet subscription and balance
+      // Update admin wallet subscription and balance (balance top-up is not commission income)
       await queryRunner.manager.update(AdminWallet, adminWallet.id, {
         subscription_expires_at: oneYearFromNow,
         is_subscription_expired: false,
         is_active: true, // Activate the subscription
         balance: newBalance,
-        total_earnings: parseFloat(adminWallet.total_earnings.toString()) + walletBalance,
       });
 
       // Create subscription fee transaction for admin wallet
