@@ -27,6 +27,7 @@ export interface SuperAdminDashboardResponse {
   };
   revenue: {
     totalCommissions: number;
+    agentSubscriptionRevenue: number;
     annualSubscriptionRevenue: number;
     creditPurchaseRevenue: number;
     monthlyRevenue: Array<{
