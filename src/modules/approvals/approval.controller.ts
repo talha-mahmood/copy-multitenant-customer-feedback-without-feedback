@@ -97,28 +97,27 @@ export class ApprovalController {
         return this.approvalService.reject(targetId, user.adminId);
     }
 
-    @SkipSubscription()
+
     @Public()
     @Get('approved-paid-ads/admin/:adminId')
     getApprovedPaidAdds(@Param('adminId', ParseIntPipe) adminId: number) {
         return this.approvalService.getApprovedPaidAdds(adminId);
     }
 
-    @SkipSubscription()
+
     @Public()
     @Get('available-placements')
     getAvailablePlacementsSystemWide() {
         return this.approvalService.getAvailablePlacementsSystemWide();
     }
 
-    @SkipSubscription()
+
     @Public()
     @Get('available-placements/admin/:adminId')
     getAvailablePlacements(@Param('adminId', ParseIntPipe) adminId: number) {
         return this.approvalService.getAvailablePlacements(adminId);
     }
 
-    @SkipSubscription()
     @Public()
     @Get('available-placements/merchant/:merchantId')
     getAvailablePlacementsForMerchant(@Param('merchantId', ParseIntPipe) merchantId: number) {
