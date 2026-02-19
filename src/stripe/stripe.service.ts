@@ -1,4 +1,4 @@
-import { Injectable, HttpException } from '@nestjs/common';
+import { Injectable, HttpException, Inject, forwardRef } from '@nestjs/common';
 import Stripe from 'stripe';
 import { AdminService } from '../modules/admins/admin.service';
 
@@ -6,7 +6,10 @@ import { AdminService } from '../modules/admins/admin.service';
 export class StripeService {
   private platformStripe: Stripe; // Fallback platform Stripe instance
 
-  constructor(private adminService: AdminService) {
+  constructor(
+    @Inject(forwardRef(() => AdminService))
+    private adminService: AdminService,
+  ) {
     const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
 
     if (!secretKey) {
@@ -15,6 +18,59 @@ export class StripeService {
       this.platformStripe = new Stripe(secretKey, {
         apiVersion: '2025-12-15.clover',
       });
+    }
+  }
+
+  /**
+   * Validate Stripe API key by making a test API call
+   * @param stripeKey - The Stripe secret key to validate
+   * @returns true if valid, throws error if invalid
+   */
+  async validateStripeKey(stripeKey: string): Promise<boolean> {
+    if (!stripeKey || !stripeKey.trim()) {
+      throw new HttpException('Stripe key cannot be empty', 400);
+    }
+
+    // Check format
+    if (!stripeKey.startsWith('sk_test_') && !stripeKey.startsWith('sk_live_')) {
+      throw new HttpException(
+        'Invalid Stripe key format. Key must start with sk_test_ or sk_live_',
+        400,
+      );
+    }
+
+    try {
+      // Create a temporary Stripe instance with the provided key
+      const testStripe = new Stripe(stripeKey, {
+        apiVersion: '2025-12-15.clover',
+      });
+
+      // Make a simple API call to verify the key works
+      // Using balance.retrieve() is lightweight and available for all Stripe accounts
+      await testStripe.balance.retrieve();
+
+      return true;
+    } catch (error) {
+      // Stripe will throw specific errors for invalid keys
+      if (error.type === 'StripeAuthenticationError') {
+        throw new HttpException(
+          'Invalid Stripe API key. Please check your key and try again.',
+          400,
+        );
+      }
+
+      if (error.type === 'StripePermissionError') {
+        throw new HttpException(
+          'Stripe API key does not have sufficient permissions.',
+          400,
+        );
+      }
+
+      // Generic Stripe error
+      throw new HttpException(
+        `Stripe validation failed: ${error.message || 'Unknown error'}`,
+        400,
+      );
     }
   }
 

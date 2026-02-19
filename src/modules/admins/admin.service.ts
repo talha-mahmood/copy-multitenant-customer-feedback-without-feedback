@@ -1,4 +1,4 @@
-import { HttpException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { HttpException, Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
 import { Repository, DataSource } from 'typeorm';
 import { Admin } from './entities/admin.entity';
 import { User } from '../users/entities/user.entity';
@@ -13,6 +13,7 @@ import { SystemLogService } from '../system-logs/system-log.service';
 import { SystemLogAction, SystemLogCategory, SystemLogLevel } from 'src/common/enums/system-log.enum';
 import { ApprovalService } from '../approvals/approval.service';
 import { EncryptionHelper } from 'src/common/helpers/encryption-helper';
+import { StripeService } from 'src/stripe/stripe.service';
 
 @Injectable()
 export class AdminService {
@@ -25,6 +26,8 @@ export class AdminService {
     private systemLogService: SystemLogService,
     private approvalService: ApprovalService,
     private encryptionHelper: EncryptionHelper,
+    @Inject(forwardRef(() => StripeService))
+    private stripeService: StripeService,
   ) { }
 
   async create(createAdminDto: CreateAdminDto) {
@@ -63,13 +66,21 @@ export class AdminService {
       await queryRunner.manager.save(userHasRole);
 
       // Create admin with user_id and address
-      // Encrypt stripe_secret_key if provided
+      // Validate and encrypt stripe_secret_key if provided
       let encryptedStripeKey: string | undefined = undefined;
       if (createAdminDto.stripe_secret_key && createAdminDto.stripe_secret_key.trim()) {
         try {
+          // Validate Stripe key before encrypting
+          await this.stripeService.validateStripeKey(createAdminDto.stripe_secret_key);
+          
+          // Encrypt after successful validation
           encryptedStripeKey = this.encryptionHelper.encrypt(createAdminDto.stripe_secret_key);
         } catch (error) {
-          throw new HttpException('Failed to encrypt Stripe key', 500);
+          // Re-throw validation errors with original message
+          if (error instanceof HttpException) {
+            throw error;
+          }
+          throw new HttpException('Failed to process Stripe key', 500);
         }
       }
 
@@ -238,13 +249,21 @@ export class AdminService {
       if (updateAdminDto.city !== undefined) adminUpdateData.city = updateAdminDto.city;
       if (updateAdminDto.country !== undefined) adminUpdateData.country = updateAdminDto.country;
       
-      // Encrypt stripe_secret_key if provided
+      // Validate and encrypt stripe_secret_key if provided
       if (updateAdminDto.stripe_secret_key !== undefined) {
         if (updateAdminDto.stripe_secret_key && updateAdminDto.stripe_secret_key.trim()) {
           try {
+            // Validate Stripe key before encrypting
+            await this.stripeService.validateStripeKey(updateAdminDto.stripe_secret_key);
+            
+            // Encrypt after successful validation
             adminUpdateData.stripe_secret_key = this.encryptionHelper.encrypt(updateAdminDto.stripe_secret_key);
           } catch (error) {
-            throw new HttpException('Failed to encrypt Stripe key', 500);
+            // Re-throw validation errors with original message
+            if (error instanceof HttpException) {
+              throw error;
+            }
+            throw new HttpException('Failed to process Stripe key', 500);
           }
         } else {
           // If empty string provided, clear the key
