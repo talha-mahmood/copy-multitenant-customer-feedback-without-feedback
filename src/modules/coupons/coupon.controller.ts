@@ -9,6 +9,7 @@ import {
   Query,
   DefaultValuePipe,
   ParseIntPipe,
+  ParseBoolPipe,
   UseGuards,
 } from '@nestjs/common';
 import { CouponService } from './coupon.service';
@@ -43,8 +44,13 @@ export class CouponController {
     @Query('businessType') businessType?: string,
     @Query('placement') placement?: string,
     @Query('adminId') adminId?: number,
+    @Query('country') country?: string,
+    @Query('city') city?: string,
+    @Query('businessName') businessName?: string,
+    @Query('search') search?: string,
+    @Query('expiringSoon', new DefaultValuePipe(false), ParseBoolPipe) expiringSoon?: boolean,
   ) {
-    return this.couponService.findAllPublic(page, pageSize, businessType, placement, adminId);
+    return this.couponService.findAllPublic(page, pageSize, businessType, placement, adminId, country, city, businessName, search, expiringSoon);
   }
 
   /**
@@ -56,8 +62,14 @@ export class CouponController {
   getSuperAdminFeed(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
+    @Query('businessType') businessType?: string,
+    @Query('country') country?: string,
+    @Query('city') city?: string,
+    @Query('businessName') businessName?: string,
+    @Query('search') search?: string,
+    @Query('expiringSoon', new DefaultValuePipe(false), ParseBoolPipe) expiringSoon?: boolean,
   ) {
-    return this.couponService.findAllForSuperAdmin(page, pageSize);
+    return this.couponService.findAllForSuperAdmin(page, pageSize, businessType, country, city, businessName, search, expiringSoon);
   }
   /**
    * List coupon templates for annual merchants

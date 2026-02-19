@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "e5f38197-088e-403e-831c-8593c18de44b",
-    "name": "53QR Review & Coupon SaaS API - With Credits Ledger",
-    "description": "Complete API collection including wallet system, automated campaigns, Credits Ledger (bank-style accounting), and Monthly PDF Statements",
+    "_postman_id": "2066c93d-f311-4fdb-a0ff-0efe87c8dd93",
+    "name": "56QR Review & Coupon SaaS API - With Credits Ledger",
+    "description": "Complete API collection including wallet system, automated campaigns, Credits Ledger (bank-style accounting), Monthly PDF Statements, and Agent-Managed Paid Ads Packages. Version 54 introduces role-based credit package management: Super admins manage coupon and WhatsApp packages, while agents exclusively manage paid ads packages (100% revenue to agents).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "22622973"
   },
@@ -88,12 +88,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"John Agent\",\n  \"email\": \"agent1@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456789\",\n  \"address\": \"123 Agent Street, KL\",\n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"is_active\": true,\n  \"stripe_secret_key\": \"sk_test_xxxxxxxxxxxxx\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"name\": \"John Agent\",\n  \"email\": \"agent1@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+60123456789\",\n  \"address\": \"123 Agent Street, KL\",\n//   \"stripe_secret_key\":\"sk_test_51xxxxxxxxxxxxx\"\n\n}"
             },
             "url": {
               "raw": "{{base_url}}/admins",
@@ -104,7 +99,7 @@
                 "admins"
               ]
             },
-            "description": "Create a new admin/agent account.\\n\\n**Required Fields:**\\n- name: Agent's full name\\n- email: Unique email address\\n- password: Minimum 6 characters\\n- phone: Contact phone number\\n\\n**Optional Fields:**\\n- address, city, country: Location details\\n- is_active (boolean): Account status (default: true)\\n- **stripe_secret_key**: Stripe API key for payment processing\\n\\n**Stripe Configuration:**\\nCan be set during creation or later via update endpoint or agent settings. When configured, 100% of merchant payments go to agent's Stripe account, with platform costs deducted from agent's prepaid wallet.\\n\\n**Response:**\\nReturns created agent details with `has_stripe_key` flag indicating if Stripe key was configured."
+            "description": "Create a new admin/agent. Optionally specify subscription_type ('annual' or 'monthly') and subscription_expires_at date."
           },
           "response": []
         },
@@ -154,8 +149,7 @@
                 "admins",
                 "{{admin_id}}"
               ]
-            },
-            "description": "Get admin/agent details by ID. Response includes:\n- Personal information (name, email, phone)\n- Location details (address, city, country)\n- Account status (is_active)\n- **has_stripe_key** (boolean): Indicates if Stripe API key is configured\n\n**Security:** The actual stripe_secret_key value is never returned for security reasons. Only the has_stripe_key flag indicates its presence."
+            }
           },
           "response": []
         },
@@ -171,12 +165,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+60123456789\",\n  \"address\": \"123 Agent St\",\n  \"city\": \"Kuala Lumpur\",\n  \"country\": \"Malaysia\",\n  \"is_active\": true,\n  \"stripe_secret_key\": \"sk_test_xxxxxxxxxxxxx\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "// {\n//   \"department\": \"HR\"\n// }\n\n{\n    \"is_active\":true\n}"
             },
             "url": {
               "raw": "{{base_url}}/admins/1",
@@ -187,8 +176,7 @@
                 "admins",
                 "1"
               ]
-            },
-            "description": "Update admin/agent information. All fields are optional.\n\n**Fields:**\n- name, email, phone: Personal information\n- address, city, country: Location details\n- is_active (boolean): Account status\n- password: New password (if changing)\n- **stripe_secret_key**: Stripe API secret key for payment processing\n\n**Stripe Configuration:**\n- Set stripe_secret_key to configure agent's Stripe account\n- Must start with sk_test_ (test mode) or sk_live_ (live mode)\n- Set to null to remove existing key\n- Key is encrypted and never returned in responses\n- Response includes has_stripe_key flag\n\n**Business Model:**\nWhen configured, 100% of merchant payments go to agent's Stripe account. Platform costs are automatically deducted from agent's prepaid wallet."
+            }
           },
           "response": []
         },
@@ -238,7 +226,7 @@
                 }
               ]
             },
-            "description": "Get comprehensive admin dashboard analytics including:\n- Platform overview (merchants by type/status)\n- Merchant statistics (recent, top performers)\n- Revenue tracking (annual fees, credit sales, platform costs deducted)\n- Wallet statistics (prepaid balance, total earnings, spending)\n- Coupon performance platform-wide\n- WhatsApp usage and costs\n- Customer engagement metrics\n- Platform growth timeline\n\nDefault: Last 3 months"
+            "description": "Get comprehensive admin dashboard analytics including:\n- Platform overview (merchants by type/status)\n- Merchant statistics (recent, top performers)\n- Revenue tracking (annual fees, credit sales, platform costs deducted, paid ads commissions)\n- Wallet statistics (prepaid balance, total earnings from commissions, spending)\n- Coupon performance platform-wide\n- WhatsApp usage and costs\n- Customer engagement metrics\n- Platform growth timeline\n\n**Note:** total_earnings tracks commission income only (profit from merchant credit purchases and 100% revenue from paid ads sales). It does NOT include prepaid balance top-ups.\n\nDefault: Last 3 months"
           },
           "response": []
         }
@@ -617,7 +605,7 @@
                     "add-credits"
                   ]
                 },
-                "description": "Add credits to merchant wallet from a credit package. REQUIRED: package_id must be provided and package must exist. System verifies package compatibility with merchant type (temporary merchants cannot purchase WhatsApp BI packages).\n\n**Prepaid Wallet Model:**\nWhen merchant purchases credits, 100% payment goes to agent's Stripe account. Platform automatically deducts platform costs from agent's prepaid wallet based on package contents (WhatsApp UI, BI, coupons). Agent keeps the profit = merchant payment - platform cost.\n\n**Requires:** Agent must have sufficient prepaid wallet balance to cover platform costs."
+                "description": "Add credits to merchant wallet from a credit package. REQUIRED: package_id must be provided and package must exist. System verifies package compatibility with merchant type (temporary merchants cannot purchase WhatsApp BI packages).\n\n**Prepaid Wallet Model:**\nWhen merchant purchases credits, 100% payment goes to agent's Stripe account. Platform automatically deducts platform costs from agent's prepaid wallet based on package contents (WhatsApp UI, BI, coupons). Agent keeps the profit = merchant payment - platform cost.\n\n**Paid Ads Packages (Agent-Only):**\nFor paid ads packages, agents receive 100% of merchant payment as commission with NO platform cost deduction. This creates a commission transaction credited to the agent's total_earnings.\n\n**Requires:** Agent must have sufficient prepaid wallet balance to cover platform costs (except for paid ads which has no platform cost)."
               },
               "response": []
             },
@@ -705,6 +693,81 @@
                 "description": "Process admin annual subscription payment. Credits super admin wallet and extends admin subscription by 1 year."
               },
               "response": []
+            },
+            {
+              "name": "Process Admin Subscription with Initial Balance",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"walletBalance\": 1050,\n  \"metadata\": {\n    \"packageId\": \"topup_1000\",\n    \"packageName\": \"Standard Top-Up\",\n    \"baseAmount\": 1000,\n    \"bonusAmount\": 50,\n    \"subscriptionFee\": 1499,\n    \"totalPaid\": 2549,\n    \"stripeSessionId\": \"cs_test_xxxxxxxxxxxxx\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/wallets/admin/{{admin_id}}/subscribe-with-balance",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "admin",
+                    "{{admin_id}}",
+                    "subscribe-with-balance"
+                  ]
+                },
+                "description": "Process admin annual subscription payment AND top up prepaid wallet balance in a single transaction. This is used during agent onboarding when they purchase subscription + initial wallet balance together.\n\n**Request Body:**\n- `walletBalance` (number, required): Initial wallet balance amount (including bonus if any)\n- `metadata` (object, optional): Combined transaction details\n  - `packageId`: Top-up package identifier\n  - `packageName`: Top-up package name\n  - `baseAmount`: Base payment for wallet top-up\n  - `bonusAmount`: Platform bonus for wallet top-up\n  - `subscriptionFee`: Annual subscription fee (RM1499)\n  - `totalPaid`: Total amount paid (subscription + top-up)\n  - `stripeSessionId`: Stripe checkout session ID\n\n**What it does:**\n1. Activates admin annual subscription (extends by 1 year)\n2. Credits RM1499 to super_admin_wallet (subscription revenue)\n3. Credits specified wallet balance to admin wallet (prepaid balance)\n4. Creates commission transaction for combined payment\n5. Does NOT update total_earnings (balance top-up is not commission)\n\n**Common Packages:**\n- Subscription only: RM1499\n- Subscription + Starter (RM500): RM1999 total\n- Subscription + Standard (RM1000 + RM50 bonus): RM2549 total ⭐\n- Subscription + Business (RM2500 + RM150 bonus): RM4149 total"
+              },
+              "response": []
+            },
+            {
+              "name": "Validate Wallet Balance for Package Purchase",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/wallets/validate-balance?package_id={{credit_package_id}}&admin_id={{admin_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "validate-balance"
+                  ],
+                  "query": [
+                    {
+                      "key": "package_id",
+                      "value": "{{credit_package_id}}",
+                      "description": "Credit package ID to validate"
+                    },
+                    {
+                      "key": "admin_id",
+                      "value": "{{admin_id}}",
+                      "description": "Admin ID whose wallet to check"
+                    }
+                  ]
+                },
+                "description": "Validate if admin has sufficient prepaid wallet balance to cover platform costs for a credit package purchase. Used before merchant purchases credits to prevent insufficient balance errors.\n\n**Query Parameters:**\n- `package_id` (number, required): Credit package ID\n- `admin_id` (number, required): Admin/Agent ID\n\n**Response:**\n```json\n{\n  \"hasBalance\": true,\n  \"currentBalance\": 5000,\n  \"requiredBalance\": 299,\n  \"packageDetails\": {\n    \"name\": \"WhatsApp BI Package\",\n    \"credits\": 100,\n    \"creditType\": \"whatsapp bi message\",\n    \"platformCost\": 0.45\n  }\n}\n```\n\n**Note:** For paid ads packages, platform cost is 0, so validation always passes (agent receives 100% revenue)."
+              },
+              "response": []
             }
           ]
         },
@@ -734,7 +797,7 @@
                     }
                   ]
                 },
-                "description": "Get all available credit packages. Managed by super admin only."
+                "description": "Get all available credit packages. Super admins see coupon and WhatsApp packages only. Agents can filter their own paid ads packages using admin_id parameter."
               },
               "response": []
             },
@@ -846,7 +909,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Starter Package\",\n  \"description\": \"Perfect for small businesses\",\n  \"credits\": 100,\n  \"credit_type\": \"whatsapp bi message\",\n  \"price\": 50.00,\n  \"price_per_credit\": 0.50,\n  \"currency\": \"USD\",\n  \"merchant_type\": \"annual\",\n  \"is_active\": true,\n  \"sort_order\": 1,\n  \"bonus_credits\": 0\n}"
+                  "raw": "{\n  \"name\": \"Starter Package\",\n  \"description\": \"Perfect for small businesses\",\n  \"credits\": 100,\n  \"credit_type\": \"whatsapp bi message\",\n  \"price\": 50.00,\n  \"price_per_credit\": 0.50,\n  \"currency\": \"USD\",\n  \"merchant_type\": \"annual\",\n  \"is_active\": true,\n  \"sort_order\": 1,\n  \"bonus_credits\": 0\n}\n\n// Super Admin can create: coupon, whatsapp ui message, whatsapp bi message\n// Agents CANNOT use this - see 'Create Paid Ads Package (Agent Only)' below"
                 },
                 "url": {
                   "raw": "{{base_url}}/wallets/credit-packages",
@@ -858,7 +921,56 @@
                     "credit-packages"
                   ]
                 },
-                "description": "Create a new credit package (Super Admin only). No longer requires admin_id."
+                "description": "Create a new credit package (Super Admin only). Super admins can create packages for: coupon, whatsapp ui message, whatsapp bi message. Paid ads packages are managed exclusively by agents. Backend validates credit_type and user role."
+              },
+              "response": []
+            },
+            {
+              "name": "Create Paid Ads Package (Agent Only)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.collectionVariables.set('credit_package_id', jsonData.data.id);",
+                      "    console.log('Paid Ads Package ID saved:', jsonData.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Premium Ads Bundle\",\n  \"description\": \"High-impact advertising credits for your business\",\n  \"credits\": 500,\n  \"credit_type\": \"paid ads\",\n  \"price\": 250.00,\n  \"price_per_credit\": 0.50,\n  \"currency\": \"USD\",\n  \"merchant_type\": \"annual\",\n  \"is_active\": true,\n  \"sort_order\": 1,\n  \"bonus_credits\": 0\n}\n\n// Agent receives 100% revenue from paid ads sales (no platform cost)\n// Must be logged in as Agent (admin role)\n// Super admins CANNOT create paid ads packages"
+                },
+                "url": {
+                  "raw": "{{base_url}}/wallets/credit-packages",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "wallets",
+                    "credit-packages"
+                  ]
+                },
+                "description": "Create a paid ads credit package (Agent only). Only agents can create packages with credit_type='paid ads'. When merchants purchase paid ads credits, the agent receives 100% of the revenue as commission (no platform cost deduction). Backend automatically validates the user role and credit type."
               },
               "response": []
             },
@@ -891,7 +1003,7 @@
                     "{{credit_package_id}}"
                   ]
                 },
-                "description": "Update an existing credit package (Super Admin only). No longer requires admin_id."
+                "description": "Update an existing credit package. Super admins can update coupon and WhatsApp packages. Agents can only update their paid ads packages. Backend validates permissions based on credit_type and user role."
               },
               "response": []
             },
@@ -916,7 +1028,7 @@
                     "{{credit_package_id}}"
                   ]
                 },
-                "description": "Delete a credit package (Super Admin only). Performs soft delete. No longer requires admin_id."
+                "description": "Delete a credit package. Super admins can delete coupon and WhatsApp packages. Agents can only delete their paid ads packages. Performs soft delete. Backend validates permissions based on credit_type and user role."
               },
               "response": []
             }
@@ -966,7 +1078,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"admin_annual_subscription_fee\": 1499.00,\n  \"merchant_annual_fee\": 1499.00,\n  \"merchant_annual_platform_cost\": 299.00,\n  \"whatsapp_bi_platform_cost\": 0.45,\n  \"whatsapp_ui_annual_platform_cost\": 0.12,\n  \"whatsapp_ui_temporary_platform_cost\": 0.12,\n  \"coupon_annual_platform_cost\": 0.05,\n  \"coupon_temporary_platform_cost\": 0.05,\n  \"currency\": \"MYR\"\n}",
+              "raw": "{\n  \"admin_annual_subscription_fee\": 1200.00,\n  \"merchant_annual_fee\": 1000.00,\n  \"merchant_annual_platform_cost\": 300.00,\n  \"whatsapp_bi_platform_cost\": 0.40,\n  \"whatsapp_ui_annual_platform_cost\": 0.30,\n  \"whatsapp_ui_temporary_platform_cost\": 0.20,\n  \"coupon_annual_platform_cost\": 0.10,\n  \"coupon_temporary_platform_cost\": 0.20,\n  \"currency\": \"USD\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3637,7 +3749,7 @@
                 }
               ]
             },
-            "description": "Get comprehensive platform analytics for super admin including:\n- Admin stats (total, active, inactive)\n- Merchant stats (total, active, inactive, annual, temporary)\n- Customer stats\n- Feedback submissions\n- Coupon stats (issued, redeemed, expired, active)\n- Revenue totals (platform costs collected, annual fees, credit purchases)\n- Monthly revenue breakdown\n- Merchant and customer growth\n- Top 10 merchants by coupons redeemed\n\n**Prepaid Wallet Model:** Revenue includes platform costs automatically deducted from agent wallets when merchants make purchases.\n\nAll metrics support date filtering via startDate and endDate query parameters."
+            "description": "Get comprehensive platform analytics for super admin including:\n- Admin stats (total, active, inactive)\n- Merchant stats (total, active, inactive, annual, temporary)\n- Customer stats\n- Feedback submissions\n- Coupon stats (issued, redeemed, expired, active)\n- Revenue totals (platform costs collected from coupon & WhatsApp packages, agent annual fees)\n- Monthly revenue breakdown\n- Merchant and customer growth\n- Top 10 merchants by coupons redeemed\n\n**Prepaid Wallet Model:** Revenue shows only platform earnings from super_admin_wallet transactions. This includes platform costs deducted from agents for coupon and WhatsApp packages. Paid ads revenue (which goes 100% to agents) is NOT included in super admin revenue.\n\nAll metrics support date filtering via startDate and endDate query parameters."
           },
           "response": []
         },
@@ -4568,10 +4680,10 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "// {\n//   \"year\": 2026,\n//   \"month\": 2,\n//   \"owner_type\": \"merchant\",\n//   \"owner_id\": {{merchant_id}}\n// }"
+                  "raw": "{\n  \"year\": 2026,\n  \"month\": 2\n//   \"owner_type\": \"merchant\",\n//   \"owner_id\": {{merchant_id}}\n}"
                 },
                 "url": {
-                  "raw": "{{base_url}}/monthly-statements/generate?year=2026&month=1",
+                  "raw": "{{base_url}}/monthly-statements/generate?year=2026&month=2",
                   "host": [
                     "{{base_url}}"
                   ],
@@ -4586,7 +4698,7 @@
                     },
                     {
                       "key": "month",
-                      "value": "1"
+                      "value": "2"
                     }
                   ]
                 },
