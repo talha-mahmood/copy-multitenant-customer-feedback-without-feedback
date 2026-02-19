@@ -6,11 +6,12 @@ import { adminProviders } from './admin.provider';
 import { WalletModule } from '../wallets/wallet.module';
 import { SystemLogModule } from '../system-logs/system-log.module';
 import { ApprovalModule } from '../approvals/approval.module';
+import { EncryptionHelper } from 'src/common/helpers/encryption-helper';
 
 @Module({
   imports: [DatabaseModule, WalletModule, SystemLogModule, ApprovalModule],
   controllers: [AdminController],
-  providers: [AdminService, ...adminProviders],
+  providers: [AdminService, ...adminProviders, EncryptionHelper],
   exports: [AdminService, 'ADMIN_REPOSITORY'],
 })
 export class AdminModule { }
