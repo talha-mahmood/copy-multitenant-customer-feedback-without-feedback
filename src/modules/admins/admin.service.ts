@@ -12,6 +12,7 @@ import { WalletService } from '../wallets/wallet.service';
 import { SystemLogService } from '../system-logs/system-log.service';
 import { SystemLogAction, SystemLogCategory, SystemLogLevel } from 'src/common/enums/system-log.enum';
 import { ApprovalService } from '../approvals/approval.service';
+import { EncryptionHelper } from 'src/common/helpers/encryption-helper';
 
 @Injectable()
 export class AdminService {
@@ -23,6 +24,7 @@ export class AdminService {
     private walletService: WalletService,
     private systemLogService: SystemLogService,
     private approvalService: ApprovalService,
+    private encryptionHelper: EncryptionHelper,
   ) { }
 
   async create(createAdminDto: CreateAdminDto) {
@@ -61,12 +63,22 @@ export class AdminService {
       await queryRunner.manager.save(userHasRole);
 
       // Create admin with user_id and address
+      // Encrypt stripe_secret_key if provided
+      let encryptedStripeKey: string | undefined = undefined;
+      if (createAdminDto.stripe_secret_key && createAdminDto.stripe_secret_key.trim()) {
+        try {
+          encryptedStripeKey = this.encryptionHelper.encrypt(createAdminDto.stripe_secret_key);
+        } catch (error) {
+          throw new HttpException('Failed to encrypt Stripe key', 500);
+        }
+      }
+
       const admin = queryRunner.manager.create(Admin, {
         user_id: savedUser.id,
         address: createAdminDto.address,
         city: createAdminDto.city,
         country: createAdminDto.country,
-        stripe_secret_key: createAdminDto.stripe_secret_key,
+        stripe_secret_key: encryptedStripeKey,
       });
       const savedAdmin = await queryRunner.manager.save(admin);
 
@@ -225,7 +237,20 @@ export class AdminService {
       if (updateAdminDto.address !== undefined) adminUpdateData.address = updateAdminDto.address;
       if (updateAdminDto.city !== undefined) adminUpdateData.city = updateAdminDto.city;
       if (updateAdminDto.country !== undefined) adminUpdateData.country = updateAdminDto.country;
-      if (updateAdminDto.stripe_secret_key !== undefined) adminUpdateData.stripe_secret_key = updateAdminDto.stripe_secret_key;
+      
+      // Encrypt stripe_secret_key if provided
+      if (updateAdminDto.stripe_secret_key !== undefined) {
+        if (updateAdminDto.stripe_secret_key && updateAdminDto.stripe_secret_key.trim()) {
+          try {
+            adminUpdateData.stripe_secret_key = this.encryptionHelper.encrypt(updateAdminDto.stripe_secret_key);
+          } catch (error) {
+            throw new HttpException('Failed to encrypt Stripe key', 500);
+          }
+        } else {
+          // If empty string provided, clear the key
+          adminUpdateData.stripe_secret_key = null;
+        }
+      }
 
       if (Object.keys(adminUpdateData).length > 0) {
         await queryRunner.manager.update(Admin, id, adminUpdateData);
@@ -302,6 +327,34 @@ export class AdminService {
     return {
       message: 'Admin deleted successfully',
     };
+  }
+
+  /**
+   * Get decrypted Stripe secret key for agent
+   * WARNING: This method is for INTERNAL USE ONLY (service-to-service)
+   * NEVER expose this through a public API endpoint
+   * @param adminId - The agent/admin ID
+   * @returns Decrypted Stripe secret key or null
+   */
+  async getDecryptedStripeKey(adminId: number): Promise<string | null> {
+    const admin = await this.adminRepository.findOne({
+      where: { id: adminId },
+    });
+
+    if (!admin) {
+      throw new HttpException('Admin not found', 404);
+    }
+
+    if (!admin.stripe_secret_key) {
+      return null;
+    }
+
+    try {
+      return this.encryptionHelper.decrypt(admin.stripe_secret_key);
+    } catch (error) {
+      console.error(`Failed to decrypt Stripe key for admin ${adminId}:`, error.message);
+      throw new HttpException('Failed to decrypt Stripe key', 500);
+    }
   }
 
   async getDashboardAnalytics(adminId: number, startDate?: string, endDate?: string) {
