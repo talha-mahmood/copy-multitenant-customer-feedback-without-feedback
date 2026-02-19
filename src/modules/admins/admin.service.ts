@@ -30,6 +30,37 @@ export class AdminService {
     private stripeService: StripeService,
   ) { }
 
+  /**
+   * Mask Stripe secret key for display purposes
+   * Shows prefix (sk_test_ or sk_live_) and last 4 characters
+   * Example: sk_test_51ABC...XYZ123 -> sk_test_...XYZ123
+   */
+  private getMaskedStripeKey(encryptedKey: string): string | null {
+    if (!encryptedKey) {
+      return null;
+    }
+
+    try {
+      const decryptedKey = this.encryptionHelper.decrypt(encryptedKey);
+      
+      if (!decryptedKey || decryptedKey.length < 12) {
+        return null;
+      }
+
+      // Extract prefix (sk_test_ or sk_live_)
+      const prefix = decryptedKey.startsWith('sk_test_') ? 'sk_test_' : 
+                     decryptedKey.startsWith('sk_live_') ? 'sk_live_' : 'sk_';
+      
+      // Get last 4 characters
+      const lastFour = decryptedKey.slice(-4);
+      
+      return `${prefix}...${lastFour}`;
+    } catch (error) {
+      console.error('Failed to mask Stripe key:', error.message);
+      return null;
+    }
+  }
+
   async create(createAdminDto: CreateAdminDto) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -113,6 +144,10 @@ export class AdminService {
         relations: ['user'],
       });
 
+      if (!adminWithUser) {
+        throw new HttpException('Failed to load created admin', 500);
+      }
+
       // Log agent (admin) creation
       await this.systemLogService.log({
         category: SystemLogCategory.ADMIN,
@@ -132,9 +167,18 @@ export class AdminService {
         },
       });
 
+      // Add masked stripe key to response
+      const hasStripeKey = !!adminWithUser.stripe_secret_key;
+      const maskedKey = adminWithUser.stripe_secret_key ? this.getMaskedStripeKey(adminWithUser.stripe_secret_key) : null;
+      const plainAdmin = instanceToPlain(adminWithUser);
+
       return {
         message: 'Admin created successfully',
-        data: instanceToPlain(adminWithUser),
+        data: {
+          ...plainAdmin,
+          has_stripe_key: hasStripeKey,
+          stripe_key_masked: maskedKey,
+        },
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -202,6 +246,7 @@ export class AdminService {
     
     // Add flag to indicate if stripe key exists (before transforming to plain)
     const hasStripeKey = !!admin.stripe_secret_key;
+    const maskedKey = admin.stripe_secret_key ? this.getMaskedStripeKey(admin.stripe_secret_key) : null;
     const plainAdmin = instanceToPlain(admin);
     
     return {
@@ -209,6 +254,7 @@ export class AdminService {
       data: {
         ...plainAdmin,
         has_stripe_key: hasStripeKey,
+        stripe_key_masked: maskedKey,
       },
     };
   }
@@ -305,6 +351,7 @@ export class AdminService {
 
       // Add flag to indicate if stripe key exists
       const hasStripeKey = !!updatedAdmin.stripe_secret_key;
+      const maskedKey = updatedAdmin.stripe_secret_key ? this.getMaskedStripeKey(updatedAdmin.stripe_secret_key) : null;
       const plainAdmin = instanceToPlain(updatedAdmin);
 
       return {
@@ -312,6 +359,7 @@ export class AdminService {
         data: {
           ...plainAdmin,
           has_stripe_key: hasStripeKey,
+          stripe_key_masked: maskedKey,
         },
       };
     } catch (error) {
