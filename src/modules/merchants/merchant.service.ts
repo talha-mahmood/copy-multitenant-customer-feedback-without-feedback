@@ -67,7 +67,7 @@ export class MerchantService {
         name: createMerchantDto.name,
         email: createMerchantDto.email,
         password: hashedPassword,
-        phone: '', // Optional, can be added to DTO if needed
+        phone: createMerchantDto.phone || '',
         avatar: '',
         is_active: createMerchantDto.is_active !== undefined ? createMerchantDto.is_active : true,
       });
@@ -352,6 +352,7 @@ export class MerchantService {
       const userUpdateData: any = {};
       if (updateMerchantDto.name !== undefined) userUpdateData.name = updateMerchantDto.name;
       if (updateMerchantDto.email !== undefined) userUpdateData.email = updateMerchantDto.email;
+      if (updateMerchantDto.phone !== undefined) userUpdateData.phone = updateMerchantDto.phone;
       if (updateMerchantDto.is_active !== undefined) userUpdateData.is_active = updateMerchantDto.is_active;
       
       if (updateMerchantDto.password) {
