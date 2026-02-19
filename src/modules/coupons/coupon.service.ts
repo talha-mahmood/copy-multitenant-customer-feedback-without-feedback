@@ -149,7 +149,9 @@ export class CouponService {
       .createQueryBuilder('merchant')
       .leftJoinAndSelect('merchant.batches', 'batch', 'batch.is_active = :isActive', { isActive: true })
       .leftJoinAndSelect('batch.template', 'template')
-      .leftJoinAndSelect('merchant.user', 'user');
+      .leftJoinAndSelect('merchant.user', 'user')
+      .leftJoinAndSelect('merchant.admin', 'admin')
+      .leftJoinAndSelect('admin.user', 'adminUser');
 
     if (businessType) {
       queryBuilder.andWhere('merchant.business_type ILIKE :businessType', { businessType: `%${businessType}%` });
@@ -178,7 +180,7 @@ export class CouponService {
     // Global search across multiple fields
     if (search) {
       queryBuilder.andWhere(
-        '(merchant.business_name ILIKE :search OR merchant.business_type ILIKE :search OR merchant.city ILIKE :search OR merchant.country ILIKE :search)',
+        '(merchant.business_name ILIKE :search OR merchant.business_type ILIKE :search OR merchant.city ILIKE :search OR merchant.country ILIKE :search OR user.name ILIKE :search OR adminUser.name ILIKE :search)',
         { search: `%${search}%` }
       );
     }
@@ -303,7 +305,7 @@ export class CouponService {
     // Global search across multiple fields
     if (search) {
       queryBuilder.andWhere(
-        '(merchant.business_name ILIKE :search OR merchant.business_type ILIKE :search OR admin.city ILIKE :search OR admin.country ILIKE :search)',
+        '(merchant.business_name ILIKE :search OR merchant.business_type ILIKE :search OR admin.city ILIKE :search OR admin.country ILIKE :search OR user.name ILIKE :search OR merchantUser.name ILIKE :search)',
         { search: `%${search}%` }
       );
     } 
