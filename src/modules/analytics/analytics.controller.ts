@@ -2,6 +2,7 @@ import { Controller, Post, Get, Body, Param, ParseIntPipe, Query } from '@nestjs
 import { AnalyticsService } from './analytics.service';
 import { TrackImpressionDto } from './dto/track-impression.dto';
 import { TrackClickDto } from './dto/track-click.dto';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('analytics')
 export class AnalyticsController {
@@ -11,6 +12,7 @@ export class AnalyticsController {
    * POST /analytics/track-impression
    * Track an impression for a paid ad
    */
+  @Public()
   @Post('track-impression')
   trackImpression(@Body() trackImpressionDto: TrackImpressionDto) {
     return this.analyticsService.trackImpression(trackImpressionDto);
@@ -20,6 +22,7 @@ export class AnalyticsController {
    * POST /analytics/track-click
    * Track a click for a paid ad
    */
+  @Public()
   @Post('track-click')
   trackClick(@Body() trackClickDto: TrackClickDto) {
     return this.analyticsService.trackClick(trackClickDto);
