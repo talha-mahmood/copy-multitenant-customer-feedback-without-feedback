@@ -220,6 +220,20 @@ export class ApprovalController {
         return this.approvalService.getAvailableHomepageSlots();
     }
 
+    // ============ PHASE 4: HOMEPAGE DISPLAY ENDPOINTS ============
+
+    @Get('homepage-coupons')
+    @Public()
+    getActiveHomepageCoupons() {
+        return this.approvalService.getActiveHomepageCoupons();
+    }
+
+    @Get('homepage-ads')
+    @Public()
+    getActiveHomepageAds() {
+        return this.approvalService.getActiveHomepageAds();
+    }
+
     // ...existing code...
 
     @Delete(':id')

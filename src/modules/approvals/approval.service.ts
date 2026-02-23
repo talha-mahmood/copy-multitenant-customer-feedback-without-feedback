@@ -744,4 +744,42 @@ export class ApprovalService {
             throw new BadRequestException('No available ad slots');
         }
     }
+
+    // ============ PHASE 4: HOMEPAGE DISPLAY ENDPOINTS ============
+
+    /**
+     * Get all active homepage coupons for public display
+     * Status: payment_completed_active AND not expired
+     */
+    async getActiveHomepageCoupons(): Promise<Approval[]> {
+        return this.approvalRepository.find({
+            where: {
+                approval_type: 'homepage_coupon_push',
+                approval_status: 'payment_completed_active',
+                ad_expired_at: MoreThan(new Date()),
+            },
+            relations: ['merchant', 'coupon'],
+            order: {
+                placement: 'ASC',
+            },
+        });
+    }
+
+    /**
+     * Get all active homepage ads for public display
+     * Status: payment_completed_active AND not expired
+     */
+    async getActiveHomepageAds(): Promise<Approval[]> {
+        return this.approvalRepository.find({
+            where: {
+                approval_type: 'homepage_ad_push',
+                approval_status: 'payment_completed_active',
+                ad_expired_at: MoreThan(new Date()),
+            },
+            relations: ['merchant'],
+            order: {
+                placement: 'ASC',
+            },
+        });
+    }
 }

@@ -1,7 +1,7 @@
 {
   "info": {
-    "_postman_id": "2066c93d-f311-4fdb-a0ff-0efe87c8dd93",
-    "name": "56QR Review & Coupon SaaS API - With Credits Ledger",
+    "_postman_id": "d0a80881-6d0e-44c3-851e-e0b98eede42f",
+    "name": "58QR Review & Coupon SaaS API - With Homepage Push",
     "description": "Complete API collection including wallet system, automated campaigns, Credits Ledger (bank-style accounting), Monthly PDF Statements, and Agent-Managed Paid Ads Packages. Version 54 introduces role-based credit package management: Super admins manage coupon and WhatsApp packages, while agents exclusively manage paid ads packages (100% revenue to agents).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "22622973"
@@ -1170,7 +1170,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"batch_name\": \"Winter Sale 2029\",\n  \"batch_type\": \"annual\",\n  \"total_quantity\": 20,\n  \"start_date\": \"2026-01-01\",\n  \"end_date\": \"2026-02-09\",\n  \"is_active\": true,\n//   \"whatsapp_enabled\": false,\n//   \"lucky_draw_enabled\": false,\n  \"template_id\": 2,\n  \"header\": \"Special Offer\",\n  \"title\": \"50% Off\",\n  \"description\": \"Use this coupon to get 50% off your next purchase.\",\n  \"ishalal\": true,\n  \"brand_image\":\"bac\"\n\n}"
+              "raw": "{\n  \"merchant_id\": {{merchant_id}},\n  \"batch_name\": \"Winter Sale 2029\",\n  \"batch_type\": \"temporary\",\n  \"total_quantity\": 2,\n  \"start_date\": \"2026-01-01\",\n  \"end_date\": \"2026-04-09\",\n  \"is_active\": true,\n//   \"whatsapp_enabled\": false,\n//   \"lucky_draw_enabled\": false,\n  \"template_id\": 2,\n  \"header\": \"Special Offer\",\n  \"title\": \"50% Off\",\n  \"description\": \"Use this coupon to get 50% off your next purchase.\",\n  \"ishalal\": true,\n  \"brand_image\":\"bac\"\n\n}"
             },
             "url": {
               "raw": "{{base_url}}/coupon-batches",
@@ -5498,6 +5498,720 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Homepage Push Approvals",
+      "item": [
+        {
+          "name": "Create Homepage Coupon Push Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.id) {",
+                  "        pm.collectionVariables.set('homepage_approval_id', jsonData.id);",
+                  "        console.log('Homepage Approval ID saved:', jsonData.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{merchant_jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"coupon_id\": {{coupon_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/approvals/homepage-coupon-push",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "homepage-coupon-push"
+              ]
+            },
+            "description": "Merchant creates a request to push their coupon to super admin homepage. Requires merchant authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Homepage Ad Push Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.id) {",
+                  "        pm.collectionVariables.set('homepage_approval_id', jsonData.id);",
+                  "        console.log('Homepage Approval ID saved:', jsonData.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{merchant_jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ad_type\": \"banner\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/approvals/homepage-ad-push",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "homepage-ad-push"
+              ]
+            },
+            "description": "Merchant creates a request to push their ad to super admin homepage. Requires merchant authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Agent Pending Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/approvals/agent-pending",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "agent-pending"
+              ]
+            },
+            "description": "Agent views all pending homepage push requests from their merchants."
+          },
+          "response": []
+        },
+        {
+          "name": "Forward Request to Super Admin",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/approvals/{{homepage_approval_id}}/forward-to-superadmin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "{{homepage_approval_id}}",
+                "forward-to-superadmin"
+              ]
+            },
+            "description": "Agent forwards the request to super admin for final approval."
+          },
+          "response": []
+        },
+        {
+          "name": "Disapprove Request by Agent",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Content does not meet quality standards\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/approvals/{{homepage_approval_id}}/disapprove-by-agent",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "{{homepage_approval_id}}",
+                "disapprove-by-agent"
+              ]
+            },
+            "description": "Agent disapproves the homepage push request with a reason."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Super Admin Forwarded Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/approvals/superadmin-forwarded",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "superadmin-forwarded"
+              ]
+            },
+            "description": "Super admin views all requests forwarded by agents."
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Request by Super Admin",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/approvals/{{homepage_approval_id}}/approve-by-superadmin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "{{homepage_approval_id}}",
+                "approve-by-superadmin"
+              ]
+            },
+            "description": "Super admin approves the request. Sets status to approved_pending_payment."
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Request by Super Admin",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"No available slots at this time\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/approvals/{{homepage_approval_id}}/reject-by-superadmin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "{{homepage_approval_id}}",
+                "reject-by-superadmin"
+              ]
+            },
+            "description": "Super admin rejects the request with a reason."
+          },
+          "response": []
+        },
+        {
+          "name": "Process Homepage Placement Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{merchant_jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_intent_id\": \"pi_1234567890abcdef\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/approvals/{{homepage_approval_id}}/process-payment",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "{{homepage_approval_id}}",
+                "process-payment"
+              ]
+            },
+            "description": "Process payment after super admin approval. Deducts from agent wallet and assigns slot."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Available Homepage Slots",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/approvals/available-homepage-slots",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "available-homepage-slots"
+              ]
+            },
+            "description": "Public endpoint to check available slots for coupons and ads on homepage."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Homepage Coupons",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/approvals/homepage-coupons",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "homepage-coupons"
+              ]
+            },
+            "description": "Public endpoint to get all active homepage coupons for display."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Homepage Ads",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/approvals/homepage-ads",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "homepage-ads"
+              ]
+            },
+            "description": "Public endpoint to get all active homepage ads for display."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Homepage Push Approvals",
+      "item": [
+        {
+          "name": "Create Homepage Coupon Push Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.id) {",
+                  "        pm.collectionVariables.set('homepage_approval_id', jsonData.id);",
+                  "        console.log('Homepage Approval ID saved:', jsonData.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{merchant_jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"coupon_id\": {{coupon_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/approvals/homepage-coupon-push",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "homepage-coupon-push"
+              ]
+            },
+            "description": "Merchant creates a request to push their coupon to super admin homepage. Requires merchant authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Homepage Ad Push Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.id) {",
+                  "        pm.collectionVariables.set('homepage_approval_id', jsonData.id);",
+                  "        console.log('Homepage Approval ID saved:', jsonData.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{merchant_jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ad_type\": \"banner\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/approvals/homepage-ad-push",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "homepage-ad-push"
+              ]
+            },
+            "description": "Merchant creates a request to push their ad to super admin homepage. Requires merchant authentication."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Agent Pending Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/approvals/agent-pending",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "agent-pending"
+              ]
+            },
+            "description": "Agent views all pending homepage push requests from their merchants."
+          },
+          "response": []
+        },
+        {
+          "name": "Forward Request to Super Admin",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/approvals/{{homepage_approval_id}}/forward-to-superadmin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "{{homepage_approval_id}}",
+                "forward-to-superadmin"
+              ]
+            },
+            "description": "Agent forwards the request to super admin for final approval."
+          },
+          "response": []
+        },
+        {
+          "name": "Disapprove Request by Agent",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Content does not meet quality standards\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/approvals/{{homepage_approval_id}}/disapprove-by-agent",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "{{homepage_approval_id}}",
+                "disapprove-by-agent"
+              ]
+            },
+            "description": "Agent disapproves the homepage push request with a reason."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Super Admin Forwarded Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/approvals/superadmin-forwarded",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "superadmin-forwarded"
+              ]
+            },
+            "description": "Super admin views all requests forwarded by agents."
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Request by Super Admin",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/approvals/{{homepage_approval_id}}/approve-by-superadmin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "{{homepage_approval_id}}",
+                "approve-by-superadmin"
+              ]
+            },
+            "description": "Super admin approves the request. Sets status to approved_pending_payment."
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Request by Super Admin",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{superadmin_jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"No available slots at this time\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/approvals/{{homepage_approval_id}}/reject-by-superadmin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "{{homepage_approval_id}}",
+                "reject-by-superadmin"
+              ]
+            },
+            "description": "Super admin rejects the request with a reason."
+          },
+          "response": []
+        },
+        {
+          "name": "Process Homepage Placement Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{merchant_jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_intent_id\": \"pi_1234567890abcdef\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/approvals/{{homepage_approval_id}}/process-payment",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "{{homepage_approval_id}}",
+                "process-payment"
+              ]
+            },
+            "description": "Process payment after super admin approval. Deducts from agent wallet and assigns slot."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Available Homepage Slots",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/approvals/available-homepage-slots",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "available-homepage-slots"
+              ]
+            },
+            "description": "Public endpoint to check available slots for coupons and ads on homepage."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Homepage Coupons",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/approvals/homepage-coupons",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "homepage-coupons"
+              ]
+            },
+            "description": "Public endpoint to get all active homepage coupons for display."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Homepage Ads",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/approvals/homepage-ads",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "approvals",
+                "homepage-ads"
+              ]
+            },
+            "description": "Public endpoint to get all active homepage ads for display."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "auth": {
@@ -5580,6 +6294,11 @@
     },
     {
       "key": "statement_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "homepage_approval_id",
       "value": "",
       "type": "string"
     }
