@@ -2,6 +2,7 @@ import { Column, Entity, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from 'src/common/entities/base.entity';
 import { Merchant } from 'src/modules/merchants/entities/merchant.entity';
 import { Admin } from 'src/modules/admins/entities/admin.entity';
+import { Coupon } from 'src/modules/coupons/entities/coupon.entity';
 
 @Entity('approvals')
 export class Approval extends BaseEntity {
@@ -45,4 +46,27 @@ export class Approval extends BaseEntity {
 
     @Column({ name: 'placement', type: 'varchar', length: 50, nullable: true })
     placement: string;
+
+    // Homepage push request fields
+    @Column({ name: 'coupon_id', nullable: true })
+    coupon_id: number;
+
+    @ManyToOne(() => Coupon, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'coupon_id' })
+    coupon: Coupon;
+
+    @Column({ name: 'forwarded_by_agent', type: 'boolean', default: false })
+    forwarded_by_agent: boolean;
+
+    @Column({ name: 'payment_status', type: 'varchar', length: 20, default: 'pending' })
+    payment_status: string; // 'pending', 'paid', 'refunded'
+
+    @Column({ name: 'payment_amount', type: 'decimal', precision: 10, scale: 2, nullable: true })
+    payment_amount: number;
+
+    @Column({ name: 'payment_intent_id', type: 'varchar', length: 255, nullable: true })
+    payment_intent_id: string;
+
+    @Column({ name: 'disapproval_reason', type: 'text', nullable: true })
+    disapproval_reason: string;
 }

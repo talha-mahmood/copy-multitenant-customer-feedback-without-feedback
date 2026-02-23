@@ -362,4 +362,124 @@ export class ApprovalService {
             // We don't throw here to avoid rolling back the main approval status change
         }
     }
+
+    // ============ HOMEPAGE PUSH METHODS (Phase 2) ============
+
+    async createHomepageCouponRequest(merchantId: number, couponId: number): Promise<Approval> {
+        // Verify merchant exists
+        const merchant = await this.merchantRepository.findOne({ where: { id: merchantId } });
+        if (!merchant) {
+            throw new NotFoundException(`Merchant with ID ${merchantId} not found`);
+        }
+
+        // Create approval request
+        const approval = this.approvalRepository.create({
+            merchant_id: merchantId,
+            agent_id: merchant.admin_id,
+            approval_type: 'homepage_coupon_push',
+            approval_owner: 'super_admin',
+            request_from: 'merchant',
+            approval_status: 'pending_agent_review',
+            coupon_id: couponId,
+            forwarded_by_agent: false,
+            payment_status: 'pending',
+        });
+
+        return await this.approvalRepository.save(approval);
+    }
+
+    async createHomepageAdRequest(merchantId: number, adType?: string): Promise<Approval> {
+        // Verify merchant exists
+        const merchant = await this.merchantRepository.findOne({ where: { id: merchantId } });
+        if (!merchant) {
+            throw new NotFoundException(`Merchant with ID ${merchantId} not found`);
+        }
+
+        // Create approval request
+        const approval = this.approvalRepository.create({
+            merchant_id: merchantId,
+            agent_id: merchant.admin_id,
+            approval_type: 'homepage_ad_push',
+            approval_owner: 'super_admin',
+            request_from: 'merchant',
+            approval_status: 'pending_agent_review',
+            ad_type: adType || 'image',
+            forwarded_by_agent: false,
+            payment_status: 'pending',
+        });
+
+        return await this.approvalRepository.save(approval);
+    }
+
+    async forwardToSuperAdmin(approvalId: number, agentId: number): Promise<Approval> {
+        const approval = await this.findOne(approvalId);
+
+        // Verify approval is pending agent review
+        if (approval.approval_status !== 'pending_agent_review') {
+            throw new BadRequestException('Only pending requests can be forwarded');
+        }
+
+        // Verify agent owns this merchant
+        if (approval.agent_id !== agentId) {
+            throw new BadRequestException('You can only forward requests from your own merchants');
+        }
+
+        // Update approval
+        approval.approval_status = 'forwarded_to_superadmin';
+        approval.forwarded_by_agent = true;
+
+        await this.approvalRepository.update(approvalId, {
+            approval_status: 'forwarded_to_superadmin',
+            forwarded_by_agent: true,
+        });
+
+        return await this.findOne(approvalId);
+    }
+
+    async disapproveByAgent(approvalId: number, agentId: number, reason: string): Promise<Approval> {
+        const approval = await this.findOne(approvalId);
+
+        // Verify approval is pending agent review
+        if (approval.approval_status !== 'pending_agent_review') {
+            throw new BadRequestException('Only pending requests can be disapproved');
+        }
+
+        // Verify agent owns this merchant
+        if (approval.agent_id !== agentId) {
+            throw new BadRequestException('You can only disapprove requests from your own merchants');
+        }
+
+        // Update approval
+        approval.approval_status = 'disapproved_by_agent';
+        approval.disapproval_reason = reason;
+
+        await this.approvalRepository.update(approvalId, {
+            approval_status: 'disapproved_by_agent',
+            disapproval_reason: reason,
+        });
+
+        return await this.findOne(approvalId);
+    }
+
+    async getPendingRequestsForAgent(agentId: number): Promise<Approval[]> {
+        return await this.approvalRepository.find({
+            where: {
+                agent_id: agentId,
+                approval_status: 'pending_agent_review',
+            },
+            relations: ['merchant', 'merchant.settings', 'coupon'],
+            order: { created_at: 'DESC' },
+        });
+    }
+
+    async getForwardedRequestsForSuperAdmin(): Promise<Approval[]> {
+        return await this.approvalRepository.find({
+            where: {
+                approval_status: 'forwarded_to_superadmin',
+                forwarded_by_agent: true,
+            },
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon'],
+            order: { updated_at: 'DESC' },
+        });
+    }
 }
