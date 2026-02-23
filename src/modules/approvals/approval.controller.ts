@@ -187,6 +187,39 @@ export class ApprovalController {
         return this.approvalService.getForwardedRequestsForSuperAdmin();
     }
 
+    // ============ PHASE 3: SUPER ADMIN APPROVAL & PAYMENT ============
+
+    @Patch(':id/approve-by-superadmin')
+    approveBySuperAdmin(@Param('id', ParseIntPipe) id: number) {
+        return this.approvalService.approveBySuperAdmin(id);
+    }
+
+    @Patch(':id/reject-by-superadmin')
+    rejectBySuperAdmin(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() dto: DisapproveApprovalDto,
+    ) {
+        return this.approvalService.rejectBySuperAdmin(id, dto.reason);
+    }
+
+    @Post(':id/process-payment')
+    processHomepagePlacementPayment(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: { payment_intent_id: string },
+        @CurrentUser() user: User,
+    ) {
+        if (!user.merchantId) {
+            throw new UnauthorizedException('Merchant ID not found in token');
+        }
+        return this.approvalService.processHomepagePlacementPayment(id, body.payment_intent_id);
+    }
+
+    @Get('available-homepage-slots')
+    @Public()
+    getAvailableHomepageSlots() {
+        return this.approvalService.getAvailableHomepageSlots();
+    }
+
     // ...existing code...
 
     @Delete(':id')
