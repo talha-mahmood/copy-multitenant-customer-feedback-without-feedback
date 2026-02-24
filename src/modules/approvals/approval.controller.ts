@@ -60,20 +60,6 @@ export class ApprovalController {
         return this.approvalService.findByAdmin(adminId);
     }
 
-    @Get(':id')
-    findOne(@Param('id', ParseIntPipe) id: number) {
-        return this.approvalService.findOne(id);
-    }
-
-    @Patch(':id')
-    update(
-        @Param('id', ParseIntPipe) id: number,
-        @Body() updateApprovalDto: UpdateApprovalDto,
-    ) {
-        const targetId = updateApprovalDto['id'] || id;
-        return this.approvalService.update(targetId, updateApprovalDto);
-    }
-
     @Patch(':id/approve')
     approve(
         @Param('id', ParseIntPipe) id: number,
@@ -232,6 +218,22 @@ export class ApprovalController {
     @Public()
     getActiveHomepageAds() {
         return this.approvalService.getActiveHomepageAds();
+    }
+
+    // ============ GENERIC ROUTES (MUST BE LAST) ============
+
+    @Get(':id')
+    findOne(@Param('id', ParseIntPipe) id: number) {
+        return this.approvalService.findOne(id);
+    }
+
+    @Patch(':id')
+    update(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() updateApprovalDto: UpdateApprovalDto,
+    ) {
+        const targetId = updateApprovalDto['id'] || id;
+        return this.approvalService.update(targetId, updateApprovalDto);
     }
 
     // ...existing code...
