@@ -64,9 +64,12 @@ export class StripeController {
     const context = await this.stripeContextService.getStripeContext(user);
 
     // You can change these URLs or move them to env variables
-    const successUrl =
+    const baseSuccessUrl =
       process.env.FRONTEND_SUCCESS_URL ||
       `${process.env.APP_FRONTEND_URL || 'http://localhost:3000'}/stripe/success`;
+    const successUrl = baseSuccessUrl.includes('?')
+      ? `${baseSuccessUrl}&session_id={CHECKOUT_SESSION_ID}`
+      : `${baseSuccessUrl}?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl =
       process.env.FRONTEND_CANCEL_URL ||
       `${process.env.APP_FRONTEND_URL || 'http://localhost:3000'}/stripe/cancel`;
