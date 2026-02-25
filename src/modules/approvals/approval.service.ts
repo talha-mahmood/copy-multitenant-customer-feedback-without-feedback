@@ -577,24 +577,28 @@ export class ApprovalService {
             }
 
             // Check balance
-            if (agentWallet.balance < approval.payment_amount) {
+            //convert to float for comparison
+            const agentWalletBalance = parseFloat(agentWallet.balance.toString());
+            const approvalPaymentAmount = parseFloat(approval.payment_amount.toString());
+            
+            if (agentWalletBalance < approvalPaymentAmount) {
                 throw new BadRequestException(
-                    `Insufficient agent wallet balance. Required: ${approval.payment_amount}, Available: ${agentWallet.balance}`
+                    `Insufficient agent wallet balance. Required: ${approvalPaymentAmount}, Available: ${agentWalletBalance}`
                 );
             }
 
             // Deduct from agent wallet
-            const newAgentBalance = agentWallet.balance - approval.payment_amount;
+            const newAgentBalance = agentWalletBalance - approvalPaymentAmount;
             await queryRunner.manager.update(AdminWallet, agentWallet.id, {
                 balance: newAgentBalance,
-                total_spent: parseFloat(agentWallet.total_spent.toString()) + approval.payment_amount,
+                total_spent: parseFloat(agentWallet.total_spent.toString()) + approvalPaymentAmount,
             });
 
             // Create agent transaction
             const agentTransaction = queryRunner.manager.create(WalletTransaction, {
                 admin_wallet_id: agentWallet.id,
                 type: 'homepage_placement_fee',
-                amount: -approval.payment_amount,
+                amount: -approvalPaymentAmount,
                 status: 'completed',
                 description: `Homepage ${approval.approval_type === 'homepage_coupon_push' ? 'coupon' : 'ad'} placement fee for merchant ${merchant.id}`,
                 metadata: JSON.stringify({
@@ -602,7 +606,7 @@ export class ApprovalService {
                     merchant_id: merchant.id,
                     placement_type: approval.approval_type,
                 }),
-                balance_before: agentWallet.balance,
+                balance_before: agentWalletBalance,
                 balance_after: newAgentBalance,
                 completed_at: new Date(),
             });
@@ -617,17 +621,17 @@ export class ApprovalService {
             }
 
             // Add to super admin wallet
-            const newSuperAdminBalance = superAdminWallet.balance + approval.payment_amount;
+            const newSuperAdminBalance = parseFloat(superAdminWallet.balance.toString()) + approvalPaymentAmount;
             await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
                 balance: newSuperAdminBalance,
-                total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + approval.payment_amount,
+                total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + approvalPaymentAmount,
             });
 
             // Create super admin transaction
             const superAdminTransaction = queryRunner.manager.create(WalletTransaction, {
                 super_admin_wallet_id: superAdminWallet.id,
                 type: 'homepage_placement_revenue',
-                amount: approval.payment_amount,
+                amount: approvalPaymentAmount,
                 status: 'completed',
                 description: `Homepage placement revenue from agent ${merchant.admin_id}`,
                 metadata: JSON.stringify({
