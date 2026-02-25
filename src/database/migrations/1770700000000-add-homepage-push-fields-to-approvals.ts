@@ -28,7 +28,7 @@ export class AddHomepagePushFieldsToApprovals1770700000000 implements MigrationI
         await queryRunner.addColumn('approvals', new TableColumn({
             name: 'payment_status',
             type: 'varchar',
-            length: '20',
+            length: '50',
             default: "'pending'",
         }));
 

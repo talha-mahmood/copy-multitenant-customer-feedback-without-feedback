@@ -25,7 +25,7 @@ export class Approval extends BaseEntity {
     @Column({ name: 'request_from', type: 'varchar', length: 50, default: 'merchant' })
     request_from: string;
 
-    @Column({ name: 'approval_status', type: 'varchar', length: 20, default: 'pending' })
+    @Column({ name: 'approval_status', type: 'varchar', length: 50, default: 'pending' })
     approval_status: string;
 
     @Column({ name: 'ad_type', type: 'varchar', length: 20, nullable: true })
@@ -58,7 +58,7 @@ export class Approval extends BaseEntity {
     @Column({ name: 'forwarded_by_agent', type: 'boolean', default: false })
     forwarded_by_agent: boolean;
 
-    @Column({ name: 'payment_status', type: 'varchar', length: 20, default: 'pending' })
+    @Column({ name: 'payment_status', type: 'varchar', length: 50, default: 'pending' })
     payment_status: string; // 'pending', 'paid', 'refunded'
 
     @Column({ name: 'payment_amount', type: 'decimal', precision: 10, scale: 2, nullable: true })
