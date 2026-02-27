@@ -10,6 +10,8 @@ import { SuperAdminSettingsService } from '../super-admin-settings/super-admin-s
 import { AdminWallet } from '../wallets/entities/admin-wallet.entity';
 import { SuperAdminWallet } from '../wallets/entities/super-admin-wallet.entity';
 import { WalletTransaction } from '../wallets/entities/wallet-transaction.entity';
+import { Coupon } from '../coupons/entities/coupon.entity';
+import { CreateHomepageCouponRequestDto } from './dto/create-homepage-coupon-request.dto';
 
 @Injectable()
 export class ApprovalService {
@@ -375,11 +377,37 @@ export class ApprovalService {
 
     // ============ HOMEPAGE PUSH METHODS (Phase 2) ============
 
-    async createHomepageCouponRequest(merchantId: number, couponId: number): Promise<Approval> {
+    async createHomepageCouponRequest(
+        merchantId: number,
+        dto: CreateHomepageCouponRequestDto,
+    ): Promise<Approval> {
         // Verify merchant exists
         const merchant = await this.merchantRepository.findOne({ where: { id: merchantId } });
         if (!merchant) {
             throw new NotFoundException(`Merchant with ID ${merchantId} not found`);
+        }
+
+        let resolvedCouponId = dto?.coupon_id;
+
+        if (!resolvedCouponId && dto?.coupon_batch_id) {
+            const couponRepository = this.dataSource.getRepository(Coupon);
+            const representativeCoupon = await couponRepository.findOne({
+                where: {
+                    merchant_id: merchantId,
+                    batch_id: dto.coupon_batch_id,
+                },
+                order: { id: 'ASC' },
+            });
+
+            if (!representativeCoupon) {
+                throw new NotFoundException('No coupons found for selected coupon batch');
+            }
+
+            resolvedCouponId = representativeCoupon.id;
+        }
+
+        if (!resolvedCouponId) {
+            throw new BadRequestException('Either coupon_id or coupon_batch_id is required');
         }
 
         // Create approval request
@@ -390,7 +418,7 @@ export class ApprovalService {
             approval_owner: 'super_admin',
             request_from: 'merchant',
             approval_status: 'pending_agent_review',
-            coupon_id: couponId,
+            coupon_id: resolvedCouponId,
             forwarded_by_agent: false,
             payment_status: 'pending',
         });
@@ -756,34 +784,73 @@ export class ApprovalService {
      * Status: payment_completed_active AND not expired
      */
     async getActiveHomepageCoupons(): Promise<Approval[]> {
-        return this.approvalRepository.find({
+        const approvals = await this.approvalRepository.find({
             where: {
                 approval_type: 'homepage_coupon_push',
                 approval_status: 'payment_completed_active',
+                payment_status: 'paid',
                 ad_expired_at: MoreThan(new Date()),
             },
-            relations: ['merchant', 'coupon'],
+            relations: ['merchant', 'merchant.settings', 'coupon', 'coupon.batch'],
             order: {
                 placement: 'ASC',
             },
         });
+
+        const byBatch = new Map<number, Approval>();
+        const withoutBatch: Approval[] = [];
+
+        approvals.forEach((approval) => {
+            const batchId = approval?.coupon?.batch?.id;
+            if (!batchId) {
+                withoutBatch.push(approval);
+                return;
+            }
+            if (!byBatch.has(batchId)) {
+                byBatch.set(batchId, approval);
+            }
+        });
+
+        return [...Array.from(byBatch.values()), ...withoutBatch];
     }
 
     /**
      * Get all active homepage ads for public display
      * Status: payment_completed_active AND not expired
      */
-    async getActiveHomepageAds(): Promise<Approval[]> {
-        return this.approvalRepository.find({
+    async getActiveHomepageAds(): Promise<any[]> {
+        const approvals = await this.approvalRepository.find({
             where: {
                 approval_type: 'homepage_ad_push',
                 approval_status: 'payment_completed_active',
+                payment_status: 'paid',
                 ad_expired_at: MoreThan(new Date()),
             },
-            relations: ['merchant'],
+            relations: ['merchant', 'merchant.settings'],
             order: {
                 placement: 'ASC',
             },
         });
+
+        return approvals.map((approval) => ({
+            ...approval,
+            paid_ad_image: approval.merchant?.settings?.paid_ad_image || approval.merchant?.paid_ad_image,
+            paid_ad_video: approval.merchant?.settings?.paid_ad_video,
+            paid_ad_video_status: approval.merchant?.settings?.paid_ad_video_status,
+            paid_ad_placement: this.normalizeHomepageAdPlacement(approval.placement),
+        }));
+    }
+
+    private normalizeHomepageAdPlacement(placement?: string): string {
+        if (!placement) return 'top';
+
+        const mapped: Record<string, string> = {
+            homepage_ad_slot_1: 'top',
+            homepage_ad_slot_2: 'left',
+            homepage_ad_slot_3: 'right',
+            homepage_ad_slot_4: 'bottom',
+        };
+
+        return mapped[placement] || placement;
     }
 }
