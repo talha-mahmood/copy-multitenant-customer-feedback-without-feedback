@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, Inject, BadRequestException, forwardRef } from '@nestjs/common';
-import { Repository, LessThan, MoreThan, DataSource } from 'typeorm';
+import { Repository, LessThan, MoreThan, DataSource, IsNull } from 'typeorm';
 import { Approval } from './entities/approval.entity';
 import { CreateApprovalDto } from './dto/create-approval.dto';
 import { UpdateApprovalDto } from './dto/update-approval.dto';
@@ -473,6 +473,22 @@ export class ApprovalService {
             throw new NotFoundException(`Merchant with ID ${merchantId} not found`);
         }
 
+        // const merchantSettings = await this.merchantSettingRepository.findOne({
+        //     where: { merchant_id: merchantId },
+        // });
+
+        // const hasAdMedia = Boolean(
+        //     merchantSettings?.paid_ad_image ||
+        //     merchantSettings?.paid_ad_video ||
+        //     merchant?.paid_ad_image,
+        // );
+
+        // if (!hasAdMedia) {
+        //     throw new BadRequestException(
+        //         'Please upload ad image or ad video in merchant settings before requesting homepage ad placement.',
+        //     );
+        // }
+
         // Create approval request
         const approval = this.approvalRepository.create({
             merchant_id: merchantId,
@@ -925,13 +941,22 @@ export class ApprovalService {
      * Status: payment_completed_active AND not expired
      */
     async getActiveHomepageAds(): Promise<any[]> {
+        const currentDate = new Date();
         const approvals = await this.approvalRepository.find({
-            where: {
-                approval_type: 'homepage_ad_push',
-                approval_status: 'payment_completed_active',
-                payment_status: 'paid',
-                ad_expired_at: MoreThan(new Date()),
-            },
+            where: [
+                {
+                    approval_type: 'homepage_ad_push',
+                    approval_status: 'payment_completed_active',
+                    payment_status: 'paid',
+                    ad_expired_at: MoreThan(currentDate),
+                },
+                // {
+                //     approval_type: 'homepage_ad_push',
+                //     approval_status: 'payment_completed_active',
+                //     payment_status: 'paid',
+                //     ad_expired_at: IsNull(),
+                // },
+            ],
             relations: ['merchant', 'merchant.settings'],
             order: {
                 placement: 'ASC',
@@ -940,15 +965,22 @@ export class ApprovalService {
 
         return approvals.map((approval) => ({
             ...approval,
-            paid_ad_image: approval.merchant?.settings?.paid_ad_image || approval.merchant?.paid_ad_image,
+            paid_ad_image:
+                approval.merchant?.settings?.paid_ad_image ||
+                approval.merchant?.paid_ad_image ||
+                null,
             paid_ad_video: approval.merchant?.settings?.paid_ad_video,
             paid_ad_video_status: approval.merchant?.settings?.paid_ad_video_status,
-            paid_ad_placement: this.normalizeHomepageAdPlacement(approval.placement),
+            paid_ad_placement: this.normalizeHomepageAdPlacement(
+                approval.placement || approval.merchant?.settings?.paid_ad_placement || approval.merchant?.placement,
+            ),
         }));
     }
 
     private normalizeHomepageAdPlacement(placement?: string): string {
         if (!placement) return 'top';
+
+        const normalizedPlacement = String(placement).trim().toLowerCase();
 
         const mapped: Record<string, string> = {
             homepage_ad_slot_1: 'top',
@@ -957,6 +989,6 @@ export class ApprovalService {
             homepage_ad_slot_4: 'bottom',
         };
 
-        return mapped[placement] || placement;
+        return mapped[normalizedPlacement] || normalizedPlacement;
     }
 }
