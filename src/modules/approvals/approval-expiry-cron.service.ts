@@ -73,4 +73,52 @@ export class ApprovalExpiryCronService {
       console.error('[ApprovalExpiryCron] Error during paid ads expiry check:', error);
     }
   }
+
+  // Run every 10 minutes to remove ended homepage placements (coupon batches + ads)
+  @Cron(CronExpression.EVERY_10_SECONDS)
+  async expireHomepagePlacements() {
+    console.log('[ApprovalExpiryCron] Starting homepage placements expiry check...');
+
+    try {
+      const currentDate = new Date();
+
+      const expiredHomepagePlacements = await this.approvalRepository.find({
+        where: [
+          {
+            approval_type: 'homepage_coupon_push',
+            approval_status: 'payment_completed_active',
+            payment_status: 'paid',
+            ad_expired_at: LessThanOrEqual(currentDate),
+          },
+          {
+            approval_type: 'homepage_ad_push',
+            approval_status: 'payment_completed_active',
+            payment_status: 'paid',
+            ad_expired_at: LessThanOrEqual(currentDate),
+          },
+        ],
+      });
+
+      if (expiredHomepagePlacements.length === 0) {
+        console.log('[ApprovalExpiryCron] No homepage placements to expire');
+        return;
+      }
+
+      console.log(
+        `[ApprovalExpiryCron] Found ${expiredHomepagePlacements.length} homepage placements to expire`,
+      );
+
+      for (const placement of expiredHomepagePlacements) {
+        await this.approvalRepository.update(placement.id, {
+          approval_status: 'expired',
+        });
+      }
+
+      console.log(
+        `[ApprovalExpiryCron] Completed homepage placement expiry. Expired ${expiredHomepagePlacements.length} records`,
+      );
+    } catch (error) {
+      console.error('[ApprovalExpiryCron] Error during homepage placements expiry check:', error);
+    }
+  }
 }

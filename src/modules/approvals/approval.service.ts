@@ -577,18 +577,18 @@ export class ApprovalService {
         const settings = await this.superAdminSettingsService.getSettings();
         const isCoupon = approval.approval_type === 'homepage_coupon_push';
 
-        // if (isCoupon && approval.coupon?.batch_id) {
-        //     const batchAlreadyActive = await this.isCouponBatchAlreadyActiveOnHomepage(
-        //         approval.coupon.batch_id,
-        //         approval.id,
-        //     );
+        if (isCoupon && approval.coupon?.batch_id) {
+            const batchAlreadyActive = await this.isCouponBatchAlreadyActiveOnHomepage(
+                approval.coupon.batch_id,
+                approval.id,
+            );
 
-        //     if (batchAlreadyActive) {
-        //         throw new BadRequestException(
-        //             'This coupon batch is already placed on superadmin homepage and cannot be placed again.',
-        //         );
-        //     }
-        // }
+            if (batchAlreadyActive) {
+                throw new BadRequestException(
+                    'This coupon batch is already placed on superadmin homepage and cannot be placed again.',
+                );
+            }
+        }
 
         const maxSlots = isCoupon ? settings.max_homepage_coupons : settings.max_homepage_ads;
 
@@ -644,18 +644,18 @@ export class ApprovalService {
                 throw new BadRequestException('Approval not ready for payment');
             }
 
-            // if (approval.approval_type === 'homepage_coupon_push' && approval.coupon?.batch_id) {
-            //     const batchAlreadyActive = await this.isCouponBatchAlreadyActiveOnHomepage(
-            //         approval.coupon.batch_id,
-            //         approval.id,
-            //     );
+            if (approval.approval_type === 'homepage_coupon_push' && approval.coupon?.batch_id) {
+                const batchAlreadyActive = await this.isCouponBatchAlreadyActiveOnHomepage(
+                    approval.coupon.batch_id,
+                    approval.id,
+                );
 
-            //     if (batchAlreadyActive) {
-            //         throw new BadRequestException(
-            //             'This coupon batch is already placed on superadmin homepage and cannot be placed again.',
-            //         );
-            //     }
-            // }
+                if (batchAlreadyActive) {
+                    throw new BadRequestException(
+                        'This coupon batch is already placed on superadmin homepage and cannot be placed again.',
+                    );
+                }
+            }
 
             // Get merchant and agent
             const merchant = await queryRunner.manager.findOne(Merchant, {
