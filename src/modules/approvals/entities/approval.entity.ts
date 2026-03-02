@@ -2,6 +2,7 @@ import { Column, Entity, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from 'src/common/entities/base.entity';
 import { Merchant } from 'src/modules/merchants/entities/merchant.entity';
 import { Admin } from 'src/modules/admins/entities/admin.entity';
+import { Coupon } from 'src/modules/coupons/entities/coupon.entity';
 
 @Entity('approvals')
 export class Approval extends BaseEntity {
@@ -24,7 +25,7 @@ export class Approval extends BaseEntity {
     @Column({ name: 'request_from', type: 'varchar', length: 50, default: 'merchant' })
     request_from: string;
 
-    @Column({ name: 'approval_status', type: 'varchar', length: 20, default: 'pending' })
+    @Column({ name: 'approval_status', type: 'varchar', length: 50, default: 'pending' })
     approval_status: string;
 
     @Column({ name: 'ad_type', type: 'varchar', length: 20, nullable: true })
@@ -40,9 +41,38 @@ export class Approval extends BaseEntity {
     @Column({ name: 'ad_created_at', type: 'timestamp', nullable: true })
     ad_created_at: Date;
 
+    @Column({ name: 'couponbatch_created_at', type: 'timestamp', nullable: true })
+    couponbatch_created_at: Date;
+
     @Column({ name: 'ad_expired_at', type: 'timestamp', nullable: true })
     ad_expired_at: Date;
 
+    @Column({ name: 'couponbatch_expired_at', type: 'timestamp', nullable: true })
+    couponbatch_expired_at: Date;
+
     @Column({ name: 'placement', type: 'varchar', length: 50, nullable: true })
     placement: string;
+
+    // Homepage push request fields
+    @Column({ name: 'coupon_id', nullable: true })
+    coupon_id: number;
+
+    @ManyToOne(() => Coupon, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'coupon_id' })
+    coupon: Coupon;
+
+    @Column({ name: 'forwarded_by_agent', type: 'boolean', default: false })
+    forwarded_by_agent: boolean;
+
+    @Column({ name: 'payment_status', type: 'varchar', length: 50, default: 'pending' })
+    payment_status: string; // 'pending', 'paid', 'refunded'
+
+    @Column({ name: 'payment_amount', type: 'decimal', precision: 10, scale: 2, nullable: true })
+    payment_amount: number;
+
+    @Column({ name: 'payment_intent_id', type: 'varchar', length: 255, nullable: true })
+    payment_intent_id: string;
+
+    @Column({ name: 'disapproval_reason', type: 'text', nullable: true })
+    disapproval_reason: string;
 }
