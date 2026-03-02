@@ -465,10 +465,12 @@ export class ApprovalService {
         // Update approval
         approval.approval_status = 'forwarded_to_superadmin';
         approval.forwarded_by_agent = true;
+        approval.admin_id = agentId;
 
         await this.approvalRepository.update(approvalId, {
             approval_status: 'forwarded_to_superadmin',
             forwarded_by_agent: true,
+            admin_id: agentId,
         });
 
         return await this.findOne(approvalId);
@@ -516,7 +518,7 @@ export class ApprovalService {
                 approval_status: 'forwarded_to_superadmin',
                 forwarded_by_agent: true,
             },
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'merchant.admin', 'merchant.admin.user', 'admin', 'admin.user', 'coupon', 'coupon.batch'],
             order: { updated_at: 'DESC' },
         });
     }
