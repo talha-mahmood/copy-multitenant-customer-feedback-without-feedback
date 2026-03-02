@@ -88,7 +88,7 @@ export class ApprovalExpiryCronService {
             approval_type: 'homepage_coupon_push',
             approval_status: 'payment_completed_active',
             payment_status: 'paid',
-            ad_expired_at: LessThanOrEqual(currentDate),
+            couponbatch_expired_at: LessThanOrEqual(currentDate),
           },
           {
             approval_type: 'homepage_ad_push',

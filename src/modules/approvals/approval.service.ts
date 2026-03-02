@@ -757,14 +757,22 @@ export class ApprovalService {
             const placement = await this.assignNextAvailableSlot(approval.approval_type);
 
             // Update approval
-            await queryRunner.manager.update(Approval, approvalId, {
+            const updatePayload: Partial<Approval> = {
                 payment_status: 'paid',
                 payment_intent_id: paymentIntentId,
                 approval_status: 'payment_completed_active',
-                ad_created_at: createdAt,
-                ad_expired_at: expiredAt,
                 placement,
-            });
+            };
+
+            if (approval.approval_type === 'homepage_coupon_push') {
+                updatePayload.couponbatch_created_at = createdAt;
+                updatePayload.couponbatch_expired_at = expiredAt;
+            } else {
+                updatePayload.ad_created_at = createdAt;
+                updatePayload.ad_expired_at = expiredAt;
+            }
+
+            await queryRunner.manager.update(Approval, approvalId, updatePayload);
 
             await queryRunner.commitTransaction();
 
@@ -802,14 +810,19 @@ export class ApprovalService {
 
     private async getActiveHomepagePlacementsCount(approvalType: string): Promise<number> {
         const currentDate = new Date();
-        return await this.approvalRepository.count({
-            where: {
-                approval_type: approvalType,
-                approval_status: 'payment_completed_active',
-                payment_status: 'paid',
-                ad_expired_at: MoreThan(currentDate),
-            },
-        });
+        const query = this.approvalRepository
+            .createQueryBuilder('approval')
+            .where('approval.approval_type = :approvalType', { approvalType })
+            .andWhere('approval.approval_status = :approvalStatus', { approvalStatus: 'payment_completed_active' })
+            .andWhere('approval.payment_status = :paymentStatus', { paymentStatus: 'paid' });
+
+        if (approvalType === 'homepage_coupon_push') {
+            query.andWhere('approval.couponbatch_expired_at > :currentDate', { currentDate });
+        } else {
+            query.andWhere('approval.ad_expired_at > :currentDate', { currentDate });
+        }
+
+        return await query.getCount();
     }
 
     private async isCouponBatchAlreadyActiveOnHomepage(batchId: number, excludeApprovalId?: number): Promise<boolean> {
@@ -821,7 +834,7 @@ export class ApprovalService {
             .andWhere('coupon.batch_id = :batchId', { batchId })
             .andWhere('approval.approval_status = :approvalStatus', { approvalStatus: 'payment_completed_active' })
             .andWhere('approval.payment_status = :paymentStatus', { paymentStatus: 'paid' })
-            .andWhere('approval.ad_expired_at > :currentDate', { currentDate });
+            .andWhere('approval.couponbatch_expired_at > :currentDate', { currentDate });
 
         if (excludeApprovalId) {
             query.andWhere('approval.id != :excludeApprovalId', { excludeApprovalId });
@@ -833,14 +846,19 @@ export class ApprovalService {
 
     private async assignNextAvailableSlot(approvalType: string): Promise<string> {
         const currentDate = new Date();
-        const activeApprovals = await this.approvalRepository.find({
-            where: {
-                approval_type: approvalType,
-                approval_status: 'payment_completed_active',
-                payment_status: 'paid',
-                ad_expired_at: MoreThan(currentDate),
-            },
-        });
+        const query = this.approvalRepository
+            .createQueryBuilder('approval')
+            .where('approval.approval_type = :approvalType', { approvalType })
+            .andWhere('approval.approval_status = :approvalStatus', { approvalStatus: 'payment_completed_active' })
+            .andWhere('approval.payment_status = :paymentStatus', { paymentStatus: 'paid' });
+
+        if (approvalType === 'homepage_coupon_push') {
+            query.andWhere('approval.couponbatch_expired_at > :currentDate', { currentDate });
+        } else {
+            query.andWhere('approval.ad_expired_at > :currentDate', { currentDate });
+        }
+
+        const activeApprovals = await query.getMany();
 
         const occupiedSlots = activeApprovals
             .map((a) => a.placement)
@@ -877,7 +895,7 @@ export class ApprovalService {
                 approval_type: 'homepage_coupon_push',
                 approval_status: 'payment_completed_active',
                 payment_status: 'paid',
-                ad_expired_at: MoreThan(new Date()),
+                couponbatch_expired_at: MoreThan(new Date()),
             },
             relations: ['merchant', 'merchant.settings', 'coupon', 'coupon.batch'],
             order: {

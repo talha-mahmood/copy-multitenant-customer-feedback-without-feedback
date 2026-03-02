@@ -41,8 +41,14 @@ export class Approval extends BaseEntity {
     @Column({ name: 'ad_created_at', type: 'timestamp', nullable: true })
     ad_created_at: Date;
 
+    @Column({ name: 'couponbatch_created_at', type: 'timestamp', nullable: true })
+    couponbatch_created_at: Date;
+
     @Column({ name: 'ad_expired_at', type: 'timestamp', nullable: true })
     ad_expired_at: Date;
+
+    @Column({ name: 'couponbatch_expired_at', type: 'timestamp', nullable: true })
+    couponbatch_expired_at: Date;
 
     @Column({ name: 'placement', type: 'varchar', length: 50, nullable: true })
     placement: string;
