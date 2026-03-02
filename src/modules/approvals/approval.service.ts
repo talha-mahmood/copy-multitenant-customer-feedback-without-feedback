@@ -387,14 +387,30 @@ export class ApprovalService {
             throw new NotFoundException(`Merchant with ID ${merchantId} not found`);
         }
 
+        const couponRepository = this.dataSource.getRepository(Coupon);
         let resolvedCouponId = dto?.coupon_id;
+        let resolvedBatchId = dto?.coupon_batch_id;
 
-        if (!resolvedCouponId && dto?.coupon_batch_id) {
-            const couponRepository = this.dataSource.getRepository(Coupon);
+        if (resolvedCouponId) {
+            const selectedCoupon = await couponRepository.findOne({
+                where: {
+                    id: resolvedCouponId,
+                    merchant_id: merchantId,
+                },
+            });
+
+            if (!selectedCoupon) {
+                throw new NotFoundException('Selected coupon not found for this merchant');
+            }
+
+            resolvedBatchId = selectedCoupon.batch_id;
+        }
+
+        if (!resolvedCouponId && resolvedBatchId) {
             const representativeCoupon = await couponRepository.findOne({
                 where: {
                     merchant_id: merchantId,
-                    batch_id: dto.coupon_batch_id,
+                    batch_id: resolvedBatchId,
                 },
                 order: { id: 'ASC' },
             });
@@ -404,10 +420,34 @@ export class ApprovalService {
             }
 
             resolvedCouponId = representativeCoupon.id;
+            resolvedBatchId = representativeCoupon.batch_id;
         }
 
-        if (!resolvedCouponId) {
+        if (!resolvedCouponId || !resolvedBatchId) {
             throw new BadRequestException('Either coupon_id or coupon_batch_id is required');
+        }
+
+        const batchAlreadyActiveOnHomepage = await this.isCouponBatchAlreadyActiveOnHomepage(resolvedBatchId);
+        if (batchAlreadyActiveOnHomepage) {
+            throw new BadRequestException('This coupon batch is already placed on superadmin homepage');
+        }
+
+        const duplicatePendingOrApprovedRequest = await this.approvalRepository
+            .createQueryBuilder('approval')
+            .innerJoin('approval.coupon', 'coupon')
+            .where('approval.merchant_id = :merchantId', { merchantId })
+            .andWhere('approval.approval_type = :approvalType', { approvalType: 'homepage_coupon_push' })
+            .andWhere('coupon.batch_id = :batchId', { batchId: resolvedBatchId })
+            .andWhere('approval.approval_status NOT IN (:...allowedStatuses)', {
+                allowedStatuses: ['disapproved_by_agent', 'rejected_by_superadmin', 'rejected'],
+            })
+            .orderBy('approval.created_at', 'DESC')
+            .getOne();
+
+        if (duplicatePendingOrApprovedRequest) {
+            throw new BadRequestException(
+                'You already have a request for this coupon batch.',
+            );
         }
 
         // Create approval request
@@ -536,6 +576,20 @@ export class ApprovalService {
         // Check available slots
         const settings = await this.superAdminSettingsService.getSettings();
         const isCoupon = approval.approval_type === 'homepage_coupon_push';
+
+        // if (isCoupon && approval.coupon?.batch_id) {
+        //     const batchAlreadyActive = await this.isCouponBatchAlreadyActiveOnHomepage(
+        //         approval.coupon.batch_id,
+        //         approval.id,
+        //     );
+
+        //     if (batchAlreadyActive) {
+        //         throw new BadRequestException(
+        //             'This coupon batch is already placed on superadmin homepage and cannot be placed again.',
+        //         );
+        //     }
+        // }
+
         const maxSlots = isCoupon ? settings.max_homepage_coupons : settings.max_homepage_ads;
 
         const activeCount = await this.getActiveHomepagePlacementsCount(approval.approval_type);
@@ -589,6 +643,19 @@ export class ApprovalService {
             if (approval.approval_status !== 'approved_pending_payment') {
                 throw new BadRequestException('Approval not ready for payment');
             }
+
+            // if (approval.approval_type === 'homepage_coupon_push' && approval.coupon?.batch_id) {
+            //     const batchAlreadyActive = await this.isCouponBatchAlreadyActiveOnHomepage(
+            //         approval.coupon.batch_id,
+            //         approval.id,
+            //     );
+
+            //     if (batchAlreadyActive) {
+            //         throw new BadRequestException(
+            //             'This coupon batch is already placed on superadmin homepage and cannot be placed again.',
+            //         );
+            //     }
+            // }
 
             // Get merchant and agent
             const merchant = await queryRunner.manager.findOne(Merchant, {
@@ -743,6 +810,25 @@ export class ApprovalService {
                 ad_expired_at: MoreThan(currentDate),
             },
         });
+    }
+
+    private async isCouponBatchAlreadyActiveOnHomepage(batchId: number, excludeApprovalId?: number): Promise<boolean> {
+        const currentDate = new Date();
+        const query = this.approvalRepository
+            .createQueryBuilder('approval')
+            .innerJoin('approval.coupon', 'coupon')
+            .where('approval.approval_type = :approvalType', { approvalType: 'homepage_coupon_push' })
+            .andWhere('coupon.batch_id = :batchId', { batchId })
+            .andWhere('approval.approval_status = :approvalStatus', { approvalStatus: 'payment_completed_active' })
+            .andWhere('approval.payment_status = :paymentStatus', { paymentStatus: 'paid' })
+            .andWhere('approval.ad_expired_at > :currentDate', { currentDate });
+
+        if (excludeApprovalId) {
+            query.andWhere('approval.id != :excludeApprovalId', { excludeApprovalId });
+        }
+
+        const existingActivePlacement = await query.getOne();
+        return Boolean(existingActivePlacement);
     }
 
     private async assignNextAvailableSlot(approvalType: string): Promise<string> {
