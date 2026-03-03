@@ -954,7 +954,7 @@ export class ApprovalService {
                 payment_status: 'paid',
                 couponbatch_expired_at: MoreThan(new Date()),
             },
-            relations: ['merchant', 'merchant.settings', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'coupon', 'coupon.batch', 'coupon.batch.template'],
             order: {
                 placement: 'ASC',
             },
