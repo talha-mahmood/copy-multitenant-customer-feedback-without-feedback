@@ -466,11 +466,16 @@ export class ApprovalService {
         return await this.approvalRepository.save(approval);
     }
 
-    async createHomepageAdRequest(merchantId: number, adType?: string): Promise<Approval> {
+    async createHomepageAdRequest(merchantId: number, adPlacement?: string): Promise<Approval> {
         // Verify merchant exists
         const merchant = await this.merchantRepository.findOne({ where: { id: merchantId } });
         if (!merchant) {
             throw new NotFoundException(`Merchant with ID ${merchantId} not found`);
+        }
+
+        const normalizedPlacement = this.normalizeRequestedHomepageAdPlacement(adPlacement);
+        if (!normalizedPlacement) {
+            throw new BadRequestException('Ad placement must be one of: top, bottom, left, right');
         }
 
         // const merchantSettings = await this.merchantSettingRepository.findOne({
@@ -497,7 +502,7 @@ export class ApprovalService {
             approval_owner: 'super_admin',
             request_from: 'merchant',
             approval_status: 'pending_agent_review',
-            ad_type: adType || 'image',
+            ad_type: normalizedPlacement,
             forwarded_by_agent: false,
             payment_status: 'pending',
         });
@@ -770,7 +775,7 @@ export class ApprovalService {
             expiredAt.setDate(expiredAt.getDate() + duration);
 
             // Assign slot
-            const placement = await this.assignNextAvailableSlot(approval.approval_type);
+            const placement = await this.assignNextAvailableSlot(approval.approval_type, approval.ad_type);
 
             // Update approval
             const updatePayload: Partial<Approval> = {
@@ -860,7 +865,7 @@ export class ApprovalService {
         return Boolean(existingActivePlacement);
     }
 
-    private async assignNextAvailableSlot(approvalType: string): Promise<string> {
+    private async assignNextAvailableSlot(approvalType: string, preferredPlacement?: string): Promise<string> {
         const currentDate = new Date();
         const query = this.approvalRepository
             .createQueryBuilder('approval')
@@ -889,6 +894,15 @@ export class ApprovalService {
             }
             throw new BadRequestException('No available coupon slots');
         } else {
+            const normalizedPreferredPlacement = this.normalizeRequestedHomepageAdPlacement(preferredPlacement);
+            if (normalizedPreferredPlacement) {
+                const preferredSlot = this.mapHomepageAdPlacementToSlot(normalizedPreferredPlacement);
+                if (occupiedSlots.includes(preferredSlot)) {
+                    throw new BadRequestException(`Selected ad placement '${normalizedPreferredPlacement}' is not available right now`);
+                }
+                return preferredSlot;
+            }
+
             for (let i = 1; i <= 4; i++) {
                 const slot = `homepage_ad_slot_${i}`;
                 if (!occupiedSlots.includes(slot)) {
@@ -897,6 +911,33 @@ export class ApprovalService {
             }
             throw new BadRequestException('No available ad slots');
         }
+    }
+
+    private normalizeRequestedHomepageAdPlacement(value?: string): 'top' | 'bottom' | 'left' | 'right' | null {
+        if (!value) return null;
+
+        const normalized = String(value).trim().toLowerCase();
+        const mapped: Record<string, 'top' | 'bottom' | 'left' | 'right'> = {
+            top: 'top',
+            bottom: 'bottom',
+            left: 'left',
+            right: 'right',
+            image: 'top',
+            video: 'top',
+        };
+
+        return mapped[normalized] || null;
+    }
+
+    private mapHomepageAdPlacementToSlot(placement: 'top' | 'bottom' | 'left' | 'right'): string {
+        const mapped: Record<'top' | 'bottom' | 'left' | 'right', string> = {
+            top: 'homepage_ad_slot_1',
+            left: 'homepage_ad_slot_2',
+            right: 'homepage_ad_slot_3',
+            bottom: 'homepage_ad_slot_4',
+        };
+
+        return mapped[placement];
     }
 
     // ============ PHASE 4: HOMEPAGE DISPLAY ENDPOINTS ============
