@@ -134,7 +134,10 @@ export class ApprovalController {
         if (!user.merchantId) {
             throw new UnauthorizedException('Merchant ID not found in token');
         }
-        return this.approvalService.createHomepageAdRequest(user.merchantId, dto.ad_type);
+        return this.approvalService.createHomepageAdRequest(
+            user.merchantId,
+            dto.ad_placement || dto.ad_type,
+        );
     }
 
     @Patch(':id/forward-to-superadmin')
