@@ -45,4 +45,7 @@ export class Approval extends BaseEntity {
 
     @Column({ name: 'placement', type: 'varchar', length: 50, nullable: true })
     placement: string;
+
+    @Column({ name: 'disapproval_reason', type: 'text', nullable: true })
+    disapproval_reason: string;
 }
