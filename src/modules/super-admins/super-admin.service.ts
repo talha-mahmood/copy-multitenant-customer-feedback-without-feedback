@@ -198,7 +198,8 @@ export class SuperAdminService {
         COALESCE(SUM(amount) FILTER (WHERE type = 'agent_subscription_fee'), 0) AS agent_subscription_revenue,
         COALESCE(SUM(amount) FILTER (WHERE type = 'merchant_annual_subscription_commission'), 0) AS annual_subscription_revenue,
         COALESCE(SUM(amount) FILTER (WHERE type = 'merchant_package_commission'), 0) AS credit_purchase_revenue,
-        COALESCE(SUM(amount) FILTER (WHERE type IN ('agent_subscription_fee', 'merchant_annual_subscription_commission', 'merchant_package_commission')), 0) AS total_commissions
+        COALESCE(SUM(amount) FILTER (WHERE type = 'homepage_placement_revenue'), 0) AS homepage_placement_revenue,
+        COALESCE(SUM(amount) FILTER (WHERE type IN ('agent_subscription_fee', 'merchant_annual_subscription_commission', 'merchant_package_commission', 'homepage_placement_revenue')), 0) AS total_commissions
       FROM wallet_transactions
       WHERE super_admin_wallet_id IS NOT NULL
       ${hasDateFilter ? 'AND created_at BETWEEN $1 AND $2' : ''}
@@ -208,7 +209,7 @@ export class SuperAdminService {
       SELECT 
         TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') AS month,
         COALESCE(SUM(amount), 0) AS revenue,
-        COALESCE(SUM(amount) FILTER (WHERE type IN ('agent_subscription_fee', 'merchant_annual_subscription_commission', 'merchant_package_commission')), 0) AS commissions
+        COALESCE(SUM(amount) FILTER (WHERE type IN ('agent_subscription_fee', 'merchant_annual_subscription_commission', 'merchant_package_commission', 'homepage_placement_revenue')), 0) AS commissions
       FROM wallet_transactions
       WHERE super_admin_wallet_id IS NOT NULL
       ${hasDateFilter ? 'AND created_at BETWEEN $1 AND $2' : ''}
@@ -273,6 +274,7 @@ export class SuperAdminService {
           agentSubscriptionRevenue: parseFloat(revenueTotals[0]?.agent_subscription_revenue || '0'),
           annualSubscriptionRevenue: parseFloat(revenueTotals[0]?.annual_subscription_revenue || '0'),
           creditPurchaseRevenue: parseFloat(revenueTotals[0]?.credit_purchase_revenue || '0'),
+          homepagePlacementRevenue: parseFloat(revenueTotals[0]?.homepage_placement_revenue || '0'),
           monthlyRevenue: monthlyRevenue.map((mr: any) => ({
             month: mr.month,
             revenue: parseFloat(mr.revenue) || 0,

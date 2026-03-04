@@ -140,7 +140,7 @@ export class CouponService {
     };
   }
 
-  async findAllPublic(page: number = 1, pageSize: number = 20, businessType?: string, placement?: string, adminId?: number) {
+  async findAllPublic(page: number = 1, pageSize: number = 20, businessType?: string, placement?: string, adminId?: number, country?: string, city?: string, businessName?: string, search?: string, expiringSoon?: boolean) {
     if (pageSize > 500) {
       pageSize = 500;
     }
@@ -149,18 +149,55 @@ export class CouponService {
       .createQueryBuilder('merchant')
       .leftJoinAndSelect('merchant.batches', 'batch', 'batch.is_active = :isActive', { isActive: true })
       .leftJoinAndSelect('batch.template', 'template')
-      .leftJoinAndSelect('merchant.user', 'user');
+      .leftJoinAndSelect('merchant.user', 'user')
+      .leftJoinAndSelect('merchant.admin', 'admin')
+      .leftJoinAndSelect('admin.user', 'adminUser');
 
     if (businessType) {
-      queryBuilder.andWhere('merchant.business_type = :businessType', { businessType });
+      queryBuilder.andWhere('merchant.business_type ILIKE :businessType', { businessType: `%${businessType}%` });
     }
 
     if (placement) {
-      queryBuilder.andWhere('merchant.placement = :placement', { placement });
+      queryBuilder.andWhere('merchant.placement ILIKE :placement', { placement: `%${placement}%` });
     }
 
     if (adminId) {
       queryBuilder.andWhere('merchant.admin_id = :adminId', { adminId });
+    }
+
+    if (country) {
+      queryBuilder.andWhere('merchant.country ILIKE :country', { country: `%${country}%` });
+    }
+
+    if (city) {
+      queryBuilder.andWhere('merchant.city ILIKE :city', { city: `%${city}%` });
+    }
+
+    if (businessName) {
+      queryBuilder.andWhere('merchant.business_name ILIKE :businessName', { businessName: `%${businessName}%` });
+    }
+
+    // Global search across multiple fields
+    if (search) {
+      queryBuilder.andWhere(
+        '(merchant.business_name ILIKE :search OR merchant.business_type ILIKE :search OR merchant.city ILIKE :search OR merchant.country ILIKE :search OR user.name ILIKE :search OR adminUser.name ILIKE :search)',
+        { search: `%${search}%` }
+      );
+    }
+
+    // Filter by expiring soon (1 day left)
+    if (expiringSoon) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(23, 59, 59, 999);
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      queryBuilder.andWhere('batch.end_date BETWEEN :today AND :tomorrow', { 
+        today: today.toISOString().split('T')[0], 
+        tomorrow: tomorrow.toISOString().split('T')[0] 
+      });
     }
 
     const [results, total] = await queryBuilder
@@ -233,7 +270,7 @@ export class CouponService {
     };
   }
 
-  async findAllForSuperAdmin(page: number = 1, pageSize: number = 20) {
+  async findAllForSuperAdmin(page: number = 1, pageSize: number = 20, businessType?: string, country?: string, city?: string, businessName?: string, search?: string, expiringSoon?: boolean) {
     if (pageSize > 500) {
       pageSize = 500;
     }
@@ -247,6 +284,46 @@ export class CouponService {
       .leftJoinAndSelect('merchant.batches', 'batch', 'batch.is_active = :isActive', { isActive: true })
       .leftJoinAndSelect('batch.template', 'template')
       .orderBy('admin.created_at', 'DESC');
+
+    // Apply filters on merchant and batch
+    if (businessType) {
+      queryBuilder.andWhere('merchant.business_type ILIKE :businessType', { businessType: `%${businessType}%` });
+    }
+
+    if (country) {
+      queryBuilder.andWhere('admin.country ILIKE :country', { country: `%${country}%` });
+    }
+
+    if (city) {
+      queryBuilder.andWhere('admin.city ILIKE :city', { city: `%${city}%` });
+    }
+
+    if (businessName) {
+      queryBuilder.andWhere('merchant.business_name ILIKE :businessName', { businessName: `%${businessName}%` });
+    }
+
+    // Global search across multiple fields
+    if (search) {
+      queryBuilder.andWhere(
+        '(merchant.business_name ILIKE :search OR merchant.business_type ILIKE :search OR admin.city ILIKE :search OR admin.country ILIKE :search OR user.name ILIKE :search OR merchantUser.name ILIKE :search)',
+        { search: `%${search}%` }
+      );
+    } 
+
+    // Filter by expiring soon (1 day left)
+    if (expiringSoon) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(23, 59, 59, 999);
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      queryBuilder.andWhere('batch.end_date BETWEEN :today AND :tomorrow', { 
+        today: today.toISOString().split('T')[0], 
+        tomorrow: tomorrow.toISOString().split('T')[0] 
+      });
+    }
 
     const [results, total] = await queryBuilder
       .skip((page - 1) * pageSize)

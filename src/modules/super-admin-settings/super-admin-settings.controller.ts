@@ -12,6 +12,7 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { SkipSubscription } from 'src/common/decorators/skip-subscription.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @Controller('super-admin-settings')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -67,6 +68,25 @@ export class SuperAdminSettingsController {
       message: 'Merchant annual fee retrieved successfully',
       data: {
         fee: parseFloat(settings.merchant_annual_fee.toString()),
+        currency: settings.currency,
+      },
+    };
+  }
+
+  @Public()
+  @SkipSubscription()
+  @Get('homepage-placement-pricing')
+  async getHomepagePlacementPricing() {
+    const settings = await this.settingsService.getSettings();
+    return {
+      message: 'Homepage placement pricing retrieved successfully',
+      data: {
+        homepage_coupon_placement_cost: parseFloat(settings.homepage_coupon_placement_cost.toString()),
+        homepage_ad_placement_cost: parseFloat(settings.homepage_ad_placement_cost.toString()),
+        max_homepage_coupons: settings.max_homepage_coupons,
+        max_homepage_ads: settings.max_homepage_ads,
+        coupon_homepage_placement_duration_days: settings.coupon_homepage_placement_duration_days,
+        ad_homepage_placement_duration_days: settings.ad_homepage_placement_duration_days,
         currency: settings.currency,
       },
     };

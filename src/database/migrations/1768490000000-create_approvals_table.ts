@@ -27,10 +27,11 @@ export class CreateApprovalsTable1768490000000 implements MigrationInterface {
                         type: 'text',
                         isNullable: true,
                     },
+               
                     {
                         name: 'approval_status',
-                        type: 'boolean',
-                        default: false,
+                        type: 'varchar',
+                        length: '50',
                     },
                     {
                         name: 'admin_id',

@@ -1,10 +1,17 @@
-import { Injectable, NotFoundException, Inject, BadRequestException } from '@nestjs/common';
-import { Repository, LessThan } from 'typeorm';
+import { Injectable, NotFoundException, Inject, BadRequestException, forwardRef } from '@nestjs/common';
+import { Repository, LessThan, MoreThan, DataSource, IsNull } from 'typeorm';
 import { Approval } from './entities/approval.entity';
 import { CreateApprovalDto } from './dto/create-approval.dto';
 import { UpdateApprovalDto } from './dto/update-approval.dto';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { MerchantSetting } from '../merchant-settings/entities/merchant-setting.entity';
+import { WalletService } from '../wallets/wallet.service';
+import { SuperAdminSettingsService } from '../super-admin-settings/super-admin-settings.service';
+import { AdminWallet } from '../wallets/entities/admin-wallet.entity';
+import { SuperAdminWallet } from '../wallets/entities/super-admin-wallet.entity';
+import { WalletTransaction } from '../wallets/entities/wallet-transaction.entity';
+import { Coupon } from '../coupons/entities/coupon.entity';
+import { CreateHomepageCouponRequestDto } from './dto/create-homepage-coupon-request.dto';
 
 @Injectable()
 export class ApprovalService {
@@ -15,6 +22,11 @@ export class ApprovalService {
         private merchantRepository: Repository<Merchant>,
         @Inject('MERCHANT_SETTING_REPOSITORY')
         private merchantSettingRepository: Repository<MerchantSetting>,
+        @Inject(forwardRef(() => WalletService))
+        private walletService: WalletService,
+        private superAdminSettingsService: SuperAdminSettingsService,
+        @Inject('DATA_SOURCE')
+        private dataSource: DataSource,
     ) { }
 
     async create(createApprovalDto: CreateApprovalDto): Promise<Approval> {
@@ -24,14 +36,14 @@ export class ApprovalService {
 
     async findAll(): Promise<Approval[]> {
         return await this.approvalRepository.find({
-            relations: ['merchant', 'merchant.settings', 'admin'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
         });
     }
 
     async findOne(id: number): Promise<Approval> {
         const approval = await this.approvalRepository.findOne({
             where: { id },
-            relations: ['merchant', 'merchant.settings', 'admin'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
         });
 
         if (!approval) {
@@ -44,35 +56,35 @@ export class ApprovalService {
     async findByMerchant(merchantId: number): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { merchant_id: merchantId },
-            relations: ['merchant', 'merchant.settings', 'admin'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
         });
     }
 
     async findByAdmin(adminId: number): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { admin_id: adminId },
-            relations: ['merchant', 'merchant.settings', 'admin'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
         });
     }
 
     async findByAgent(agentId: number): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { agent_id: agentId },
-            relations: ['merchant', 'merchant.settings', 'admin'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
         });
     }
 
     async findPending(): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { approval_status: 'pending' },
-            relations: ['merchant', 'merchant.settings', 'admin'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
         });
     }
 
     async findApproved(): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { approval_status: 'approved' },
-            relations: ['merchant', 'merchant.settings', 'admin'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
         });
     }
 
@@ -365,5 +377,663 @@ export class ApprovalService {
             console.error('[ApprovalService] Error in handleApprovalSideEffects:', error);
             // We don't throw here to avoid rolling back the main approval status change
         }
+    }
+
+    // ============ HOMEPAGE PUSH METHODS (Phase 2) ============
+
+    async createHomepageCouponRequest(
+        merchantId: number,
+        dto: CreateHomepageCouponRequestDto,
+    ): Promise<Approval> {
+        // Verify merchant exists
+        const merchant = await this.merchantRepository.findOne({ where: { id: merchantId } });
+        if (!merchant) {
+            throw new NotFoundException(`Merchant with ID ${merchantId} not found`);
+        }
+
+        const couponRepository = this.dataSource.getRepository(Coupon);
+        let resolvedCouponId = dto?.coupon_id;
+        let resolvedBatchId = dto?.coupon_batch_id;
+
+        if (resolvedCouponId) {
+            const selectedCoupon = await couponRepository.findOne({
+                where: {
+                    id: resolvedCouponId,
+                    merchant_id: merchantId,
+                },
+            });
+
+            if (!selectedCoupon) {
+                throw new NotFoundException('Selected coupon not found for this merchant');
+            }
+
+            resolvedBatchId = selectedCoupon.batch_id;
+        }
+
+        if (!resolvedCouponId && resolvedBatchId) {
+            const representativeCoupon = await couponRepository.findOne({
+                where: {
+                    merchant_id: merchantId,
+                    batch_id: resolvedBatchId,
+                },
+                order: { id: 'ASC' },
+            });
+
+            if (!representativeCoupon) {
+                throw new NotFoundException('No coupons found for selected coupon batch');
+            }
+
+            resolvedCouponId = representativeCoupon.id;
+            resolvedBatchId = representativeCoupon.batch_id;
+        }
+
+        if (!resolvedCouponId || !resolvedBatchId) {
+            throw new BadRequestException('Either coupon_id or coupon_batch_id is required');
+        }
+
+        const batchAlreadyActiveOnHomepage = await this.isCouponBatchAlreadyActiveOnHomepage(resolvedBatchId);
+        if (batchAlreadyActiveOnHomepage) {
+            throw new BadRequestException('This coupon batch is already placed on superadmin homepage');
+        }
+
+        const duplicatePendingOrApprovedRequest = await this.approvalRepository
+            .createQueryBuilder('approval')
+            .innerJoin('approval.coupon', 'coupon')
+            .where('approval.merchant_id = :merchantId', { merchantId })
+            .andWhere('approval.approval_type = :approvalType', { approvalType: 'homepage_coupon_push' })
+            .andWhere('coupon.batch_id = :batchId', { batchId: resolvedBatchId })
+            .andWhere('approval.approval_status NOT IN (:...allowedStatuses)', {
+                allowedStatuses: ['disapproved_by_agent', 'rejected_by_superadmin', 'rejected'],
+            })
+            .orderBy('approval.created_at', 'DESC')
+            .getOne();
+
+        if (duplicatePendingOrApprovedRequest) {
+            throw new BadRequestException(
+                'You already have a request for this coupon batch.',
+            );
+        }
+
+        // Create approval request
+        const approval = this.approvalRepository.create({
+            merchant_id: merchantId,
+            agent_id: merchant.admin_id,
+            approval_type: 'homepage_coupon_push',
+            approval_owner: 'super_admin',
+            request_from: 'merchant',
+            approval_status: 'pending_agent_review',
+            coupon_id: resolvedCouponId,
+            forwarded_by_agent: false,
+            payment_status: 'pending',
+        });
+
+        return await this.approvalRepository.save(approval);
+    }
+
+    async createHomepageAdRequest(merchantId: number, adPlacement?: string): Promise<Approval> {
+        // Verify merchant exists
+        const merchant = await this.merchantRepository.findOne({ where: { id: merchantId } });
+        if (!merchant) {
+            throw new NotFoundException(`Merchant with ID ${merchantId} not found`);
+        }
+
+        const normalizedPlacement = this.normalizeRequestedHomepageAdPlacement(adPlacement);
+        if (!normalizedPlacement) {
+            throw new BadRequestException('Ad placement must be one of: top, bottom, left, right');
+        }
+
+        // const merchantSettings = await this.merchantSettingRepository.findOne({
+        //     where: { merchant_id: merchantId },
+        // });
+
+        // const hasAdMedia = Boolean(
+        //     merchantSettings?.paid_ad_image ||
+        //     merchantSettings?.paid_ad_video ||
+        //     merchant?.paid_ad_image,
+        // );
+
+        // if (!hasAdMedia) {
+        //     throw new BadRequestException(
+        //         'Please upload ad image or ad video in merchant settings before requesting homepage ad placement.',
+        //     );
+        // }
+
+        // Create approval request
+        const approval = this.approvalRepository.create({
+            merchant_id: merchantId,
+            agent_id: merchant.admin_id,
+            approval_type: 'homepage_ad_push',
+            approval_owner: 'super_admin',
+            request_from: 'merchant',
+            approval_status: 'pending_agent_review',
+            ad_type: normalizedPlacement,
+            forwarded_by_agent: false,
+            payment_status: 'pending',
+        });
+
+        return await this.approvalRepository.save(approval);
+    }
+
+    async forwardToSuperAdmin(approvalId: number, agentId: number): Promise<Approval> {
+        const approval = await this.findOne(approvalId);
+
+        // Verify approval is pending agent review
+        if (approval.approval_status !== 'pending_agent_review') {
+            throw new BadRequestException('Only pending requests can be forwarded');
+        }
+
+        // Verify agent owns this merchant
+        if (approval.agent_id !== agentId) {
+            throw new BadRequestException('You can only forward requests from your own merchants');
+        }
+
+        // Update approval
+        approval.approval_status = 'forwarded_to_superadmin';
+        approval.forwarded_by_agent = true;
+        approval.admin_id = agentId;
+
+        await this.approvalRepository.update(approvalId, {
+            approval_status: 'forwarded_to_superadmin',
+            forwarded_by_agent: true,
+            admin_id: agentId,
+        });
+
+        return await this.findOne(approvalId);
+    }
+
+    async disapproveByAgent(approvalId: number, agentId: number, reason: string): Promise<Approval> {
+        const approval = await this.findOne(approvalId);
+
+        // Verify approval is pending agent review
+        if (approval.approval_status !== 'pending_agent_review') {
+            throw new BadRequestException('Only pending requests can be disapproved');
+        }
+
+        // Verify agent owns this merchant
+        if (approval.agent_id !== agentId) {
+            throw new BadRequestException('You can only disapprove requests from your own merchants');
+        }
+
+        // Update approval
+        approval.approval_status = 'disapproved_by_agent';
+        approval.disapproval_reason = reason;
+
+        await this.approvalRepository.update(approvalId, {
+            approval_status: 'disapproved_by_agent',
+            disapproval_reason: reason,
+        });
+
+        return await this.findOne(approvalId);
+    }
+
+    async getPendingRequestsForAgent(agentId: number): Promise<Approval[]> {
+        return await this.approvalRepository.find({
+            where: {
+                agent_id: agentId,
+                approval_status: 'pending_agent_review',
+            },
+            relations: ['merchant', 'merchant.settings', 'coupon', 'coupon.batch'],
+            order: { created_at: 'DESC' },
+        });
+    }
+
+    async getForwardedRequestsForSuperAdmin(): Promise<Approval[]> {
+        return await this.approvalRepository.find({
+            where: {
+                approval_status: 'forwarded_to_superadmin',
+                forwarded_by_agent: true,
+            },
+            relations: ['merchant', 'merchant.settings', 'merchant.admin', 'merchant.admin.user', 'admin', 'admin.user', 'coupon', 'coupon.batch'],
+            order: { updated_at: 'DESC' },
+        });
+    }
+
+    // ============ PHASE 3: SUPER ADMIN APPROVAL & PAYMENT ============
+
+    async approveBySuperAdmin(approvalId: number): Promise<Approval> {
+        const approval = await this.findOne(approvalId);
+
+        // Verify approval is forwarded
+        if (approval.approval_status !== 'forwarded_to_superadmin') {
+            throw new BadRequestException('Only forwarded requests can be approved');
+        }
+
+        // Check available slots
+        const settings = await this.superAdminSettingsService.getSettings();
+        const isCoupon = approval.approval_type === 'homepage_coupon_push';
+
+        if (isCoupon && approval.coupon?.batch_id) {
+            const batchAlreadyActive = await this.isCouponBatchAlreadyActiveOnHomepage(
+                approval.coupon.batch_id,
+                approval.id,
+            );
+
+            if (batchAlreadyActive) {
+                throw new BadRequestException(
+                    'This coupon batch is already placed on superadmin homepage and cannot be placed again.',
+                );
+            }
+        }
+
+        const maxSlots = isCoupon ? settings.max_homepage_coupons : settings.max_homepage_ads;
+
+        const activeCount = await this.getActiveHomepagePlacementsCount(approval.approval_type);
+        if (activeCount >= maxSlots) {
+            throw new BadRequestException(`No available slots. Maximum ${maxSlots} ${isCoupon ? 'coupons' : 'ads'} allowed`);
+        }
+
+        // Get pricing
+        const cost = isCoupon 
+            ? settings.homepage_coupon_placement_cost 
+            : settings.homepage_ad_placement_cost;
+
+        // Update approval
+        await this.approvalRepository.update(approvalId, {
+            approval_status: 'approved_pending_payment',
+            payment_amount: cost,
+        });
+
+        return await this.findOne(approvalId);
+    }
+
+    async rejectBySuperAdmin(approvalId: number, reason: string): Promise<Approval> {
+        const approval = await this.findOne(approvalId);
+
+        // Verify approval is forwarded
+        if (approval.approval_status !== 'forwarded_to_superadmin') {
+            throw new BadRequestException('Only forwarded requests can be rejected');
+        }
+
+        // Update approval
+        await this.approvalRepository.update(approvalId, {
+            approval_status: 'rejected_by_superadmin',
+            disapproval_reason: reason,
+        });
+
+        return await this.findOne(approvalId);
+    }
+
+    async processHomepagePlacementPayment(
+        approvalId: number,
+        paymentIntentId: string,
+    ): Promise<Approval> {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            const approval = await this.findOne(approvalId);
+
+            // Verify status
+            if (approval.approval_status !== 'approved_pending_payment') {
+                throw new BadRequestException('Approval not ready for payment');
+            }
+
+            if (approval.approval_type === 'homepage_coupon_push' && approval.coupon?.batch_id) {
+                const batchAlreadyActive = await this.isCouponBatchAlreadyActiveOnHomepage(
+                    approval.coupon.batch_id,
+                    approval.id,
+                );
+
+                if (batchAlreadyActive) {
+                    throw new BadRequestException(
+                        'This coupon batch is already placed on superadmin homepage and cannot be placed again.',
+                    );
+                }
+            }
+
+            // Get merchant and agent
+            const merchant = await queryRunner.manager.findOne(Merchant, {
+                where: { id: approval.merchant_id },
+            });
+            if (!merchant || !merchant.admin_id) {
+                throw new NotFoundException('Merchant or agent not found');
+            }
+
+            // Get agent wallet
+            const agentWallet = await queryRunner.manager.findOne(AdminWallet, {
+                where: { admin_id: merchant.admin_id },
+            });
+            if (!agentWallet) {
+                throw new NotFoundException('Agent wallet not found');
+            }
+
+            // Check balance
+            //convert to float for comparison
+            const agentWalletBalance = parseFloat(agentWallet.balance.toString());
+            const approvalPaymentAmount = parseFloat(approval.payment_amount.toString());
+            
+            if (agentWalletBalance < approvalPaymentAmount) {
+                throw new BadRequestException(
+                    `Insufficient agent wallet balance. Required: ${approvalPaymentAmount}, Available: ${agentWalletBalance}`
+                );
+            }
+
+            // Deduct from agent wallet
+            const newAgentBalance = agentWalletBalance - approvalPaymentAmount;
+            await queryRunner.manager.update(AdminWallet, agentWallet.id, {
+                balance: newAgentBalance,
+                total_spent: parseFloat(agentWallet.total_spent.toString()) + approvalPaymentAmount,
+            });
+
+            // Create agent transaction
+            const agentTransaction = queryRunner.manager.create(WalletTransaction, {
+                admin_wallet_id: agentWallet.id,
+                type: 'homepage_placement_fee',
+                amount: -approvalPaymentAmount,
+                status: 'completed',
+                description: `Homepage ${approval.approval_type === 'homepage_coupon_push' ? 'coupon' : 'ad'} placement fee for merchant ${merchant.id}`,
+                metadata: JSON.stringify({
+                    approval_id: approvalId,
+                    merchant_id: merchant.id,
+                    placement_type: approval.approval_type,
+                }),
+                balance_before: agentWalletBalance,
+                balance_after: newAgentBalance,
+                completed_at: new Date(),
+            });
+            const savedAgentTransaction = await queryRunner.manager.save(agentTransaction);
+
+            // Get super admin wallet
+            const superAdminWallet = await queryRunner.manager.findOne(SuperAdminWallet, {
+                where: { id: 1 }, // Assuming super admin wallet ID is 1
+            });
+            if (!superAdminWallet) {
+                throw new NotFoundException('Super admin wallet not found');
+            }
+
+            // Add to super admin wallet
+            const newSuperAdminBalance = parseFloat(superAdminWallet.balance.toString()) + approvalPaymentAmount;
+            await queryRunner.manager.update(SuperAdminWallet, superAdminWallet.id, {
+                balance: newSuperAdminBalance,
+                total_earnings: parseFloat(superAdminWallet.total_earnings.toString()) + approvalPaymentAmount,
+            });
+
+            // Create super admin transaction
+            const superAdminTransaction = queryRunner.manager.create(WalletTransaction, {
+                super_admin_wallet_id: superAdminWallet.id,
+                type: 'homepage_placement_revenue',
+                amount: approvalPaymentAmount,
+                status: 'completed',
+                description: `Homepage placement revenue from agent ${merchant.admin_id}`,
+                metadata: JSON.stringify({
+                    approval_id: approvalId,
+                    agent_id: merchant.admin_id,
+                    merchant_id: merchant.id,
+                    related_transaction_id: savedAgentTransaction.id,
+                }),
+                balance_before: superAdminWallet.balance,
+                balance_after: newSuperAdminBalance,
+                completed_at: new Date(),
+            });
+            await queryRunner.manager.save(superAdminTransaction);
+
+            // Calculate expiry
+            const settings = await this.superAdminSettingsService.getSettings();
+            const duration = approval.approval_type === 'homepage_coupon_push'
+                ? settings.coupon_homepage_placement_duration_days
+                : settings.ad_homepage_placement_duration_days;
+
+            const createdAt = new Date();
+            const expiredAt = new Date(createdAt);
+            expiredAt.setDate(expiredAt.getDate() + duration);
+
+            // Assign slot
+            const placement = await this.assignNextAvailableSlot(approval.approval_type, approval.ad_type);
+
+            // Update approval
+            const updatePayload: Partial<Approval> = {
+                payment_status: 'paid',
+                payment_intent_id: paymentIntentId,
+                approval_status: 'payment_completed_active',
+                placement,
+            };
+
+            if (approval.approval_type === 'homepage_coupon_push') {
+                updatePayload.couponbatch_created_at = createdAt;
+                updatePayload.couponbatch_expired_at = expiredAt;
+            } else {
+                updatePayload.ad_created_at = createdAt;
+                updatePayload.ad_expired_at = expiredAt;
+            }
+
+            await queryRunner.manager.update(Approval, approvalId, updatePayload);
+
+            await queryRunner.commitTransaction();
+
+            return await this.findOne(approvalId);
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            await queryRunner.release();
+        }
+    }
+
+    async getAvailableHomepageSlots(): Promise<{
+        coupons: { available: number; max: number; occupied: number };
+        ads: { available: number; max: number; occupied: number };
+    }> {
+        const settings = await this.superAdminSettingsService.getSettings();
+        
+        const activeCoupons = await this.getActiveHomepagePlacementsCount('homepage_coupon_push');
+        const activeAds = await this.getActiveHomepagePlacementsCount('homepage_ad_push');
+
+        return {
+            coupons: {
+                available: settings.max_homepage_coupons - activeCoupons,
+                max: settings.max_homepage_coupons,
+                occupied: activeCoupons,
+            },
+            ads: {
+                available: settings.max_homepage_ads - activeAds,
+                max: settings.max_homepage_ads,
+                occupied: activeAds,
+            },
+        };
+    }
+
+    private async getActiveHomepagePlacementsCount(approvalType: string): Promise<number> {
+        const currentDate = new Date();
+        const query = this.approvalRepository
+            .createQueryBuilder('approval')
+            .where('approval.approval_type = :approvalType', { approvalType })
+            .andWhere('approval.approval_status = :approvalStatus', { approvalStatus: 'payment_completed_active' })
+            .andWhere('approval.payment_status = :paymentStatus', { paymentStatus: 'paid' });
+
+        if (approvalType === 'homepage_coupon_push') {
+            query.andWhere('approval.couponbatch_expired_at > :currentDate', { currentDate });
+        } else {
+            query.andWhere('approval.ad_expired_at > :currentDate', { currentDate });
+        }
+
+        return await query.getCount();
+    }
+
+    private async isCouponBatchAlreadyActiveOnHomepage(batchId: number, excludeApprovalId?: number): Promise<boolean> {
+        const currentDate = new Date();
+        const query = this.approvalRepository
+            .createQueryBuilder('approval')
+            .innerJoin('approval.coupon', 'coupon')
+            .where('approval.approval_type = :approvalType', { approvalType: 'homepage_coupon_push' })
+            .andWhere('coupon.batch_id = :batchId', { batchId })
+            .andWhere('approval.approval_status = :approvalStatus', { approvalStatus: 'payment_completed_active' })
+            .andWhere('approval.payment_status = :paymentStatus', { paymentStatus: 'paid' })
+            .andWhere('approval.couponbatch_expired_at > :currentDate', { currentDate });
+
+        if (excludeApprovalId) {
+            query.andWhere('approval.id != :excludeApprovalId', { excludeApprovalId });
+        }
+
+        const existingActivePlacement = await query.getOne();
+        return Boolean(existingActivePlacement);
+    }
+
+    private async assignNextAvailableSlot(approvalType: string, preferredPlacement?: string): Promise<string> {
+        const currentDate = new Date();
+        const query = this.approvalRepository
+            .createQueryBuilder('approval')
+            .where('approval.approval_type = :approvalType', { approvalType })
+            .andWhere('approval.approval_status = :approvalStatus', { approvalStatus: 'payment_completed_active' })
+            .andWhere('approval.payment_status = :paymentStatus', { paymentStatus: 'paid' });
+
+        if (approvalType === 'homepage_coupon_push') {
+            query.andWhere('approval.couponbatch_expired_at > :currentDate', { currentDate });
+        } else {
+            query.andWhere('approval.ad_expired_at > :currentDate', { currentDate });
+        }
+
+        const activeApprovals = await query.getMany();
+
+        const occupiedSlots = activeApprovals
+            .map((a) => a.placement)
+            .filter((p) => p);
+
+        if (approvalType === 'homepage_coupon_push') {
+            for (let i = 1; i <= 10; i++) {
+                const slot = `homepage_coupon_slot_${i}`;
+                if (!occupiedSlots.includes(slot)) {
+                    return slot;
+                }
+            }
+            throw new BadRequestException('No available coupon slots');
+        } else {
+            const normalizedPreferredPlacement = this.normalizeRequestedHomepageAdPlacement(preferredPlacement);
+            if (normalizedPreferredPlacement) {
+                const preferredSlot = this.mapHomepageAdPlacementToSlot(normalizedPreferredPlacement);
+                if (occupiedSlots.includes(preferredSlot)) {
+                    throw new BadRequestException(`Selected ad placement '${normalizedPreferredPlacement}' is not available right now`);
+                }
+                return preferredSlot;
+            }
+
+            for (let i = 1; i <= 4; i++) {
+                const slot = `homepage_ad_slot_${i}`;
+                if (!occupiedSlots.includes(slot)) {
+                    return slot;
+                }
+            }
+            throw new BadRequestException('No available ad slots');
+        }
+    }
+
+    private normalizeRequestedHomepageAdPlacement(value?: string): 'top' | 'bottom' | 'left' | 'right' | null {
+        if (!value) return null;
+
+        const normalized = String(value).trim().toLowerCase();
+        const mapped: Record<string, 'top' | 'bottom' | 'left' | 'right'> = {
+            top: 'top',
+            bottom: 'bottom',
+            left: 'left',
+            right: 'right',
+            image: 'top',
+            video: 'top',
+        };
+
+        return mapped[normalized] || null;
+    }
+
+    private mapHomepageAdPlacementToSlot(placement: 'top' | 'bottom' | 'left' | 'right'): string {
+        const mapped: Record<'top' | 'bottom' | 'left' | 'right', string> = {
+            top: 'homepage_ad_slot_1',
+            left: 'homepage_ad_slot_2',
+            right: 'homepage_ad_slot_3',
+            bottom: 'homepage_ad_slot_4',
+        };
+
+        return mapped[placement];
+    }
+
+    // ============ PHASE 4: HOMEPAGE DISPLAY ENDPOINTS ============
+
+    /**
+     * Get all active homepage coupons for public display
+     * Status: payment_completed_active AND not expired
+     */
+    async getActiveHomepageCoupons(): Promise<Approval[]> {
+        const approvals = await this.approvalRepository.find({
+            where: {
+                approval_type: 'homepage_coupon_push',
+                approval_status: 'payment_completed_active',
+                payment_status: 'paid',
+                couponbatch_expired_at: MoreThan(new Date()),
+            },
+            relations: ['merchant', 'merchant.settings', 'coupon', 'coupon.batch', 'coupon.batch.template'],
+            order: {
+                placement: 'ASC',
+            },
+        });
+
+        const byBatch = new Map<number, Approval>();
+        const withoutBatch: Approval[] = [];
+
+        approvals.forEach((approval) => {
+            const batchId = approval?.coupon?.batch?.id;
+            if (!batchId) {
+                withoutBatch.push(approval);
+                return;
+            }
+            if (!byBatch.has(batchId)) {
+                byBatch.set(batchId, approval);
+            }
+        });
+
+        return [...Array.from(byBatch.values()), ...withoutBatch];
+    }
+
+    /**
+     * Get all active homepage ads for public display
+     * Status: payment_completed_active AND not expired
+     */
+    async getActiveHomepageAds(): Promise<any[]> {
+        const currentDate = new Date();
+        const approvals = await this.approvalRepository.find({
+            where: [
+                {
+                    approval_type: 'homepage_ad_push',
+                    approval_status: 'payment_completed_active',
+                    payment_status: 'paid',
+                    ad_expired_at: MoreThan(currentDate),
+                },
+                // {
+                //     approval_type: 'homepage_ad_push',
+                //     approval_status: 'payment_completed_active',
+                //     payment_status: 'paid',
+                //     ad_expired_at: IsNull(),
+                // },
+            ],
+            relations: ['merchant', 'merchant.settings'],
+            order: {
+                placement: 'ASC',
+            },
+        });
+
+        return approvals.map((approval) => ({
+            ...approval,
+            paid_ad_image:
+                approval.merchant?.settings?.paid_ad_image ||
+                approval.merchant?.paid_ad_image ||
+                null,
+            paid_ad_video: approval.merchant?.settings?.paid_ad_video,
+            paid_ad_video_status: approval.merchant?.settings?.paid_ad_video_status,
+            paid_ad_placement: this.normalizeHomepageAdPlacement(
+                approval.placement || approval.merchant?.settings?.paid_ad_placement || approval.merchant?.placement,
+            ),
+        }));
+    }
+
+    private normalizeHomepageAdPlacement(placement?: string): string {
+        if (!placement) return 'top';
+
+        const normalizedPlacement = String(placement).trim().toLowerCase();
+
+        const mapped: Record<string, string> = {
+            homepage_ad_slot_1: 'top',
+            homepage_ad_slot_2: 'left',
+            homepage_ad_slot_3: 'right',
+            homepage_ad_slot_4: 'bottom',
+        };
+
+        return mapped[normalizedPlacement] || normalizedPlacement;
     }
 }

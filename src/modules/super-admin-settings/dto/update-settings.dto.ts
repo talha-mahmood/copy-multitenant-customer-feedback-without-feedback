@@ -42,6 +42,37 @@ export class UpdateSuperAdminSettingsDto {
   @Min(0)
   coupon_temporary_platform_cost?: number;
 
+  // Homepage Placement Settings
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  homepage_coupon_placement_cost?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  homepage_ad_placement_cost?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  max_homepage_coupons?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  max_homepage_ads?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  coupon_homepage_placement_duration_days?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  ad_homepage_placement_duration_days?: number;
+
   @IsOptional()
   @IsString()
   currency?: string;
