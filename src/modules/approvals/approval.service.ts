@@ -224,16 +224,20 @@ export class ApprovalService {
         return refetched;
     }
 
-    async reject(id: number, adminId: number): Promise<Approval> {
+    async reject(id: number, adminId: number, disapprovalReason?: string): Promise<Approval> {
         const approval = await this.findOne(id);
 
         approval.approval_status = 'rejected';
         approval.admin_id = adminId;
+        if (disapprovalReason) {
+            approval.disapproval_reason = disapprovalReason;
+        }
 
-        console.log(`[ApprovalService] Rejecting ${id}, new status: ${approval.approval_status}`);
+        console.log(`[ApprovalService] Rejecting ${id}, new status: ${approval.approval_status}, reason: ${disapprovalReason}`);
         await this.approvalRepository.update(id, {
             approval_status: 'rejected',
-            admin_id: adminId
+            admin_id: adminId,
+            ...(disapprovalReason && { disapproval_reason: disapprovalReason })
         });
 
         // RAW QUERY VERIFICATION

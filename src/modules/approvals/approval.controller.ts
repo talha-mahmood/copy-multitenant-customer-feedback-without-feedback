@@ -21,6 +21,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, User } from '../../common/decorators/current-user';
 import { SkipSubscription } from 'src/common/decorators/skip-subscription.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
+import { PREDEFINED_REJECTION_REASONS } from './dto/rejection-reason.dto';
 
 @Controller('approvals')
 @UseGuards(JwtAuthGuard)
@@ -49,6 +50,14 @@ export class ApprovalController {
     findApproved() {
         return this.approvalService.findApproved();
     }
+
+    @Public()
+    @Get('rejection-reasons')
+    getRejectionReasons() {
+        return PREDEFINED_REJECTION_REASONS;
+    }
+
+
 
     @Get('merchant/:merchantId')
     findByMerchant(@Param('merchantId', ParseIntPipe) merchantId: number) {
@@ -83,7 +92,8 @@ export class ApprovalController {
         if (!user.adminId) {
             throw new UnauthorizedException('Admin ID not found in token');
         }
-        return this.approvalService.reject(targetId, user.adminId);
+        const disapprovalReason = body.disapproval_reason || body.disapprovalReason;
+        return this.approvalService.reject(targetId, user.adminId, disapprovalReason);
     }
 
 
