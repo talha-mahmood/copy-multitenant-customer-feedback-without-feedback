@@ -16,8 +16,54 @@ export class ApprovalExpiryCronService {
     private merchantSettingRepository: Repository<MerchantSetting>,
   ) {}
 
-  // Run every day at midnight to check for expired paid ads
-  @Cron('0 0 * * *') // Run daily at midnight
+  // Run every minute to activate scheduled paid ads at/after their selected start date
+  @Cron(CronExpression.EVERY_MINUTE)
+  async activateScheduledPaidAds() {
+    console.log('[ApprovalExpiryCron] Starting paid ads activation check...');
+
+    try {
+      const currentDate = new Date();
+
+      const approvedAds = await this.approvalRepository.find({
+        where: {
+          approval_type: 'paid_ad',
+          approval_status: 'approved',
+        },
+      });
+
+      const adsToActivate = approvedAds.filter((ad) => {
+        if (!ad.ad_created_at) return true;
+        const startsAt = new Date(ad.ad_created_at);
+        if (startsAt > currentDate) return false;
+        if (!ad.ad_expired_at) return true;
+        return new Date(ad.ad_expired_at) > currentDate;
+      });
+
+      if (adsToActivate.length === 0) {
+        console.log('[ApprovalExpiryCron] No paid ads to activate');
+        return;
+      }
+
+      for (const ad of adsToActivate) {
+        await this.merchantSettingRepository.update(
+          { merchant_id: ad.merchant_id },
+          { paid_ads: true },
+        );
+
+        await this.merchantRepository.update(
+          { id: ad.merchant_id },
+          { paid_ads: true },
+        );
+      }
+
+      console.log(`[ApprovalExpiryCron] Activated ${adsToActivate.length} paid ads`);
+    } catch (error) {
+      console.error('[ApprovalExpiryCron] Error during paid ads activation check:', error);
+    }
+  }
+
+  // Run every 10 minutes to expire paid ads close to their end date/time
+  @Cron(CronExpression.EVERY_10_MINUTES)
   async expirePaidAds() {
     console.log('[ApprovalExpiryCron] Starting paid ads expiry check...');
 
@@ -34,6 +80,7 @@ export class ApprovalExpiryCronService {
 
       // Filter ads that are actually expired
       const adsToExpire = expiredAds.filter(ad => {
+        if (ad.ad_created_at && new Date(ad.ad_created_at) > currentDate) return false;
         if (!ad.ad_expired_at) return false;
         return new Date(ad.ad_expired_at) <= currentDate;
       });

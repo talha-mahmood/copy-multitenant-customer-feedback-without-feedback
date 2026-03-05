@@ -29,7 +29,7 @@ export class ApprovalService {
         private dataSource: DataSource,
     ) { }
 
-    async create(createApprovalDto: CreateApprovalDto): Promise<Approval> {
+    async create(createApprovalDto: Partial<Approval>): Promise<Approval> {
         const approval = this.approvalRepository.create(createApprovalDto);
         return await this.approvalRepository.save(approval);
     }
@@ -175,8 +175,9 @@ export class ApprovalService {
                 throw new NotFoundException(`Merchant settings not found for merchant ID ${approval.merchant_id}`);
             }
 
-            // Set ad_created_at to now
-            const adCreatedAt = new Date();
+            const now = new Date();
+            const requestedStartDate = approval.ad_created_at ? new Date(approval.ad_created_at) : null;
+            const adCreatedAt = requestedStartDate && requestedStartDate > now ? requestedStartDate : now;
             
             // Calculate ad_expired_at based on paid_ad_duration
             const duration = merchantSettings.paid_ad_duration || 7; // Default 7 days
@@ -260,6 +261,9 @@ export class ApprovalService {
 
         // Filter out expired ads
         const activeApprovals = approvals.filter(approval => {
+            if (approval.ad_created_at && new Date(approval.ad_created_at) > currentDate) {
+                return false;
+            }
             if (!approval.ad_expired_at) return true; // Include if no expiration date set
             return new Date(approval.ad_expired_at) > currentDate;
         });
@@ -355,7 +359,9 @@ export class ApprovalService {
         try {
             console.log(`[ApprovalService] Handling side effects for type: ${approval.approval_type}, status: ${approval.approval_status}`);
             if (approval.approval_type === 'paid_ad') {
-                const isActive = approval.approval_status === 'approved';
+                const now = new Date();
+                const startsAt = approval.ad_created_at ? new Date(approval.ad_created_at) : now;
+                const isActive = approval.approval_status === 'approved' && startsAt <= now;
 
                 console.log(`[ApprovalService] Updating merchant ${approval.merchant_id} settings.paid_ads to ${isActive}`);
                 await this.merchantSettingRepository.update(

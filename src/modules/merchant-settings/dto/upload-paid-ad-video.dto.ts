@@ -1,5 +1,5 @@
 import { IsFile, MemoryStoredFile } from 'nestjs-form-data';
-import { IsOptional, IsString, IsInt, Min } from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, IsDateString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UploadPaidAdVideoDto {
@@ -15,4 +15,8 @@ export class UploadPaidAdVideoDto {
   @IsInt()
   @Min(1)
   paidAdDuration?: number;
+
+  @IsOptional()
+  @IsDateString()
+  paidAdStartDate?: string;
 }

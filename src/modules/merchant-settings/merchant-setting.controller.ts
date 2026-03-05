@@ -61,6 +61,7 @@ export class MerchantSettingController {
       uploadPaidAdImageDto.paidAdImage,
       uploadPaidAdImageDto.paidAdPlacement,
       uploadPaidAdImageDto.paidAdDuration,
+      uploadPaidAdImageDto.paidAdStartDate,
     );
   }
 
@@ -76,6 +77,7 @@ export class MerchantSettingController {
       uploadPaidAdVideoDto.paidAdVideo,
       uploadPaidAdVideoDto.paidAdPlacement,
       uploadPaidAdVideoDto.paidAdDuration,
+      uploadPaidAdVideoDto.paidAdStartDate,
     );
   }
 

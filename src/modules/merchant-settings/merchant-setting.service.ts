@@ -255,7 +255,13 @@ export class MerchantSettingService {
     };
   }
 
-  async uploadPaidAdImage(merchantId: number, paidAdImage: any, paidAdPlacement?: string, paidAdDuration?: number) {
+  async uploadPaidAdImage(
+    merchantId: number,
+    paidAdImage: any,
+    paidAdPlacement?: string,
+    paidAdDuration?: number,
+    paidAdStartDate?: string,
+  ) {
     const setting = await this.merchantSettingRepository.findOne({
       where: { merchant_id: merchantId },
     });
@@ -292,6 +298,7 @@ export class MerchantSettingService {
     }
 
     const updated = await this.merchantSettingRepository.save(setting);
+    const requestedAdStartAt = this.resolveRequestedAdStartDate(paidAdStartDate);
 
     // Create approval record with merchant's admin_id as agent_id
     const approval = await this.approvalService.create({
@@ -302,6 +309,7 @@ export class MerchantSettingService {
       request_from: 'merchant',
       approval_status: 'pending',
       ad_type: 'image',
+      ad_created_at: requestedAdStartAt,
     });
 
     return {
@@ -315,7 +323,13 @@ export class MerchantSettingService {
     };
   }
 
-  async uploadPaidAdVideo(merchantId: number, paidAdVideo: any, paidAdPlacement?: string, paidAdDuration?: number) {
+  async uploadPaidAdVideo(
+    merchantId: number,
+    paidAdVideo: any,
+    paidAdPlacement?: string,
+    paidAdDuration?: number,
+    paidAdStartDate?: string,
+  ) {
     const setting = await this.merchantSettingRepository.findOne({
       where: { merchant_id: merchantId },
     });
@@ -352,6 +366,7 @@ export class MerchantSettingService {
     }
 
     const updated = await this.merchantSettingRepository.save(setting);
+    const requestedAdStartAt = this.resolveRequestedAdStartDate(paidAdStartDate);
 
     // Create approval record with merchant's admin_id as agent_id
     const approval = await this.approvalService.create({
@@ -362,6 +377,7 @@ export class MerchantSettingService {
       request_from: 'merchant',
       approval_status: 'pending',
       ad_type: 'video',
+      ad_created_at: requestedAdStartAt,
     });
 
     return {
@@ -450,5 +466,28 @@ export class MerchantSettingService {
     });
 
     return await repository.save(setting);
+  }
+
+  private resolveRequestedAdStartDate(paidAdStartDate?: string): Date {
+    if (!paidAdStartDate) {
+      return new Date();
+    }
+
+    const parsedDate = new Date(paidAdStartDate);
+    if (Number.isNaN(parsedDate.getTime())) {
+      throw new BadRequestException('Invalid paid ad start date');
+    }
+
+    const startDateOnly = new Date(parsedDate);
+    startDateOnly.setHours(0, 0, 0, 0);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (startDateOnly < today) {
+      throw new BadRequestException('Paid ad start date cannot be in the past');
+    }
+
+    return startDateOnly;
   }
 }
