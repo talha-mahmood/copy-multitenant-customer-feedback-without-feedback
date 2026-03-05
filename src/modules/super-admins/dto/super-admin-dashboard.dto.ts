@@ -30,6 +30,7 @@ export interface SuperAdminDashboardResponse {
     agentSubscriptionRevenue: number;
     annualSubscriptionRevenue: number;
     creditPurchaseRevenue: number;
+    homepagePlacementRevenue: number;
     monthlyRevenue: Array<{
       month: string;
       revenue: number;

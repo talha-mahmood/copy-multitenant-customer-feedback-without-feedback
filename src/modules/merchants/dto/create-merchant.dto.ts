@@ -17,6 +17,10 @@ export class CreateMerchantDto {
   @IsString()
   name: string;
 
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
   @IsNotEmpty()
   @IsString()
   role: string; // 'merchant'

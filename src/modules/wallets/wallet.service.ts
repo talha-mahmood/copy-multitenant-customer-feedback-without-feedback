@@ -194,7 +194,7 @@ export class WalletService {
   /**
    * Get super admin wallet
    */
-  async getSuperAdminWallet(): Promise<SuperAdminWallet> {
+  async getSuperAdminWallet(): Promise<SuperAdminWallet & { homepage_placement_revenue: number }> {
     const wallet = await this.superAdminWalletRepository.findOne({
       where: { is_active: true },
       relations: ['superAdmin', 'superAdmin.user'],
@@ -204,7 +204,21 @@ export class WalletService {
       throw new NotFoundException('Super admin wallet not found');
     }
 
-    return wallet;
+    const homepageRevenueResult = await this.transactionRepository
+      .createQueryBuilder('transaction')
+      .select("COALESCE(SUM(transaction.amount), 0)", 'homepagePlacementRevenue')
+      .where('transaction.super_admin_wallet_id = :walletId', { walletId: wallet.id })
+      .andWhere('transaction.type = :type', {
+        type: 'homepage_placement_revenue',
+      })
+      .getRawOne();
+
+    return {
+      ...wallet,
+      homepage_placement_revenue: parseFloat(
+        homepageRevenueResult?.homepagePlacementRevenue || '0',
+      ),
+    };
   }
 
   /**
