@@ -1305,6 +1305,87 @@ export class WalletService {
   }
 
   /**
+   * Refund paid ad credit to merchant wallet when ad is rejected
+   */
+  async refundPaidAdCredit(merchantId: number, reason: string = 'Ad rejection'): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const wallet = await queryRunner.manager.findOne(MerchantWallet, {
+        where: { merchant_id: merchantId },
+      });
+
+      if (!wallet) {
+        throw new NotFoundException('Merchant wallet not found');
+      }
+
+      // Refund 1 credit for paid ad and decrement total_credits_used
+      await queryRunner.manager.update(MerchantWallet, wallet.id, {
+        paid_ad_credits: wallet.paid_ad_credits + 1,
+        total_credits_used: Math.max(0, wallet.total_credits_used - 1), // Ensure it doesn't go below 0
+      });
+
+      // Create transaction record for refund
+      await queryRunner.manager.save(WalletTransaction, {
+        merchant_wallet_id: wallet.id,
+        type: 'refund',
+        amount: 0,
+        status: 'completed',
+        description: `Paid ad credit refunded - ${reason}`,
+        metadata: JSON.stringify({
+          credit_type: 'paid ads',
+          credits_refunded: 1,
+          credits_after_refund: wallet.paid_ad_credits + 1,
+          total_used_after_refund: Math.max(0, wallet.total_credits_used - 1),
+          reason: reason,
+        }),
+        completed_at: new Date(),
+      });
+
+      // Create ledger entry for credit refund
+      await queryRunner.manager.save(CreditsLedger, {
+        owner_type: 'merchant',
+        owner_id: merchantId,
+        credit_type: 'paid_ads',
+        action: 'refund',
+        amount: 1,
+        balance_before: wallet.paid_ad_credits,
+        balance_after: wallet.paid_ad_credits + 1,
+        related_object_type: 'approval',
+        description: `Refunded 1 paid ad credit - ${reason}`,
+        metadata: JSON.stringify({
+          reason: reason,
+          refunded_at: new Date(),
+        }),
+      });
+
+      await queryRunner.commitTransaction();
+
+      // Log the refund
+      await this.systemLogService.logWallet(
+        SystemLogAction.CREDIT_ADD,
+        `Refunded 1 paid ad credit to merchant wallet - ${reason}`,
+        merchantId,
+        'merchant',
+        0,
+        {
+          merchant_id: merchantId,
+          credits_refunded: 1,
+          credit_type: 'paid ads',
+          reason: reason,
+        },
+      );
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
    * Deduct coupon credits from merchant wallet
    */
   async deductCouponCredits(merchantId: number, couponCount: number): Promise<void> {

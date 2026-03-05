@@ -6,9 +6,10 @@ import { approvalProviders } from './approval.provider';
 import { DatabaseModule } from 'src/database/database.module';
 import { merchantProviders } from '../merchants/merchant.provider';
 import { merchantSettingProviders } from '../merchant-settings/merchant-setting.provider';
+import { WalletModule } from '../wallets/wallet.module';
 
 @Module({
-    imports: [DatabaseModule],
+    imports: [DatabaseModule, WalletModule],
     controllers: [ApprovalController],
     providers: [
         ...approvalProviders,

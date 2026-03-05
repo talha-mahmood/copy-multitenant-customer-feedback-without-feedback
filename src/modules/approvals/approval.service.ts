@@ -5,6 +5,7 @@ import { CreateApprovalDto } from './dto/create-approval.dto';
 import { UpdateApprovalDto } from './dto/update-approval.dto';
 import { Merchant } from '../merchants/entities/merchant.entity';
 import { MerchantSetting } from '../merchant-settings/entities/merchant-setting.entity';
+import { WalletService } from '../wallets/wallet.service';
 
 @Injectable()
 export class ApprovalService {
@@ -15,6 +16,7 @@ export class ApprovalService {
         private merchantRepository: Repository<Merchant>,
         @Inject('MERCHANT_SETTING_REPOSITORY')
         private merchantSettingRepository: Repository<MerchantSetting>,
+        private walletService: WalletService,
     ) { }
 
     async create(createApprovalDto: CreateApprovalDto): Promise<Approval> {
@@ -234,6 +236,21 @@ export class ApprovalService {
 
         const refetched = await this.findOne(id);
         await this.handleApprovalSideEffects(refetched);
+
+        // Refund paid ad credit if this is a paid_ad rejection
+        if (refetched.approval_type === 'paid_ad') {
+            try {
+                console.log(`[ApprovalService] Refunding paid ad credit to merchant ${refetched.merchant_id} for rejected ad`);
+                await this.walletService.refundPaidAdCredit(
+                    refetched.merchant_id,
+                    disapprovalReason || 'Ad rejection'
+                );
+                console.log(`[ApprovalService] Successfully refunded credit to merchant ${refetched.merchant_id}`);
+            } catch (error) {
+                console.error(`[ApprovalService] Error refunding credit to merchant ${refetched.merchant_id}:`, error);
+                // Log the error but don't throw it to avoid breaking the rejection flow
+            }
+        }
 
         return refetched;
     }
