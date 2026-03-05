@@ -36,14 +36,14 @@ export class ApprovalService {
 
     async findAll(): Promise<Approval[]> {
         return await this.approvalRepository.find({
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon' , 'coupon.batch'],
         });
     }
 
     async findOne(id: number): Promise<Approval> {
         const approval = await this.approvalRepository.findOne({
             where: { id },
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon' , 'coupon.batch'],
         });
 
         if (!approval) {
@@ -56,7 +56,7 @@ export class ApprovalService {
     async findByMerchant(merchantId: number): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { merchant_id: merchantId },
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon' , 'coupon.batch'],
         });
     }
 
