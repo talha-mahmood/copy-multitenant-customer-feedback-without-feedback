@@ -37,14 +37,14 @@ export class ApprovalService {
 
     async findAll(): Promise<Approval[]> {
         return await this.approvalRepository.find({
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon' ,'coupon.batch'],
         });
     }
 
     async findOne(id: number): Promise<Approval> {
         const approval = await this.approvalRepository.findOne({
             where: { id },
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon' ,'coupon.batch'],
         });
 
         if (!approval) {
@@ -57,35 +57,35 @@ export class ApprovalService {
     async findByMerchant(merchantId: number): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { merchant_id: merchantId },
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon' ,'coupon.batch'],
         });
     }
 
     async findByAdmin(adminId: number): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { admin_id: adminId },
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon','coupon.batch'],
         });
     }
 
     async findByAgent(agentId: number): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { agent_id: agentId },
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon','coupon.batch'],
         });
     }
 
     async findPending(): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { approval_status: 'pending' },
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon','coupon.batch'],
         });
     }
 
     async findApproved(): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { approval_status: 'approved' },
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon','coupon.batch'],
         });
     }
 
@@ -249,6 +249,21 @@ export class ApprovalService {
         const refetched = await this.findOne(id);
         await this.handleApprovalSideEffects(refetched);
 
+        // Refund paid ad credit if this is a paid_ad rejection
+        if (refetched.approval_type === 'paid_ad') {
+            try {
+                console.log(`[ApprovalService] Refunding paid ad credit to merchant ${refetched.merchant_id} for rejected ad`);
+                await this.walletService.refundPaidAdCredit(
+                    refetched.merchant_id,
+                    disapprovalReason || 'Ad rejection'
+                );
+                console.log(`[ApprovalService] Successfully refunded credit to merchant ${refetched.merchant_id}`);
+            } catch (error) {
+                console.error(`[ApprovalService] Error refunding credit to merchant ${refetched.merchant_id}:`, error);
+                // Log the error but don't throw it to avoid breaking the rejection flow
+            }
+        }
+
         return refetched;
     }
 
@@ -379,6 +394,22 @@ export class ApprovalService {
                     { id: approval.merchant_id },
                     { paid_ads: isActive }
                 );
+
+                // If rejected, clear the paid ad data from merchant settings
+                if (approval.approval_status === 'rejected') {
+                    console.log(`[ApprovalService] Clearing paid ad data for rejected ad of merchant ${approval.merchant_id}`);
+                    await this.merchantSettingRepository.update(
+                        { merchant_id: approval.merchant_id },
+                        { 
+                            paid_ad_image: null,
+                            paid_ad_video: null,
+                            paid_ad_placement: null,
+                            paid_ad_duration: 7, // Reset to default
+                            paid_ad_video_status: false,
+                        }
+                    );
+                    console.log(`[ApprovalService] Cleared paid ad data for merchant ${approval.merchant_id}`);
+                }
             }
         } catch (error) {
             console.error('[ApprovalService] Error in handleApprovalSideEffects:', error);
