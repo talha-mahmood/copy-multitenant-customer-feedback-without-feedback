@@ -377,6 +377,22 @@ export class ApprovalService {
                     { id: approval.merchant_id },
                     { paid_ads: isActive }
                 );
+
+                // If rejected, clear the paid ad data from merchant settings
+                if (approval.approval_status === 'rejected') {
+                    console.log(`[ApprovalService] Clearing paid ad data for rejected ad of merchant ${approval.merchant_id}`);
+                    await this.merchantSettingRepository.update(
+                        { merchant_id: approval.merchant_id },
+                        { 
+                            paid_ad_image: null,
+                            paid_ad_video: null,
+                            paid_ad_placement: null,
+                            paid_ad_duration: 7, // Reset to default
+                            paid_ad_video_status: false,
+                        }
+                    );
+                    console.log(`[ApprovalService] Cleared paid ad data for merchant ${approval.merchant_id}`);
+                }
             }
         } catch (error) {
             console.error('[ApprovalService] Error in handleApprovalSideEffects:', error);

@@ -384,7 +384,24 @@ export class MerchantSettingService {
       throw new NotFoundException(`Settings for merchant ID ${merchantId} not found`);
     }
 
+    // Check if there's a pending or approved approval for this merchant's paid ad
+    const existingApproval = await this.approvalService.findByMerchant(merchantId);
+    const hasPendingOrApproved = existingApproval.some(
+      approval => 
+        approval.approval_type === 'paid_ad' && 
+        (approval.approval_status === 'pending' || approval.approval_status === 'approved')
+    );
+
+    if (hasPendingOrApproved) {
+      throw new BadRequestException(
+        'Cannot delete paid ad that is pending approval or already approved. Please wait for rejection or contact support.'
+      );
+    }
+
+    // Clear all paid ad related data
     setting.paid_ad_image = null;
+    setting.paid_ad_placement = null;
+    setting.paid_ad_duration = 7; // Reset to default
     await this.merchantSettingRepository.save(setting);
 
     return {
@@ -402,8 +419,25 @@ export class MerchantSettingService {
       throw new NotFoundException(`Settings for merchant ID ${merchantId} not found`);
     }
 
+    // Check if there's a pending or approved approval for this merchant's paid ad
+    const existingApproval = await this.approvalService.findByMerchant(merchantId);
+    const hasPendingOrApproved = existingApproval.some(
+      approval => 
+        approval.approval_type === 'paid_ad' && 
+        (approval.approval_status === 'pending' || approval.approval_status === 'approved')
+    );
+
+    if (hasPendingOrApproved) {
+      throw new BadRequestException(
+        'Cannot delete paid ad that is pending approval or already approved. Please wait for rejection or contact support.'
+      );
+    }
+
+    // Clear all paid ad related data
     setting.paid_ad_video = null;
     setting.paid_ad_video_status = false;
+    setting.paid_ad_placement = null;
+    setting.paid_ad_duration = 7; // Reset to default
     await this.merchantSettingRepository.save(setting);
 
     return {
