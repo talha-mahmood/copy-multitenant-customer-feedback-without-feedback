@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsOptional, IsString } from 'class-validator';
 
 export class CreateHomepageAdRequestDto {
     @IsOptional()
@@ -8,4 +8,8 @@ export class CreateHomepageAdRequestDto {
     @IsOptional()
     @IsString()
     ad_placement?: string;
+
+    @IsOptional()
+    @IsDateString()
+    start_date?: string;
 }

@@ -35,6 +35,12 @@ export class CreateApprovalDto {
     @IsString()
     ad_type?: string;
 
+    @IsOptional()
+    ad_created_at?: Date;
+
+    @IsOptional()
+    ad_expired_at?: Date;
+
     @Exists(() => Admin, 'id', { message: 'Admin must exist' })
     @IsOptional()
     @IsNumber()
