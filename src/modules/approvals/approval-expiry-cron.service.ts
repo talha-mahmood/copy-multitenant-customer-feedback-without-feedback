@@ -122,6 +122,62 @@ export class ApprovalExpiryCronService {
   }
 
   // Run every 10 minutes to remove ended homepage placements (coupon batches + ads)
+  @Cron(CronExpression.EVERY_MINUTE)
+  async activateScheduledHomepagePlacements() {
+    console.log('[ApprovalExpiryCron] Starting scheduled homepage placement activation check...');
+
+    try {
+      const currentDate = new Date();
+
+      const scheduledPlacements = await this.approvalRepository.find({
+        where: [
+          {
+            approval_type: 'homepage_coupon_push',
+            approval_status: 'payment_completed_scheduled',
+            payment_status: 'paid',
+          },
+          {
+            approval_type: 'homepage_ad_push',
+            approval_status: 'payment_completed_scheduled',
+            payment_status: 'paid',
+          },
+        ],
+      });
+
+      const placementsToActivate = scheduledPlacements.filter((placement) => {
+        const startsAt = placement.approval_type === 'homepage_coupon_push'
+          ? placement.couponbatch_created_at
+          : placement.ad_created_at;
+        const expiresAt = placement.approval_type === 'homepage_coupon_push'
+          ? placement.couponbatch_expired_at
+          : placement.ad_expired_at;
+
+        if (!startsAt) return false;
+        if (new Date(startsAt) > currentDate) return false;
+        if (!expiresAt) return true;
+        return new Date(expiresAt) > currentDate;
+      });
+
+      if (placementsToActivate.length === 0) {
+        console.log('[ApprovalExpiryCron] No scheduled homepage placements to activate');
+        return;
+      }
+
+      for (const placement of placementsToActivate) {
+        await this.approvalRepository.update(placement.id, {
+          approval_status: 'payment_completed_active',
+        });
+      }
+
+      console.log(
+        `[ApprovalExpiryCron] Activated ${placementsToActivate.length} scheduled homepage placements`,
+      );
+    } catch (error) {
+      console.error('[ApprovalExpiryCron] Error during scheduled homepage placement activation:', error);
+    }
+  }
+
+  // Run every 10 seconds to remove ended homepage placements (coupon batches + ads)
   @Cron(CronExpression.EVERY_10_SECONDS)
   async expireHomepagePlacements() {
     console.log('[ApprovalExpiryCron] Starting homepage placements expiry check...');
@@ -133,36 +189,38 @@ export class ApprovalExpiryCronService {
         where: [
           {
             approval_type: 'homepage_coupon_push',
-            approval_status: 'payment_completed_active',
             payment_status: 'paid',
             couponbatch_expired_at: LessThanOrEqual(currentDate),
           },
           {
             approval_type: 'homepage_ad_push',
-            approval_status: 'payment_completed_active',
             payment_status: 'paid',
             ad_expired_at: LessThanOrEqual(currentDate),
           },
         ],
       });
 
-      if (expiredHomepagePlacements.length === 0) {
+      const placementsToExpire = expiredHomepagePlacements.filter((placement) =>
+        ['payment_completed_active', 'payment_completed_scheduled'].includes(placement.approval_status),
+      );
+
+      if (placementsToExpire.length === 0) {
         console.log('[ApprovalExpiryCron] No homepage placements to expire');
         return;
       }
 
       console.log(
-        `[ApprovalExpiryCron] Found ${expiredHomepagePlacements.length} homepage placements to expire`,
+        `[ApprovalExpiryCron] Found ${placementsToExpire.length} homepage placements to expire`,
       );
 
-      for (const placement of expiredHomepagePlacements) {
+      for (const placement of placementsToExpire) {
         await this.approvalRepository.update(placement.id, {
           approval_status: 'expired',
         });
       }
 
       console.log(
-        `[ApprovalExpiryCron] Completed homepage placement expiry. Expired ${expiredHomepagePlacements.length} records`,
+        `[ApprovalExpiryCron] Completed homepage placement expiry. Expired ${placementsToExpire.length} records`,
       );
     } catch (error) {
       console.error('[ApprovalExpiryCron] Error during homepage placements expiry check:', error);

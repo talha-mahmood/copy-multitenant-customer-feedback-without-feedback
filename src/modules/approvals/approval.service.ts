@@ -12,6 +12,7 @@ import { SuperAdminWallet } from '../wallets/entities/super-admin-wallet.entity'
 import { WalletTransaction } from '../wallets/entities/wallet-transaction.entity';
 import { Coupon } from '../coupons/entities/coupon.entity';
 import { CreateHomepageCouponRequestDto } from './dto/create-homepage-coupon-request.dto';
+import { CreateHomepageAdRequestDto } from './dto/create-homepage-ad-request.dto';
 
 @Injectable()
 export class ApprovalService {
@@ -456,6 +457,8 @@ export class ApprovalService {
             );
         }
 
+        const requestedStartDate = this.resolveHomepagePlacementStartDate(dto?.start_date);
+
         // Create approval request
         const approval = this.approvalRepository.create({
             merchant_id: merchantId,
@@ -467,22 +470,26 @@ export class ApprovalService {
             coupon_id: resolvedCouponId,
             forwarded_by_agent: false,
             payment_status: 'pending',
+            couponbatch_created_at: requestedStartDate,
         });
 
         return await this.approvalRepository.save(approval);
     }
 
-    async createHomepageAdRequest(merchantId: number, adPlacement?: string): Promise<Approval> {
+    async createHomepageAdRequest(merchantId: number, dto: CreateHomepageAdRequestDto): Promise<Approval> {
         // Verify merchant exists
         const merchant = await this.merchantRepository.findOne({ where: { id: merchantId } });
         if (!merchant) {
             throw new NotFoundException(`Merchant with ID ${merchantId} not found`);
         }
 
+        const adPlacement = dto?.ad_placement;
         const normalizedPlacement = this.normalizeRequestedHomepageAdPlacement(adPlacement);
         if (!normalizedPlacement) {
             throw new BadRequestException('Ad placement must be one of: top, bottom, left, right');
         }
+
+        const requestedStartDate = this.resolveHomepagePlacementStartDate(dto?.start_date);
 
         // const merchantSettings = await this.merchantSettingRepository.findOne({
         //     where: { merchant_id: merchantId },
@@ -511,6 +518,7 @@ export class ApprovalService {
             ad_type: normalizedPlacement,
             forwarded_by_agent: false,
             payment_status: 'pending',
+            ad_created_at: requestedStartDate,
         });
 
         return await this.approvalRepository.save(approval);
@@ -776,7 +784,14 @@ export class ApprovalService {
                 ? settings.coupon_homepage_placement_duration_days
                 : settings.ad_homepage_placement_duration_days;
 
-            const createdAt = new Date();
+            const now = new Date();
+            const requestedStartAt = approval.approval_type === 'homepage_coupon_push'
+                ? approval.couponbatch_created_at
+                : approval.ad_created_at;
+            const createdAt = requestedStartAt && new Date(requestedStartAt) > now
+                ? new Date(requestedStartAt)
+                : now;
+
             const expiredAt = new Date(createdAt);
             expiredAt.setDate(expiredAt.getDate() + duration);
 
@@ -787,7 +802,7 @@ export class ApprovalService {
             const updatePayload: Partial<Approval> = {
                 payment_status: 'paid',
                 payment_intent_id: paymentIntentId,
-                approval_status: 'payment_completed_active',
+                approval_status: createdAt > now ? 'payment_completed_scheduled' : 'payment_completed_active',
                 placement,
             };
 
@@ -840,7 +855,9 @@ export class ApprovalService {
         const query = this.approvalRepository
             .createQueryBuilder('approval')
             .where('approval.approval_type = :approvalType', { approvalType })
-            .andWhere('approval.approval_status = :approvalStatus', { approvalStatus: 'payment_completed_active' })
+            .andWhere('approval.approval_status IN (:...approvalStatuses)', {
+                approvalStatuses: ['payment_completed_active', 'payment_completed_scheduled'],
+            })
             .andWhere('approval.payment_status = :paymentStatus', { paymentStatus: 'paid' });
 
         if (approvalType === 'homepage_coupon_push') {
@@ -859,7 +876,9 @@ export class ApprovalService {
             .innerJoin('approval.coupon', 'coupon')
             .where('approval.approval_type = :approvalType', { approvalType: 'homepage_coupon_push' })
             .andWhere('coupon.batch_id = :batchId', { batchId })
-            .andWhere('approval.approval_status = :approvalStatus', { approvalStatus: 'payment_completed_active' })
+            .andWhere('approval.approval_status IN (:...approvalStatuses)', {
+                approvalStatuses: ['payment_completed_active', 'payment_completed_scheduled'],
+            })
             .andWhere('approval.payment_status = :paymentStatus', { paymentStatus: 'paid' })
             .andWhere('approval.couponbatch_expired_at > :currentDate', { currentDate });
 
@@ -876,7 +895,9 @@ export class ApprovalService {
         const query = this.approvalRepository
             .createQueryBuilder('approval')
             .where('approval.approval_type = :approvalType', { approvalType })
-            .andWhere('approval.approval_status = :approvalStatus', { approvalStatus: 'payment_completed_active' })
+            .andWhere('approval.approval_status IN (:...approvalStatuses)', {
+                approvalStatuses: ['payment_completed_active', 'payment_completed_scheduled'],
+            })
             .andWhere('approval.payment_status = :paymentStatus', { paymentStatus: 'paid' });
 
         if (approvalType === 'homepage_coupon_push') {
@@ -944,6 +965,21 @@ export class ApprovalService {
         };
 
         return mapped[placement];
+    }
+
+    private resolveHomepagePlacementStartDate(startDate?: string): Date {
+        if (!startDate) {
+            return new Date();
+        }
+
+        const parsedDate = new Date(startDate);
+        if (Number.isNaN(parsedDate.getTime())) {
+            throw new BadRequestException('Invalid start date');
+        }
+
+        const normalized = new Date(parsedDate);
+        normalized.setHours(0, 0, 0, 0);
+        return normalized;
     }
 
     // ============ PHASE 4: HOMEPAGE DISPLAY ENDPOINTS ============

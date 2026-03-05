@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsOptional, ValidateIf } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsNumber, IsOptional, ValidateIf } from 'class-validator';
 import { Exists } from 'src/common/decorators/exists.decorator';
 import { Coupon } from 'src/modules/coupons/entities/coupon.entity';
 import { CouponBatch } from 'src/modules/coupon-batches/entities/coupon-batch.entity';
@@ -15,4 +15,8 @@ export class CreateHomepageCouponRequestDto {
     @IsOptional()
     @IsNumber()
     coupon_batch_id: number;
+
+    @IsOptional()
+    @IsDateString()
+    start_date?: string;
 }
