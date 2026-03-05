@@ -2,59 +2,71 @@ import { MigrationInterface, QueryRunner, TableColumn, TableForeignKey } from 't
 
 export class AddHomepagePushFieldsToApprovals1770700000000 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
-        // Add coupon_id column
-        await queryRunner.addColumn('approvals', new TableColumn({
-            name: 'coupon_id',
-            type: 'integer',
-            isNullable: true,
-        }));
+        // Get existing table structure
+        const table = await queryRunner.getTable('approvals');
+        if (!table) {
+            throw new Error('Approvals table not found');
+        }
+        const columnNames = table.columns.map(col => col.name);
 
-        // Add foreign key for coupon_id
-        await queryRunner.createForeignKey('approvals', new TableForeignKey({
-            columnNames: ['coupon_id'],
-            referencedColumnNames: ['id'],
-            referencedTableName: 'coupons',
-            onDelete: 'CASCADE',
-        }));
+        // Add coupon_id column
+        if (!columnNames.includes('coupon_id')) {
+            await queryRunner.addColumn('approvals', new TableColumn({
+                name: 'coupon_id',
+                type: 'integer',
+                isNullable: true,
+            }));
+
+            // Add foreign key for coupon_id
+            await queryRunner.createForeignKey('approvals', new TableForeignKey({
+                columnNames: ['coupon_id'],
+                referencedColumnNames: ['id'],
+                referencedTableName: 'coupons',
+                onDelete: 'CASCADE',
+            }));
+        }
 
         // Add forwarded_by_agent column
-        await queryRunner.addColumn('approvals', new TableColumn({
-            name: 'forwarded_by_agent',
-            type: 'boolean',
-            default: false,
-        }));
+        if (!columnNames.includes('forwarded_by_agent')) {
+            await queryRunner.addColumn('approvals', new TableColumn({
+                name: 'forwarded_by_agent',
+                type: 'boolean',
+                default: false,
+            }));
+        }
 
         // Add payment_status column
-        await queryRunner.addColumn('approvals', new TableColumn({
-            name: 'payment_status',
-            type: 'varchar',
-            length: '50',
-            default: "'pending'",
-        }));
+        if (!columnNames.includes('payment_status')) {
+            await queryRunner.addColumn('approvals', new TableColumn({
+                name: 'payment_status',
+                type: 'varchar',
+                length: '50',
+                default: "'pending'",
+            }));
+        }
 
         // Add payment_amount column
-        await queryRunner.addColumn('approvals', new TableColumn({
-            name: 'payment_amount',
-            type: 'decimal',
-            precision: 10,
-            scale: 2,
-            isNullable: true,
-        }));
+        if (!columnNames.includes('payment_amount')) {
+            await queryRunner.addColumn('approvals', new TableColumn({
+                name: 'payment_amount',
+                type: 'decimal',
+                precision: 10,
+                scale: 2,
+                isNullable: true,
+            }));
+        }
 
         // Add payment_intent_id column
-        await queryRunner.addColumn('approvals', new TableColumn({
-            name: 'payment_intent_id',
-            type: 'varchar',
-            length: '255',
-            isNullable: true,
-        }));
+        if (!columnNames.includes('payment_intent_id')) {
+            await queryRunner.addColumn('approvals', new TableColumn({
+                name: 'payment_intent_id',
+                type: 'varchar',
+                length: '255',
+                isNullable: true,
+            }));
+        }
 
-        // Add disapproval_reason column
-        await queryRunner.addColumn('approvals', new TableColumn({
-            name: 'disapproval_reason',
-            type: 'text',
-            isNullable: true,
-        }));
+        // Skip disapproval_reason - already exists from previous migration
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {

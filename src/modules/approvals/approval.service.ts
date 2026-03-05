@@ -36,14 +36,14 @@ export class ApprovalService {
 
     async findAll(): Promise<Approval[]> {
         return await this.approvalRepository.find({
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon'],
         });
     }
 
     async findOne(id: number): Promise<Approval> {
         const approval = await this.approvalRepository.findOne({
             where: { id },
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon'],
         });
 
         if (!approval) {
@@ -56,35 +56,35 @@ export class ApprovalService {
     async findByMerchant(merchantId: number): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { merchant_id: merchantId },
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon'],
         });
     }
 
     async findByAdmin(adminId: number): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { admin_id: adminId },
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon'],
         });
     }
 
     async findByAgent(agentId: number): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { agent_id: agentId },
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon'],
         });
     }
 
     async findPending(): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { approval_status: 'pending' },
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon'],
         });
     }
 
     async findApproved(): Promise<Approval[]> {
         return await this.approvalRepository.find({
             where: { approval_status: 'approved' },
-            relations: ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'],
+            relations: ['merchant', 'merchant.settings', 'admin', 'coupon'],
         });
     }
 
