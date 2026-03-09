@@ -9,6 +9,7 @@ import {
     UseGuards,
     ParseIntPipe,
     UnauthorizedException,
+    NotFoundException,
 } from '@nestjs/common';
 import { ApprovalService } from './approval.service';
 import { ApprovalExpiryCronService } from './approval-expiry-cron.service';
@@ -214,6 +215,33 @@ export class ApprovalController {
     @Public()
     getAvailableHomepageSlots() {
         return this.approvalService.getAvailableHomepageSlots();
+    }
+
+    @Get('booked-dates/:placement')
+    @Public()
+    getBookedDatesForPlacement(
+        @Param('placement') placement: string,
+        @Body('adminId') adminId?: number,
+    ) {
+        return this.approvalService.getBookedDatesPublic(placement, adminId);
+    }
+
+    @Get('booked-dates/:placement/merchant/:merchantId')
+    @Public()
+    async getBookedDatesForMerchant(
+        @Param('placement') placement: string,
+        @Param('merchantId', ParseIntPipe) merchantId: number,
+    ) {
+        // Get merchant to find their admin_id
+        const merchant = await this.approvalService['merchantRepository'].findOne({
+            where: { id: merchantId },
+        });
+        
+        if (!merchant) {
+            throw new NotFoundException(`Merchant with ID ${merchantId} not found`);
+        }
+
+        return this.approvalService.getBookedDatesPublic(placement, merchant.admin_id);
     }
 
     // ============ PHASE 4: HOMEPAGE DISPLAY ENDPOINTS ============

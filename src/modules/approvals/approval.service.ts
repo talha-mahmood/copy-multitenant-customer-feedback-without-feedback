@@ -526,9 +526,37 @@ export class ApprovalService {
 
         const requestedStartDate = this.resolveHomepagePlacementStartDate(dto?.start_date);
 
-        // const merchantSettings = await this.merchantSettingRepository.findOne({
-        //     where: { merchant_id: merchantId },
-        // });
+        // Get merchant settings to determine duration
+        const merchantSettings = await this.merchantSettingRepository.findOne({
+            where: { merchant_id: merchantId },
+        });
+
+        const duration = merchantSettings?.paid_ad_duration || 7; // Default 7 days
+        
+        // Calculate end date
+        const endDate = new Date(requestedStartDate);
+        endDate.setDate(endDate.getDate() + duration);
+
+        // Check for date range conflicts on this placement for this admin
+        const hasConflict = await this.checkDateRangeConflict(
+            normalizedPlacement,
+            requestedStartDate,
+            endDate,
+            merchant.admin_id, // Check per-admin basis
+        );
+
+        if (hasConflict) {
+            throw new BadRequestException(
+                `The selected placement "${normalizedPlacement}" is already booked for the dates ` +
+                `${requestedStartDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}. ` +
+                `Please select a different date range or placement.`
+            );
+        }
+
+        console.log(
+            `[ApprovalService] Creating homepage ad request for merchant ${merchantId}, ` +
+            `placement: ${normalizedPlacement}, dates: ${requestedStartDate.toISOString()} - ${endDate.toISOString()}`
+        );
 
         // const hasAdMedia = Boolean(
         //     merchantSettings?.paid_ad_image ||
@@ -542,7 +570,7 @@ export class ApprovalService {
         //     );
         // }
 
-        // Create approval request
+        // Create approval request with both start and end dates
         const approval = this.approvalRepository.create({
             merchant_id: merchantId,
             agent_id: merchant.admin_id,
@@ -554,6 +582,8 @@ export class ApprovalService {
             forwarded_by_agent: false,
             payment_status: 'pending',
             ad_created_at: requestedStartDate,
+            ad_expired_at: endDate,
+            placement: normalizedPlacement,
         });
 
         return await this.approvalRepository.save(approval);
@@ -1108,5 +1138,163 @@ export class ApprovalService {
         };
 
         return mapped[normalizedPlacement] || normalizedPlacement;
+    }
+
+    /**
+     * Get all booked date ranges for a specific placement
+     * Returns dates from pending, approved, and payment-completed requests
+     */
+    async getBookedDatesForPlacement(placement: string, adminId?: number): Promise<{
+        startDate: Date;
+        endDate: Date;
+        approvalId: number;
+        merchantId: number;
+        status: string;
+    }[]> {
+        const normalizedPlacement = this.normalizeRequestedHomepageAdPlacement(placement);
+        if (!normalizedPlacement) {
+            throw new BadRequestException('Invalid placement');
+        }
+
+        const currentDate = new Date();
+        
+        console.log(
+            `[ApprovalService] getBookedDatesForPlacement - ` +
+            `placement: ${normalizedPlacement}, adminId: ${adminId}, currentDate: ${currentDate.toISOString()}`
+        );
+        
+        // Build query to get all non-rejected approvals with this placement
+        let query = this.approvalRepository
+            .createQueryBuilder('approval')
+            .where('approval.approval_type IN (:...types)', {
+                types: ['paid_ad', 'homepage_ad_push'],
+            })
+            .andWhere('approval.approval_status NOT IN (:...excludedStatuses)', {
+                excludedStatuses: ['rejected'],
+            })
+            // Match placement field directly (handle NULL by checking both placement and ad_type for backward compatibility)
+            .andWhere(
+                '(LOWER(approval.placement) = :placement OR ' +
+                '(approval.placement IS NULL AND LOWER(approval.ad_type) = :adTypePlacement))',
+                {
+                    placement: normalizedPlacement.toLowerCase(),
+                    adTypePlacement: normalizedPlacement.toLowerCase(),
+                }
+            )
+            .andWhere('approval.ad_created_at IS NOT NULL')
+            .andWhere('approval.ad_expired_at IS NOT NULL')
+            // Only include bookings that haven't expired yet
+            .andWhere('approval.ad_expired_at > :currentDate', { currentDate });
+
+        // If adminId is provided, filter by admin (for per-admin slot checking)
+        // Also handle records where admin_id might be stored in agent_id field
+        if (adminId) {
+            query = query.andWhere(
+                '(approval.admin_id = :adminId OR approval.agent_id = :adminId)',
+                { adminId }
+            );
+        }
+
+        const approvals = await query.getMany();
+
+        console.log(
+            `[ApprovalService] Found ${approvals.length} booked slots for placement "${normalizedPlacement}" ` +
+            `(adminId: ${adminId}): ` +
+            approvals.map(a => 
+                `[ID:${a.id}, merchant:${a.merchant_id}, ${a.ad_created_at?.toISOString().split('T')[0]} to ${a.ad_expired_at?.toISOString().split('T')[0]}, status:${a.approval_status}, placement:${a.placement}]`
+            ).join(', ')
+        );
+
+        return approvals.map((approval) => ({
+            startDate: approval.ad_created_at,
+            endDate: approval.ad_expired_at,
+            approvalId: approval.id,
+            merchantId: approval.merchant_id,
+            status: approval.approval_status,
+        }));
+    }
+
+    /**
+     * Check if a date range conflicts with existing bookings for a placement
+     */
+    async checkDateRangeConflict(
+        placement: string,
+        startDate: Date,
+        endDate: Date,
+        adminId?: number,
+        excludeApprovalId?: number,
+    ): Promise<boolean> {
+        console.log(
+            `[ApprovalService] checkDateRangeConflict - ` +
+            `placement: ${placement}, startDate: ${startDate.toISOString().split('T')[0]}, ` +
+            `endDate: ${endDate.toISOString().split('T')[0]}, adminId: ${adminId}, ` +
+            `excludeApprovalId: ${excludeApprovalId}`
+        );
+
+        const bookedDates = await this.getBookedDatesForPlacement(placement, adminId);
+
+        // Filter out the current approval if updating
+        const relevantBookings = excludeApprovalId
+            ? bookedDates.filter((b) => b.approvalId !== excludeApprovalId)
+            : bookedDates;
+
+        console.log(
+            `[ApprovalService] Checking ${relevantBookings.length} relevant bookings for conflicts...`
+        );
+
+        // Check for overlaps
+        for (const booking of relevantBookings) {
+            const bookingStart = new Date(booking.startDate);
+            const bookingEnd = new Date(booking.endDate);
+
+            // Check if ranges overlap
+            // Two ranges overlap if: start1 < end2 AND start2 < end1
+            const overlaps = startDate < bookingEnd && bookingStart < endDate;
+            
+            console.log(
+                `[ApprovalService] Comparing with booking [ID:${booking.approvalId}]: ` +
+                `${bookingStart.toISOString().split('T')[0]} to ${bookingEnd.toISOString().split('T')[0]} ` +
+                `(status: ${booking.status}) - Overlaps: ${overlaps}`
+            );
+
+            if (overlaps) {
+                console.log(
+                    `[ApprovalService] ❌ CONFLICT DETECTED for placement "${placement}"! ` +
+                    `Requested: ${startDate.toISOString().split('T')[0]} - ${endDate.toISOString().split('T')[0]}, ` +
+                    `Conflicts with existing approval ID ${booking.approvalId}: ` +
+                    `${bookingStart.toISOString().split('T')[0]} - ${bookingEnd.toISOString().split('T')[0]}`
+                );
+                return true;
+            }
+        }
+
+        console.log(
+            `[ApprovalService] ✅ No conflicts found for placement "${placement}" ` +
+            `from ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`
+        );
+        return false;
+    }
+
+    /**
+     * Public endpoint to get booked dates for a placement
+     */
+    async getBookedDatesPublic(placement: string, adminId?: number): Promise<{
+        placement: string;
+        bookedDates: {
+            startDate: string;
+            endDate: string;
+            status: string;
+        }[];
+    }> {
+        const bookedDates = await this.getBookedDatesForPlacement(placement, adminId);
+
+        return {
+            placement,
+            bookedDates: bookedDates.map((booking) => ({
+                startDate: booking.startDate.toISOString().split('T')[0],
+                endDate: booking.endDate.toISOString().split('T')[0],
+                status: booking.status,
+            })),
+        };
     }
 }

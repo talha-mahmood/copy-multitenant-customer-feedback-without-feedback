@@ -299,6 +299,35 @@ export class MerchantSettingService {
 
     const updated = await this.merchantSettingRepository.save(setting);
     const requestedAdStartAt = this.resolveRequestedAdStartDate(paidAdStartDate);
+    
+    // Get the placement and duration for conflict checking
+    const placement = paidAdPlacement || setting.paid_ad_placement || 'top';
+    const duration = paidAdDuration || setting.paid_ad_duration || 7;
+    
+    // Calculate end date
+    const endDate = new Date(requestedAdStartAt);
+    endDate.setDate(endDate.getDate() + duration);
+    
+    // Check for date range conflicts on this placement for this admin
+    const hasConflict = await this.approvalService.checkDateRangeConflict(
+      placement,
+      requestedAdStartAt,
+      endDate,
+      merchant.admin_id, // Check per-admin basis
+    );
+
+    if (hasConflict) {
+      throw new BadRequestException(
+        `The selected placement "${placement}" is already booked for the dates ` +
+        `${requestedAdStartAt.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}. ` +
+        `Please select a different date range or placement.`
+      );
+    }
+
+    console.log(
+      `[MerchantSettingService] Creating paid ad approval for merchant ${merchantId}, ` +
+      `placement: ${placement}, dates: ${requestedAdStartAt.toISOString()} - ${endDate.toISOString()}`
+    );
 
     // Create approval record with merchant's admin_id as agent_id
     const approval = await this.approvalService.create({
@@ -310,6 +339,8 @@ export class MerchantSettingService {
       approval_status: 'pending',
       ad_type: 'image',
       ad_created_at: requestedAdStartAt,
+      ad_expired_at: endDate,
+      placement: placement,
     });
 
     return {
@@ -367,6 +398,35 @@ export class MerchantSettingService {
 
     const updated = await this.merchantSettingRepository.save(setting);
     const requestedAdStartAt = this.resolveRequestedAdStartDate(paidAdStartDate);
+    
+    // Get the placement and duration for conflict checking
+    const placement = paidAdPlacement || setting.paid_ad_placement || 'top';
+    const duration = paidAdDuration || setting.paid_ad_duration || 7;
+    
+    // Calculate end date
+    const endDate = new Date(requestedAdStartAt);
+    endDate.setDate(endDate.getDate() + duration);
+    
+    // Check for date range conflicts on this placement for this admin
+    const hasConflict = await this.approvalService.checkDateRangeConflict(
+      placement,
+      requestedAdStartAt,
+      endDate,
+      merchant.admin_id, // Check per-admin basis
+    );
+
+    if (hasConflict) {
+      throw new BadRequestException(
+        `The selected placement "${placement}" is already booked for the dates ` +
+        `${requestedAdStartAt.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}. ` +
+        `Please select a different date range or placement.`
+      );
+    }
+
+    console.log(
+      `[MerchantSettingService] Creating paid ad approval for merchant ${merchantId}, ` +
+      `placement: ${placement}, dates: ${requestedAdStartAt.toISOString()} - ${endDate.toISOString()}`
+    );
 
     // Create approval record with merchant's admin_id as agent_id
     const approval = await this.approvalService.create({
@@ -378,6 +438,8 @@ export class MerchantSettingService {
       approval_status: 'pending',
       ad_type: 'video',
       ad_created_at: requestedAdStartAt,
+      ad_expired_at: endDate,
+      placement: placement,
     });
 
     return {
