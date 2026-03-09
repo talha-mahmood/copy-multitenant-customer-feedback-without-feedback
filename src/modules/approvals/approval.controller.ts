@@ -37,8 +37,8 @@ export class ApprovalController {
     }
 
     @Get()
-    findAll() {
-        return this.approvalService.findAll();
+    findAll(@CurrentUser() user: User) {
+        return this.approvalService.findAllScoped(user);
     }
 
     @Get('pending')
