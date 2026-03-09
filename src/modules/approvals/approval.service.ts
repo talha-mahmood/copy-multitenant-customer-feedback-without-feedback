@@ -13,6 +13,7 @@ import { WalletTransaction } from '../wallets/entities/wallet-transaction.entity
 import { Coupon } from '../coupons/entities/coupon.entity';
 import { CreateHomepageCouponRequestDto } from './dto/create-homepage-coupon-request.dto';
 import { CreateHomepageAdRequestDto } from './dto/create-homepage-ad-request.dto';
+import { User } from '../../common/decorators/current-user';
 
 @Injectable()
 export class ApprovalService {
@@ -39,6 +40,31 @@ export class ApprovalService {
         return await this.approvalRepository.find({
             relations: ['merchant', 'merchant.settings', 'admin', 'coupon' ,'coupon.batch'],
         });
+    }
+
+    async findAllScoped(user: User): Promise<Approval[]> {
+        const relations = ['merchant', 'merchant.settings', 'admin', 'coupon', 'coupon.batch'] as const;
+
+        if (user?.role === 'merchant' && typeof user.merchantId === 'number') {
+            return await this.approvalRepository.find({
+                where: { merchant_id: user.merchantId },
+                relations: [...relations],
+                order: { created_at: 'DESC' },
+            });
+        }
+
+        if (user?.role === 'admin' && typeof user.adminId === 'number') {
+            return await this.approvalRepository.find({
+                where: [
+                    { agent_id: user.adminId },
+                    { admin_id: user.adminId },
+                ],
+                relations: [...relations],
+                order: { created_at: 'DESC' },
+            });
+        }
+
+        return await this.findAll();
     }
 
     async findOne(id: number): Promise<Approval> {
@@ -518,6 +544,20 @@ export class ApprovalService {
             throw new NotFoundException(`Merchant with ID ${merchantId} not found`);
         }
 
+        await this.assertMerchantAdToggleEnabled(merchantId);
+
+        const hasActiveOrScheduledAd = await this.hasActiveOrScheduledHomepageAd(merchantId);
+        if (hasActiveOrScheduledAd) {
+            throw new BadRequestException(
+                'You already have an active or scheduled superadmin homepage ad placement. Please wait until it expires before creating a new request.',
+            );
+        }
+
+        const hasInProgressAdRequest = await this.hasInProgressHomepageAdRequest(merchantId);
+        if (hasInProgressAdRequest) {
+            throw new BadRequestException('You already have an ad homepage placement request in progress.');
+        }
+
         const adPlacement = dto?.ad_placement;
         const normalizedPlacement = this.normalizeRequestedHomepageAdPlacement(adPlacement);
         if (!normalizedPlacement) {
@@ -600,6 +640,28 @@ export class ApprovalService {
         // Verify agent owns this merchant
         if (approval.agent_id !== agentId) {
             throw new BadRequestException('You can only forward requests from your own merchants');
+        }
+
+        if (approval.approval_type === 'homepage_ad_push') {
+            await this.assertMerchantAdToggleEnabled(approval.merchant_id);
+
+            const hasAnotherActiveOrScheduledAd = await this.hasActiveOrScheduledHomepageAd(
+                approval.merchant_id,
+                approval.id,
+            );
+            if (hasAnotherActiveOrScheduledAd) {
+                throw new BadRequestException(
+                    'Merchant already has an active or scheduled superadmin homepage ad placement. Forwarding is blocked until it expires.',
+                );
+            }
+
+            const hasAnotherInProgressAdRequest = await this.hasInProgressHomepageAdRequest(
+                approval.merchant_id,
+                approval.id,
+            );
+            if (hasAnotherInProgressAdRequest) {
+                throw new BadRequestException('Merchant already has another ad homepage placement request in progress.');
+            }
         }
 
         // Update approval
@@ -953,6 +1015,55 @@ export class ApprovalService {
 
         const existingActivePlacement = await query.getOne();
         return Boolean(existingActivePlacement);
+    }
+
+    private async assertMerchantAdToggleEnabled(merchantId: number): Promise<void> {
+        const merchantSettings = await this.merchantSettingRepository.findOne({
+            where: { merchant_id: merchantId },
+        });
+
+        if (!merchantSettings?.paid_ads) {
+            throw new BadRequestException(
+                'Merchant paid ad toggle must be enabled before forwarding or requesting superadmin homepage ad placement.',
+            );
+        }
+    }
+
+    private async hasInProgressHomepageAdRequest(merchantId: number, excludeApprovalId?: number): Promise<boolean> {
+        const query = this.approvalRepository
+            .createQueryBuilder('approval')
+            .where('approval.merchant_id = :merchantId', { merchantId })
+            .andWhere('approval.approval_type = :approvalType', { approvalType: 'homepage_ad_push' })
+            .andWhere('approval.approval_status IN (:...approvalStatuses)', {
+                approvalStatuses: ['pending_agent_review', 'forwarded_to_superadmin', 'approved_pending_payment'],
+            });
+
+        if (excludeApprovalId) {
+            query.andWhere('approval.id != :excludeApprovalId', { excludeApprovalId });
+        }
+
+        const existingRequest = await query.getOne();
+        return Boolean(existingRequest);
+    }
+
+    private async hasActiveOrScheduledHomepageAd(merchantId: number, excludeApprovalId?: number): Promise<boolean> {
+        const currentDate = new Date();
+        const query = this.approvalRepository
+            .createQueryBuilder('approval')
+            .where('approval.merchant_id = :merchantId', { merchantId })
+            .andWhere('approval.approval_type = :approvalType', { approvalType: 'homepage_ad_push' })
+            .andWhere('approval.approval_status IN (:...approvalStatuses)', {
+                approvalStatuses: ['payment_completed_active', 'payment_completed_scheduled'],
+            })
+            .andWhere('approval.payment_status = :paymentStatus', { paymentStatus: 'paid' })
+            .andWhere('approval.ad_expired_at > :currentDate', { currentDate });
+
+        if (excludeApprovalId) {
+            query.andWhere('approval.id != :excludeApprovalId', { excludeApprovalId });
+        }
+
+        const activeApproval = await query.getOne();
+        return Boolean(activeApproval);
     }
 
     private async assignNextAvailableSlot(approvalType: string, preferredPlacement?: string): Promise<string> {
